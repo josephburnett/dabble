@@ -22,14 +22,7 @@ cell* new_cell(type t, value car, value cdr)
 
 value NIL = 0;
 
-cell* read(FILE *fp);
-
-cell* read_cell(FILE *fp)
-{
-    cell* l = read(fp);
-    l->cdr = (value) read(fp);
-    return l;
-}
+cell* read_cell(FILE*fp);
 
 cell* read_symbol(FILE *fp)
 {
@@ -47,7 +40,10 @@ cell* read_symbol(FILE *fp)
 	    continue;
 	}
 	switch (c) {
-	case ' ': case ')':
+	case ' ':
+	    l->cdr = (value) read_cell(fp);
+	    return l;
+	case ')':
 	    ungetc(c, fp);
 	    return l;
 	default:
@@ -73,7 +69,7 @@ cell* read_number(FILE *fp)
     }
 }
 
-cell* read(FILE *fp)
+cell* read_cell(FILE *fp)
 {
     int c;
     while ((c = getc(fp)) != EOF) {
@@ -110,7 +106,6 @@ void print(cell* c)
 	    printf("<NIL>");
 	    break;
 	}
-	print((cell*) c->cdr);
 	break;
     case SYMBOL: {
 	char* sym = (char*) &(c->car);
@@ -127,6 +122,9 @@ void print(cell* c)
 	printf("<func>");
 	break;
     }
+    if (c->cdr != NIL) {
+	print((cell*) c->cdr);
+    }
     printf(")");
 }
 
@@ -137,11 +135,11 @@ int main(int argc, char *argv[])
 	return 1;
     }
     FILE *fp;
-    if ((fp = fopen("test.clw", "r")) == NULL) {
+    if ((fp = fopen(argv[1], "r")) == NULL) {
 	printf("callow: can't open %s\n", *argv);
 	return 1;
     }
-    cell* c = read(fp);
+    cell* c = read_cell(fp);
     print(c);
     printf("\n");
     fclose(fp);
