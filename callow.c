@@ -93,17 +93,16 @@ cell* read_cell(FILE *fp)
 
 void print(cell* c)
 {
-    printf("(");
     if (c == (cell*) NIL) {
 	printf(")");
 	return;
     }
     switch (c->t) {
     case LIST:
-	printf("<LIST>");
 	print((cell*) c->car);
+	printf("( ");
 	if (c->cdr == NIL) {
-	    printf("<NIL>");
+	    printf("<NIL> ");
 	    break;
 	}
 	break;
@@ -113,10 +112,11 @@ void print(cell* c)
 	for (i = 0; i < 8; i++) {
 	    printf("%c", sym[i]);
 	}
+	printf(" ");
 	break;
     }
     case NUMBER:
-	printf("%ld", c->car);
+	printf("%ldn", c->car);
 	break;
     case FUNC:
 	printf("<func>");
@@ -125,7 +125,6 @@ void print(cell* c)
     if (c->cdr != NIL) {
 	print((cell*) c->cdr);
     }
-    printf(")");
 }
 
 int main(int argc, char *argv[])
