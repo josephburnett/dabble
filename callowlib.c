@@ -75,11 +75,17 @@ cell* read_cell(FILE *fp)
     while ((c = getc(fp)) != EOF) {
 	if (c >= 97 && c <= 122) {
 	    ungetc(c, fp);
-	    return read_symbol(fp);
+	    cell* cl = read_symbol(fp);
+	    /* printf("continuing a list\n"); */
+	    /* cl->cdr = (value) read_cell(fp); */
+	    return cl;
 	}
 	switch (c) {
-	case '(':
-	    return new_cell(LIST, (value) read_cell(fp), NIL);
+	case '(': {
+	    cell* cm = new_cell(LIST, (value) read_cell(fp), NIL);
+	    cm->cdr = (value) read_cell(fp);
+	    return cm;
+	}
 	case ')':
 	    return (cell*) NIL;
 	case ' ':
@@ -91,20 +97,16 @@ cell* read_cell(FILE *fp)
     }
 }
 
-void print(FILE *fp, cell* c)
+void print(FILE *fp, cell* c, int index, int depth)
 {
-    if (c == (cell*) NIL) {
-      fprintf(fp, ")");
-      return;
+    if (index > 0) {
+	fprintf(fp, " ");
     }
     switch (c->t) {
     case LIST:
 	fprintf(fp, "(");
-	print(fp, (cell*) c->car);
-	if (c->cdr == NIL) {
-	    fprintf(fp, ")");
-	    break;
-	}
+	print(fp, (cell*) c->car, 0, depth + 1);
+	fprintf(fp, ")");
 	break;
     case SYMBOL: {
 	char* sym = (char*) &(c->car);
@@ -124,7 +126,32 @@ void print(FILE *fp, cell* c)
 	break;
     }
     if (c->cdr != NIL) {
-	print(fp, (cell*) c->cdr);
+	print(fp, (cell*) c->cdr, index + 1, depth);
     }
 }
 
+void print_by_cell(FILE *fp, cell* c) {
+    if ((value) c == NIL) {
+	fprintf(fp, "<NIL>");
+    } else {
+	switch (c->t) {
+	case LIST:
+	    fprintf(fp, "(");
+	    print_by_cell(fp, (cell*) c->car);
+	    fprintf(fp, ")");
+	    print_by_cell(fp, (cell*) c->cdr);
+	    break;
+	case SYMBOL: {
+	    char* sym = (char*) &(c->car);
+	    int i;
+	    for (i = 0; i < 8; i++) {
+		if (sym[i] != 0) {
+		    fprintf(fp, "%c", sym[i]);
+		}
+	    }
+	    print_by_cell(fp, (cell*) c->cdr);
+	    break;
+	}
+	}
+    }
+}

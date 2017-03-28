@@ -2,6 +2,24 @@
 #include <stdio.h>
 #include <string.h>
 
+char* test_cases[][3] = {
+    {
+    	"Single symbol list",
+    	"(abcd)",
+    	"(abcd)"
+    },
+    {
+    	"Multiple symbol list",
+    	"(a b c d)",
+    	"(a b c d)"
+    },
+    {
+	"Nested lists",
+	"(a (b) ((c)))",
+	"(a (b) ((c)))"
+    }
+};
+
 int check(char name[], char given[], char expect[])
 {
     int ch;
@@ -13,11 +31,12 @@ int check(char name[], char given[], char expect[])
     char* actual;
     size_t size;
     stream = open_memstream(&actual, &size);
-    print(stream, c);
+    /* print_by_cell(stream, c); */
+    print(stream, c, 0, 1);
     fclose(stream);
 
     if (strcmp(actual, expect) != 0) {
-	printf("FAIL: %s\n", name);
+	printf("\nFAIL: %s\n", name);
 	printf("    Given:    %s\n", given);
 	printf("    Expected: %s\n", expect);
 	printf("    Got:      %s\n", actual);
@@ -29,8 +48,10 @@ int check(char name[], char given[], char expect[])
 int main(int argc, char *argv[])
 {
     int fail = 0;
-  
-    fail += check("Single symbol list", "(abcd)", "(abcd)");
+    int i;
+    for (i = 0; i < sizeof(test_cases) / sizeof(test_cases[0]); i++) {
+	fail += check(test_cases[i][0], test_cases[i][1], test_cases[i][2]);
+    }
 
     if (fail == 0) {
 	printf("\nALL TESTS PASSED!\n\n");
@@ -38,31 +59,3 @@ int main(int argc, char *argv[])
 	printf("\n%d FAILED TESTS!\n\n", fail);
     }
 } 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
