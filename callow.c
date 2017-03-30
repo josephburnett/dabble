@@ -1,4 +1,4 @@
-#include "callowlib.c"
+#include "libcallow.c"
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -14,8 +14,8 @@ int main(int argc, char *argv[])
 	printf("callow: can't open %s\n", *argv);
 	return 1;
     }
-    cell* c = read_cell(fp);
-    print(stdout, c);
+    cell* c = read(fp);
+    print(stdout, c, 0, 1);
     printf("\n");
     fclose(fp);
     return 0;
