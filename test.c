@@ -26,12 +26,11 @@ int check(char name[], char given[], char expect[])
     FILE *stream;
 
     stream = fmemopen(given, strlen(given), "r");
-    cell* c = read_cell(stream);
+    cell* c = read(stream);
 
     char* actual;
     size_t size;
     stream = open_memstream(&actual, &size);
-    /* print_by_cell(stream, c); */
     print(stream, c, 0, 1);
     fclose(stream);
 

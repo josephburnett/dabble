@@ -22,79 +22,65 @@ cell* new_cell(type t, value car, value cdr)
 
 value NIL = 0;
 
-cell* read_cell(FILE*fp);
+cell* read(FILE *fp);
 
-cell* read_symbol(FILE *fp)
-{
-    cell* l = new_cell(SYMBOL, 0, NIL);
+cell* list(FILE *fp) {
+    cell *cl = new_cell(LIST, 0, NIL);
+    cl->car = (value) read(fp);
+    cl->cdr = (value) read(fp);
+    return cl;
+}
+
+cell* symbol(FILE *fp) {
+    cell* cl = new_cell(SYMBOL, 0, NIL);
+    int ch;
     int i = 0;
-    int c;
-    while((c = getc(fp)) != EOF) {
-	if (c >= 97 && c <= 122) {
-	    if (i == 7) {
-		printf("Error parsing. Symbol is too long: %c\n", c);
+    while ((ch = getc(fp)) != EOF) {
+	switch (ch) {
+	case ' ':
+	    cl->cdr = (value) read(fp);
+	    return cl;
+	case ')':
+	    cl->cdr = NIL;
+	    return cl;
+	default:
+	    if (ch >= 97 && ch <= 122) {
+		if (i == 7) {
+		    printf("Error parsing. Symbol is too long: %c\n", ch);
+		    exit(1);
+		}
+		((char*) &(cl->car))[i] = ch;
+		i++;
+		continue;
+	    } else {
+		printf("Error parsing. Invalid symbol character: %c\n", ch);
 		exit(1);
 	    }
-	    ((char*) &(l->car))[i] = c;
-	    i++;
-	    continue;
-	}
-	switch (c) {
-	case ' ':
-	    l->cdr = (value) read_cell(fp);
-	    return l;
-	case ')':
-	    ungetc(c, fp);
-	    return l;
-	default:
-	    printf("Error parsing. Invalid symbol character: %c\n", c);
-	    exit(1);
 	}
     }
 }
 
-cell* read_number(FILE *fp)
-{
-    value num = 0;
-    int c;
-    while((c = getc(fp)) != EOF) {
-	if (c == ' ' || c == ')') {
-	    return new_cell(NUMBER, num, NIL);
-	}
-	if (c < 0 || c > 9) {
-	    printf("Error parsing. Invalid number: %c\n", c);
-	    exit(1);
-	}
-	num = num * 10 + ((int64_t) c - 48);
-    }
-}
-
-cell* read_cell(FILE *fp)
-{
-    int c;
-    while ((c = getc(fp)) != EOF) {
-	if (c >= 97 && c <= 122) {
-	    ungetc(c, fp);
-	    cell* cl = read_symbol(fp);
-	    /* printf("continuing a list\n"); */
-	    /* cl->cdr = (value) read_cell(fp); */
-	    return cl;
-	}
-	switch (c) {
-	case '(': {
-	    cell* cm = new_cell(LIST, (value) read_cell(fp), NIL);
-	    cm->cdr = (value) read_cell(fp);
-	    return cm;
-	}
+cell* read(FILE *fp) {
+    int ch;
+    while ((ch = getc(fp)) != EOF) {
+	switch (ch) {
+	case '(':
+	    return list(fp);
 	case ')':
 	    return (cell*) NIL;
 	case ' ':
 	    continue;
 	default:
-	    printf("Error parsing. Invalid char: %c\n", c);
-	    exit(1);
+	    if (ch >= 97 && ch <= 122) {
+		ungetc(ch, fp);
+		return symbol(fp);
+	    } else {
+		printf("Error parsing. Invalid char: %c\n", ch);
+		exit(1);
+	    }
 	}
     }
+    return (cell*) NIL;
 }
 
 void print(FILE *fp, cell* c, int index, int depth)
@@ -130,28 +116,3 @@ void print(FILE *fp, cell* c, int index, int depth)
     }
 }
 
-void print_by_cell(FILE *fp, cell* c) {
-    if ((value) c == NIL) {
-	fprintf(fp, "<NIL>");
-    } else {
-	switch (c->t) {
-	case LIST:
-	    fprintf(fp, "(");
-	    print_by_cell(fp, (cell*) c->car);
-	    fprintf(fp, ")");
-	    print_by_cell(fp, (cell*) c->cdr);
-	    break;
-	case SYMBOL: {
-	    char* sym = (char*) &(c->car);
-	    int i;
-	    for (i = 0; i < 8; i++) {
-		if (sym[i] != 0) {
-		    fprintf(fp, "%c", sym[i]);
-		}
-	    }
-	    print_by_cell(fp, (cell*) c->cdr);
-	    break;
-	}
-	}
-    }
-}
