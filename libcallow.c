@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <inttypes.h>
 
 typedef enum { LIST, SYMBOL, NUMBER, FUNC } type;
 
@@ -60,6 +61,31 @@ cell* symbol(FILE *fp) {
     }
 }
 
+cell* number(FILE *fp) {
+    int ch;
+    value v = 0;
+    value sign = 1;
+    while ((ch = getc(fp)) != EOF) {
+	switch (ch) {
+	case ' ':
+	    return new_cell(NUMBER, v * sign, (value) read(fp));
+	case ')':
+	    return new_cell(NUMBER, v * sign, NIL);
+	default:
+	    if (ch == '-') {
+		sign = -1;
+		continue;
+	    }
+	    if (ch >= 48 && ch <= 57) {
+		v = v * 10 + (ch - 48);
+	    } else {
+		printf("Error parsing. Invalid symbol character: %c\n", ch);
+		exit(1);
+	    }
+	}
+    }
+}
+
 cell* read(FILE *fp) {
     int ch;
     while ((ch = getc(fp)) != EOF) {
@@ -74,6 +100,10 @@ cell* read(FILE *fp) {
 	    if (ch >= 97 && ch <= 122) {
 		ungetc(ch, fp);
 		return symbol(fp);
+	    }
+	    if ((ch >= 48 && ch <= 57) || ch == '-') {
+		ungetc(ch, fp);
+		return number(fp);
 	    } else {
 		printf("Error parsing. Invalid char: %c\n", ch);
 		exit(1);
@@ -105,7 +135,7 @@ void print(FILE *fp, cell* c, int index, int depth)
 	break;
     }
     case NUMBER:
-	fprintf(fp, "%ldn", c->car);
+	fprintf(fp, "%" PRId64, c->car);
 	break;
     case FUNC:
 	fprintf(fp, "<func>");

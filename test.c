@@ -17,6 +17,26 @@ char* test_cases[][3] = {
 	"Nested lists",
 	"(a (b) ((c)))",
 	"(a (b) ((c)))"
+    },
+    {
+	"Whitespace ignored",
+	"( a  b     c)",
+	"(a b c)"
+    },
+    {
+	"Single number list",
+	"(1234)",
+	"(1234)"
+    },
+    {
+	"Multiple number list",
+	"(1 2 3 4)",
+	"(1 2 3 4)"
+    },
+    {
+	"Negative numbers",
+	"(-1 -2 -3)",
+	"(-1 -2 -3)"
     }
 };
 
@@ -57,4 +77,4 @@ int main(int argc, char *argv[])
     } else {
 	printf("\n%d FAILED TESTS!\n\n", fail);
     }
-} 
+}
