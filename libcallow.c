@@ -61,6 +61,26 @@ cell* symbol(FILE *fp) {
     }
 }
 
+cell* string(FILE *fp) {
+    cell* head = new_cell(SYMBOL, 0, NIL);
+    cell* tail = head;
+    int ch;
+    while ((ch = getc(fp)) != EOF) {
+	if (ch == '"') {
+	    return new_cell(LIST, (value) head, NIL);
+	}
+	if (ch >= 0 && ch <= 127) {
+	    ((char*) &(tail->car))[0] = ch;
+	    tail->cdr = (value) new_cell(SYMBOL, 0, NIL);
+	    tail = (cell*) tail->cdr;
+	    continue;
+	}
+	printf("Error parsing. Invalid string character: %c\n", ch);
+	exit(1);
+    }
+    return (cell*) NIL;
+}
+
 cell* number(FILE *fp) {
     int ch;
     value v = 0;
@@ -94,6 +114,8 @@ cell* read(FILE *fp) {
 	    return list(fp);
 	case ')':
 	    return (cell*) NIL;
+	case '"':
+	    return string(fp);
 	case ' ':
 	    continue;
 	default:

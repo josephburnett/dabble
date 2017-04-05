@@ -19,6 +19,11 @@ char* test_cases[][3] = {
 	"(a (b) ((c)))"
     },
     {
+	"Nested lists",
+	"((a) (b))",
+	"((a) (b))"
+    },
+    {
 	"Whitespace ignored",
 	"( a  b     c)",
 	"(a b c)"
@@ -37,6 +42,21 @@ char* test_cases[][3] = {
 	"Negative numbers",
 	"(-1 -2 -3)",
 	"(-1 -2 -3)"
+    },
+    {
+	"Single string",
+	"\"abcd\"",
+        "(a b c d)"
+    },
+    {
+	"Single string list",
+	"(\"abcd\")",
+	"((a b c d))"
+    },
+    {
+	"Nested string lists",
+	"(\"a\" \"b\")",
+	"((a) (b))"
     }
 };
 
