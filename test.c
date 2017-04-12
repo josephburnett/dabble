@@ -57,6 +57,21 @@ char* test_cases[][3] = {
         "Nested string lists",
         "(\"a\" \"b\")",
         "((a) (b))"
+    },
+    {
+        "Error on symbol too long",
+        "abcdefghijklmn",
+        "<error>"
+    },
+    {
+        "Error on mismatched parens",
+        "(abc]",
+        "<error>"
+    },
+    {
+        "Error on open parens",
+        "(abc",
+        "<error>"
     }
 };
 
@@ -98,4 +113,3 @@ int main(int argc, char *argv[])
         printf("\n%d FAILED TESTS!\n\n", fail);
     }
 }
-

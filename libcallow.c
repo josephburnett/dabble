@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 
-typedef enum { LIST, SYMBOL, NUMBER, FUNC } type;
+typedef enum { LIST, SYMBOL, NUMBER, FUNC, ERROR } type;
 
 typedef int64_t value;
 typedef struct cell {
@@ -11,6 +11,8 @@ typedef struct cell {
     value car;
     struct cell* cdr;
 } cell;
+
+cell* NIL = 0;
 
 cell* new_cell(type t, value car, cell* cdr)
 {
@@ -21,8 +23,11 @@ cell* new_cell(type t, value car, cell* cdr)
     return c;
 }
 
-cell* NIL = 0;
-
+int is_error(cell* c)
+{
+    if (c != NIL && c->t == ERROR) return 1;
+    return 0;
+}
 
 typedef enum { R_WHITESPACE, R_SYMBOL, R_NUMBER } reading;
 
@@ -33,6 +38,7 @@ cell* read(FILE *fp)
     int ch;
     int index = 0;
     value v = 0;
+    cell* c = NIL;
     value sign = 1;
     reading rd = R_WHITESPACE;
     while ((ch = getc(fp)) != EOF) {
@@ -42,13 +48,22 @@ cell* read(FILE *fp)
             case R_WHITESPACE:
                 continue;
             case R_SYMBOL:
-                return new_cell(SYMBOL, v, read(fp));
+                c = read(fp);
+                if (is_error(c)) return c;
+                return new_cell(SYMBOL, v, c);
             case R_NUMBER:
-                return new_cell(NUMBER, v * sign, read(fp));
+                c = read(fp);
+                if (is_error(c)) return c;
+                return new_cell(NUMBER, v * sign, c);
             }
         case '(': {
-            cell* cl = new_cell(LIST, (value) read(fp), NIL);
-            cl->cdr = read(fp);
+            c = read(fp);
+            if (is_error(c)) return c;
+            if (c == NIL) return new_cell(ERROR, 0, NIL);
+            cell* cl = new_cell(LIST, (value) c, NIL);
+            c = read(fp);
+            if (is_error(c)) return c;
+            cl->cdr = c;
             return cl;
         }
         case ')':
@@ -67,8 +82,7 @@ cell* read(FILE *fp)
                 rd = R_NUMBER;
                 continue;
             default:
-                printf("Error parsing. Invalid '-' (only allowed before numbers).\n");
-                exit(1);
+                return new_cell(ERROR, 0, NIL);
             }
         case '0' ... '9':
             switch (rd) {
@@ -79,8 +93,7 @@ cell* read(FILE *fp)
                 v = v * 10 + ch;
                 continue;
             default:
-                printf("Error parsing. Invalid character: %c\n", ch);
-                exit(1);
+                return new_cell(ERROR, 0, NIL);
             }
         case 'a' ... 'z':
             switch (rd) {
@@ -88,19 +101,23 @@ cell* read(FILE *fp)
             case R_SYMBOL:
                 rd = R_SYMBOL;
                 if (index == 7) {
-                    printf("Error parsing. Symbol is too long.\n");
-                    exit(1);
+                    return new_cell(ERROR, 0, NIL);
                 }
                 ((char *) &v)[index++] = ch;
                 continue;
             }
         case '"': {
-            cell* cl = new_cell(LIST, (value) string(fp), NIL);
-            cl->cdr = read(fp);
+            c = string(fp);
+            if (is_error(c)) return c;
+            if (c == NIL) return new_cell(ERROR, 0, NIL);
+            cell* cl = new_cell(LIST, (value) c, NIL);
+            c = read(fp);
+            if (is_error(c)) return c;
+            cl->cdr = c;
             return cl;
         }
         default:
-            exit(1);
+            return new_cell(ERROR, 0, NIL);
         }
     }
     return (cell*) NIL;
@@ -110,12 +127,15 @@ cell* string(FILE *fp)
 {
     int ch;
     value v = 0;
+    cell* c = NIL;
     while ((ch = getc(fp)) != EOF) {
         if (ch == '"') {
             return NIL;
         } else {
             ((char*) &v)[0] = ch;
-            return new_cell(SYMBOL, v, string(fp));
+            c = string(fp);
+            if (is_error(c)) return c;
+            return new_cell(SYMBOL, v, c);
         }
     }
 }
@@ -147,6 +167,9 @@ void print_index(FILE *fp, cell* c, int index)
     case FUNC:
         fprintf(fp, "<func>");
         break;
+    case ERROR:
+        fprintf(fp, "<error>");
+        break;
     }
     if (c->cdr != NIL) {
         print_index(fp, (cell*) c->cdr, index + 1);
@@ -157,4 +180,3 @@ void print(FILE *fp, cell* c)
 {
     print_index(fp, c, 0);
 }
-
