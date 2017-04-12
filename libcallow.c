@@ -6,13 +6,13 @@
 typedef enum { LIST, SYMBOL, NUMBER, FUNC } type;
 
 typedef int64_t value;
-typedef struct {
+typedef struct cell {
     type t;
     value car;
-    value cdr;
+    struct cell* cdr;
 } cell;
 
-cell* new_cell(type t, value car, value cdr)
+cell* new_cell(type t, value car, cell* cdr)
 {
     cell* c = malloc(sizeof(cell));
     c->t = t;
@@ -21,14 +21,15 @@ cell* new_cell(type t, value car, value cdr)
     return c;
 }
 
-value NIL = 0;
+cell* NIL = 0;
 
 
 typedef enum { R_WHITESPACE, R_SYMBOL, R_NUMBER } reading;
 
 cell* string(FILE *fp);
 
-cell* read(FILE *fp) {
+cell* read(FILE *fp)
+{
     int ch;
     int index = 0;
     value v = 0;
@@ -41,13 +42,13 @@ cell* read(FILE *fp) {
             case R_WHITESPACE:
                 continue;
             case R_SYMBOL:
-                return new_cell(SYMBOL, v, (value) read(fp));
+                return new_cell(SYMBOL, v, read(fp));
             case R_NUMBER:
-                return new_cell(NUMBER, v * sign, (value) read(fp));
+                return new_cell(NUMBER, v * sign, read(fp));
             }
         case '(': {
             cell* cl = new_cell(LIST, (value) read(fp), NIL);
-            cl->cdr = (value) read(fp);
+            cl->cdr = read(fp);
             return cl;
         }
         case ')':
@@ -57,7 +58,7 @@ cell* read(FILE *fp) {
             case R_NUMBER:
                 return new_cell(NUMBER, v * sign, NIL);
             default:
-                return (cell*) NIL;
+                return NIL;
             }
         case '-':
             switch (rd) {
@@ -95,7 +96,7 @@ cell* read(FILE *fp) {
             }
         case '"': {
             cell* cl = new_cell(LIST, (value) string(fp), NIL);
-            cl->cdr = (value) read(fp);
+            cl->cdr = read(fp);
             return cl;
         }
         default:
@@ -105,20 +106,21 @@ cell* read(FILE *fp) {
     return (cell*) NIL;
 }
 
-cell* string(FILE *fp) {
+cell* string(FILE *fp)
+{
     int ch;
     value v = 0;
     while ((ch = getc(fp)) != EOF) {
         if (ch == '"') {
-            return (cell*) NIL;
+            return NIL;
         } else {
             ((char*) &v)[0] = ch;
-            return new_cell(SYMBOL, v, (value) string(fp));
+            return new_cell(SYMBOL, v, string(fp));
         }
     }
 }
 
-void print(FILE *fp, cell* c, int index, int depth)
+void print_index(FILE *fp, cell* c, int index)
 {
     if (index > 0) {
         fprintf(fp, " ");
@@ -126,7 +128,7 @@ void print(FILE *fp, cell* c, int index, int depth)
     switch (c->t) {
     case LIST:
         fprintf(fp, "(");
-        print(fp, (cell*) c->car, 0, depth + 1);
+        print_index(fp, (cell*) c->car, 0);
         fprintf(fp, ")");
         break;
     case SYMBOL: {
@@ -147,6 +149,12 @@ void print(FILE *fp, cell* c, int index, int depth)
         break;
     }
     if (c->cdr != NIL) {
-        print(fp, (cell*) c->cdr, index + 1, depth);
+        print_index(fp, (cell*) c->cdr, index + 1);
     }
 }
+
+void print(FILE *fp, cell* c)
+{
+    print_index(fp, c, 0);
+}
+
