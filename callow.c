@@ -15,7 +15,7 @@ int main(int argc, char *argv[])
 	return 1;
     }
     cell* c = read(fp);
-    print(stdout, c, 0, 1);
+    print(stdout, c);
     printf("\n");
     fclose(fp);
     return 0;
