@@ -9,8 +9,23 @@ char* test_cases[][3] = {
 	"abcd"
     },
     {
-	"Multiple symbols",
+	"Symbol with numbers",
+	"a1b2c3d4",
+	"a1b2c3d4"
+    },
+    {
+	"Symbol with dash",
+	"a-b-c-d",
+	"a-b-c-d"
+    },
+    {
+	"Multiple symbols. One read.",
 	"abcd efgh",
+	"abcd"
+    },
+    {
+	"Symbol whitespace ignored",
+	"   abcd  ",
 	"abcd"
     },
     {
@@ -39,9 +54,9 @@ char* test_cases[][3] = {
         "(a b c)"
     },
     {
-        "Single number list",
-        "(1234)",
-        "(1234)"
+        "Single number",
+        "1234",
+        "1234"
     },
     {
         "Multiple number list",
@@ -52,6 +67,16 @@ char* test_cases[][3] = {
         "Negative numbers",
         "(-1 -2 -3)",
         "(-1 -2 -3)"
+    },
+    {
+	"Invalid number",
+	"1-234",
+	"<error>"
+    },
+    {
+	"Invalid number",
+	"1a2b3c4d",
+	"<error>"
     },
     {
         "Single string",

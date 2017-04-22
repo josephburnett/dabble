@@ -44,6 +44,8 @@ atom symbol(FILE *fp) {
 	}
 	switch (ch) {
 	case 'a' ... 'z':
+	case '0' ... '9':
+	case '-':
 	    ((char*) &v.value)[index++] = ch;
 	    continue;
 	default:
@@ -72,12 +74,16 @@ atom number(FILE *fp) {
 	    }
 	    v.value = v.value * 10 + (ch - '0');
 	    continue;
+	case 'a' ... 'z':
+	    return (atom) { ERROR, 0 };
 	default:
 	    ungetc(ch, fp);
 	    v.value = v.value * sign;
 	    return v;
 	}
     }
+    v.value = v.value * sign;
+    return v;
 }
 
 atom string(FILE *fp) {
