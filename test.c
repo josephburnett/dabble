@@ -81,12 +81,12 @@ int check(char name[], char given[], char expect[])
     FILE *stream;
 
     stream = fmemopen(given, strlen(given), "r");
-    cell* c = read(stream);
+    atom v = read(stream);
 
     char* actual;
     size_t size;
     stream = open_memstream(&actual, &size);
-    print(stream, c);
+    print(stream, v);
     fclose(stream);
 
     if (strcmp(actual, expect) != 0) {
@@ -113,3 +113,4 @@ int main(int argc, char *argv[])
         printf("\n%d FAILED TESTS!\n\n", fail);
     }
 }
+

@@ -3,156 +3,150 @@
 #include <stdint.h>
 #include <inttypes.h>
 
-typedef enum { LIST, SYMBOL, NUMBER, FUNC, ERROR } type;
+typedef enum { NIL, LIST, SYMBOL, NUMBER, FUNC, ERROR } type;
 
 typedef int64_t value;
+
+typedef struct {
+    type type;
+    value value;
+} atom;
+
 typedef struct cell {
-    type t;
-    value car;
+    atom car;
     struct cell* cdr;
 } cell;
 
-cell* NIL = 0;
+atom read(FILE *fp);
 
-cell* new_cell(type t, value car, cell* cdr)
-{
-    cell* c = malloc(sizeof(cell));
-    c->t = t;
-    c->car = car;
-    c->cdr = cdr;
-    return c;
+atom list(FILE *fp) {
+    atom car = read(fp);
+    if (car.type == NIL || car.type == ERROR) {
+	return car;
+    }
+    atom cdr = list(fp);
+    if (cdr.type == ERROR) {
+	return cdr;
+    }
+    cell* cl = malloc(sizeof(cell));
+    cl->car = car;
+    cl->cdr = (cell*) cdr.value;
+    return (atom) { LIST, (value) cl };
 }
 
-int is_error(cell* c)
-{
-    if (c != NIL && c->t == ERROR) return 1;
-    return 0;
-}
-
-typedef enum { R_WHITESPACE, R_SYMBOL, R_NUMBER } reading;
-
-cell* string(FILE *fp);
-
-cell* read(FILE *fp)
-{
+atom symbol(FILE *fp) {
+    atom v = (atom) { SYMBOL, 0 };
     int ch;
     int index = 0;
-    value v = 0;
-    cell* c = NIL;
-    value sign = 1;
-    reading rd = R_WHITESPACE;
-    while ((ch = getc(fp)) != EOF) {
-        switch (ch) {
-        case ' ':
-            switch (rd) {
-            case R_WHITESPACE:
-                continue;
-            case R_SYMBOL:
-                c = read(fp);
-                if (is_error(c)) return c;
-                return new_cell(SYMBOL, v, c);
-            case R_NUMBER:
-                c = read(fp);
-                if (is_error(c)) return c;
-                return new_cell(NUMBER, v * sign, c);
-            }
-        case '(': {
-            c = read(fp);
-            if (is_error(c)) return c;
-            if (c == NIL) return new_cell(ERROR, 0, NIL);
-            cell* cl = new_cell(LIST, (value) c, NIL);
-            c = read(fp);
-            if (is_error(c)) return c;
-            cl->cdr = c;
-            return cl;
-        }
-        case ')':
-            switch (rd) {
-            case R_SYMBOL:
-                return new_cell(SYMBOL, v, NIL);
-            case R_NUMBER:
-                return new_cell(NUMBER, v * sign, NIL);
-            default:
-                return NIL;
-            }
-        case '-':
-            switch (rd) {
-            case R_WHITESPACE:
-                sign = -1;
-                rd = R_NUMBER;
-                continue;
-            default:
-                return new_cell(ERROR, 0, NIL);
-            }
-        case '0' ... '9':
-            switch (rd) {
-            case R_WHITESPACE:
-            case R_NUMBER:
-                rd = R_NUMBER;
-                ch = ch - '0';
-                v = v * 10 + ch;
-                continue;
-            default:
-                return new_cell(ERROR, 0, NIL);
-            }
-        case 'a' ... 'z':
-            switch (rd) {
-            case R_WHITESPACE:
-            case R_SYMBOL:
-                rd = R_SYMBOL;
-                if (index == 7) {
-                    return new_cell(ERROR, 0, NIL);
-                }
-                ((char *) &v)[index++] = ch;
-                continue;
-            }
-        case '"': {
-            c = string(fp);
-            if (is_error(c)) return c;
-            if (c == NIL) return new_cell(ERROR, 0, NIL);
-            cell* cl = new_cell(LIST, (value) c, NIL);
-            c = read(fp);
-            if (is_error(c)) return c;
-            cl->cdr = c;
-            return cl;
-        }
-        default:
-            return new_cell(ERROR, 0, NIL);
-        }
+    while((ch = getc(fp)) != EOF) {
+	if (index == 8) {
+	    return (atom) { ERROR, 0 };
+	}
+	switch (ch) {
+	case 'a' ... 'z':
+	    ((char*) &v.value)[index++] = ch;
+	    continue;
+	default:
+	    ungetc(ch, fp);
+	    return v;
+	}
     }
-    return (cell*) NIL;
+    return v;
 }
 
-cell* string(FILE *fp)
-{
+atom number(FILE *fp) {
     int ch;
-    value v = 0;
-    cell* c = NIL;
+    atom v = { NUMBER, 0 };
+    value sign = 0;
     while ((ch = getc(fp)) != EOF) {
-        if (ch == '"') {
-            return NIL;
-        } else {
-            ((char*) &v)[0] = ch;
-            c = string(fp);
-            if (is_error(c)) return c;
-            return new_cell(SYMBOL, v, c);
-        }
+	switch (ch) {
+	case '-':
+	    if (sign != 0) {
+		return (atom) { ERROR, 0 };
+	    }
+	    sign = -1;
+	    continue;
+	case '0' ... '9':
+	    if (sign == 0) {
+		sign = 1;
+	    }
+	    v.value = v.value * 10 + (ch - '0');
+	    continue;
+	default:
+	    ungetc(ch, fp);
+	    v.value = v.value * sign;
+	    return v;
+	}
     }
 }
 
-void print_index(FILE *fp, cell* c, int index)
+atom string(FILE *fp) {
+    int ch = getc(fp);
+    if (ch == EOF) {
+	return (atom) { ERROR, 0 };
+    }
+    if (ch == '"') {
+	return (atom) { NIL, 0 };
+    }
+    atom car = { SYMBOL, 0 };
+    ((char*) &car.value)[0] = ch;
+    atom cdr = string(fp);
+    if (cdr.type == ERROR) {
+	return cdr;
+    }
+    cell* cl = malloc(sizeof(cell));
+    cl->car = car;
+    cl->cdr = (cell*) cdr.value;
+    return (atom) { LIST, (value) cl };
+}
+
+atom read(FILE *fp) {
+    int ch;
+    while ((ch = getc(fp)) != EOF) {
+	switch(ch) {
+	case ' ':
+	    continue;
+	case '(':
+	    return list(fp);
+	case ')':
+	    return (atom) { NIL, 0 };
+	case '-':
+	case '0' ... '9':
+	    ungetc(ch, fp);
+	    return number(fp);
+	case 'a' ... 'z':
+	    ungetc(ch, fp);
+	    return symbol(fp);
+	case '"':
+	    return string(fp);
+	default:
+	    return (atom) { ERROR, 0 };
+	}
+    }
+    return (atom) { ERROR, 0 };
+}
+
+void print_index(FILE *fp, atom v, int index)
 {
     if (index > 0) {
         fprintf(fp, " ");
     }
-    switch (c->t) {
+    switch (v.type) {
     case LIST:
-        fprintf(fp, "(");
-        print_index(fp, (cell*) c->car, 0);
-        fprintf(fp, ")");
+	if (index <= 0) {
+	    fprintf(fp, "(");
+	}
+	print_index(fp, ((cell*) v.value)->car, 0);
+	cell* cdr = ((cell*) v.value)->cdr;
+	if (cdr != 0) {
+	    print_index(fp, (atom) { LIST, (value) cdr }, index + 1);
+	}
+	if (index <= 0) {
+	    fprintf(fp, ")");
+	}
         break;
     case SYMBOL: {
-        char* sym = (char*) &(c->car);
+        char* sym = (char*) &(v.value);
         int i;
         for (i = 0; i < 8; i++) {
             if (sym[i] != 0) {
@@ -162,7 +156,7 @@ void print_index(FILE *fp, cell* c, int index)
         break;
     }
     case NUMBER:
-        fprintf(fp, "%" PRId64, c->car);
+        fprintf(fp, "%" PRId64, v.value);
         break;
     case FUNC:
         fprintf(fp, "<func>");
@@ -170,13 +164,13 @@ void print_index(FILE *fp, cell* c, int index)
     case ERROR:
         fprintf(fp, "<error>");
         break;
-    }
-    if (c->cdr != NIL) {
-        print_index(fp, (cell*) c->cdr, index + 1);
+    case NIL:
+	fprintf(fp, "()");
+	break;
     }
 }
 
-void print(FILE *fp, cell* c)
+void print(FILE *fp, atom v)
 {
-    print_index(fp, c, 0);
+    print_index(fp, v, 0);
 }
