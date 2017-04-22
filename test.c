@@ -4,6 +4,16 @@
 
 char* test_cases[][3] = {
     {
+	"Single symbol",
+	"abcd",
+	"abcd"
+    },
+    {
+	"Multiple symbols",
+	"abcd efgh",
+	"abcd"
+    },
+    {
         "Single symbol list",
         "(abcd)",
         "(abcd)"
@@ -113,4 +123,3 @@ int main(int argc, char *argv[])
         printf("\n%d FAILED TESTS!\n\n", fail);
     }
 }
-
