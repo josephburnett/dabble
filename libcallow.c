@@ -5,53 +5,50 @@
 
 typedef enum { NIL, SYMBOL, NUMBER, ERROR, LIST, FUNC } type;
 
-typedef int64_t value_t;
+typedef int64_t chunk_t;
 
 typedef struct {
     type type;
-    value_t value;
-} atom_t;
+    chunk_t value;
+} value_t;
 
 typedef struct cell_t {
-    atom_t car;
+    value_t car;
     struct cell_t* cdr;
 } cell_t;
 
-typedef atom_t (*func_t)(int len, atom[] args);
+typedef value_t (*func_t)(int len, atom[] args);
 
 typedef struct lambda_t {
-    int names_len;
-    []atom_t names;
-    int forms_len;
-    []atom_t forms;
-    atom_t environment;
+    int len;
+    []value_t args;
     func_t func;
 };
 
-atom_t read(FILE *fp);
+value_t read(FILE *fp);
 
-atom_t list(FILE *fp) {
-    atom_t car = read(fp);
+value_t list(FILE *fp) {
+    value_t car = read(fp);
     if (car.type == NIL || car.type == ERROR) {
 	return car;
     }
-    atom_t cdr = list(fp);
+    value_t cdr = list(fp);
     if (cdr.type == ERROR) {
 	return cdr;
     }
     cell_t* cl = malloc(sizeof(cell_t));
     cl->car = car;
     cl->cdr = (cell_t*) cdr.value;
-    return (atom_t) { LIST, (value_t) cl };
+    return (value_t) { LIST, (chunk_t) cl };
 }
 
-atom_t symbol(FILE *fp) {
-    atom_t v = (atom_t) { SYMBOL, 0 };
+value_t symbol(FILE *fp) {
+    value_t v = (value_t) { SYMBOL, 0 };
     int ch;
     int index = 0;
     while((ch = getc(fp)) != EOF) {
 	if (index == 8) {
-	    return (atom_t) { ERROR, 0 };
+	    return (value_t) { ERROR, 0 };
 	}
 	switch (ch) {
 	case 'a' ... 'z':
@@ -67,15 +64,15 @@ atom_t symbol(FILE *fp) {
     return v;
 }
 
-atom_t number(FILE *fp) {
+value_t number(FILE *fp) {
     int ch;
-    atom_t v = { NUMBER, 0 };
-    value_t sign = 0;
+    value_t v = { NUMBER, 0 };
+    chunk_t sign = 0;
     while ((ch = getc(fp)) != EOF) {
 	switch (ch) {
 	case '-':
 	    if (sign != 0) {
-		return (atom_t) { ERROR, 0 };
+		return (value_t) { ERROR, 0 };
 	    }
 	    sign = -1;
 	    continue;
@@ -86,7 +83,7 @@ atom_t number(FILE *fp) {
 	    v.value = v.value * 10 + (ch - '0');
 	    continue;
 	case 'a' ... 'z':
-	    return (atom_t) { ERROR, 0 };
+	    return (value_t) { ERROR, 0 };
 	default:
 	    ungetc(ch, fp);
 	    v.value = v.value * sign;
@@ -97,27 +94,27 @@ atom_t number(FILE *fp) {
     return v;
 }
 
-atom_t string(FILE *fp) {
+value_t string(FILE *fp) {
     int ch = getc(fp);
     if (ch == EOF) {
-	return (atom_t) { ERROR, 0 };
+	return (value_t) { ERROR, 0 };
     }
     if (ch == '"') {
-	return (atom_t) { NIL, 0 };
+	return (value_t) { NIL, 0 };
     }
-    atom_t car = { SYMBOL, 0 };
+    value_t car = { SYMBOL, 0 };
     ((char*) &car.value)[0] = ch;
-    atom_t cdr = string(fp);
+    value_t cdr = string(fp);
     if (cdr.type == ERROR) {
 	return cdr;
     }
     cell_t* cl = malloc(sizeof(cell_t));
     cl->car = car;
     cl->cdr = (cell_t*) cdr.value;
-    return (atom_t) { LIST, (value_t) cl };
+    return (value_t) { LIST, (chunk_t) cl };
 }
 
-atom_t read(FILE *fp) {
+value_t read(FILE *fp) {
     int ch;
     while ((ch = getc(fp)) != EOF) {
 	switch(ch) {
@@ -126,7 +123,7 @@ atom_t read(FILE *fp) {
 	case '(':
 	    return list(fp);
 	case ')':
-	    return (atom_t) { NIL, 0 };
+	    return (value_t) { NIL, 0 };
 	case '-':
 	case '0' ... '9':
 	    ungetc(ch, fp);
@@ -137,13 +134,13 @@ atom_t read(FILE *fp) {
 	case '"':
 	    return string(fp);
 	default:
-	    return (atom_t) { ERROR, 0 };
+	    return (value_t) { ERROR, 0 };
 	}
     }
-    return (atom_t) { ERROR, 0 };
+    return (value_t) { ERROR, 0 };
 }
 
-void print_index(FILE *fp, atom_t v, int index) {
+void print_index(FILE *fp, value_t v, int index) {
     if (index > 0) {
         fprintf(fp, " ");
     }
@@ -155,7 +152,7 @@ void print_index(FILE *fp, atom_t v, int index) {
 	print_index(fp, ((cell_t*) v.value)->car, 0);
 	cell_t* cdr = ((cell_t*) v.value)->cdr;
 	if (cdr != 0) {
-	    print_index(fp, (atom_t) { LIST, (value_t) cdr }, index + 1);
+	    print_index(fp, (value_t) { LIST, (chunk_t) cdr }, index + 1);
 	}
 	if (index <= 0) {
 	    fprintf(fp, ")");
@@ -186,94 +183,160 @@ void print_index(FILE *fp, atom_t v, int index) {
     }
 }
 
-void print(FILE *fp, atom_t v) {
+void print(FILE *fp, value_t v) {
     print_index(fp, v, 0);
 }
 
-atom_t atom(int len, atom_t[] args) {
-    if (len != 1) {
+int len(value_t v, int l) {
+    if (v.type != LIST) {
+	return l;
+    }
+    cell* c = ((cell*) v.value)->cdr;
+    if (c == 0) {
+	return l;
+    }
+    return len((value_t) { LIST, (chunk_t) c }, l+1);
+}
+
+value_t atom(value_t v) {
+    if (len(v, 0) != 1) {
 	return (atom) { ERROR, 0 };
     }
-    if (args[0].type == LIST) {
+    v = ((cell*) v.value)->car;
+    if (v.type == LIST) {
 	return (atom) { NIL, 0 };
     }
     return (atom) { SYMBOL, 't' };
 }
 
-atom_t car(int len, atom_t[] args) {
-    if (len != 1) {
+value_t car(value_t v) {
+    if (len(v, 0) != 1) {
 	return (atom) { ERROR, 0 };
     }
+    v = ((cell*) v.value)->car;
     if (args[0].type != LIST) {
-	return (atom_t) { ERROR, 0 };
+	return (value_t) { ERROR, 0 };
     }
     return ((cell*) args[0].value)->car;
 }
 
-atom_t cdr(int len, atom_t[] args) {
-    if (len != 1) {
+value_t cdr(value_t v) {
+    if (len(v, 0) != 1) {
 	return (atom) { ERROR, 0 };
     }
-    if (args[0].type != LIST) {
+    v = ((cell*) v.value)->car;
+    if (v.type != LIST) {
 	return (atom) { ERROR, 0 };
     }
-    cell_t* c = ((cell_t*) args[0].value)->cdr;
+    cell_t* c = ((cell_t*) v.value)->cdr;
     if (c == 0) {
-	return (atom_t) { NIL, 0 };
+	return (value_t) { NIL, 0 };
     }
-    return (atom_t) { LIST, (value_t) c };
+    return (value_t) { LIST, (chunk_t) c };
 }
 
-atom_t cond(int len, atom_t[] args) {
-    if (len == 0 || args[0].type != LIST) {
-	return (atom) { ERROR, 0 };
+value_t cond(value_t v) {
+    if (len(v, 0) < 2) {
+	return (value_t) { ERROR, 0 };
     }
-    pred = ((cell*) args[0].value)->car;
-    if (pred != NIL) {
-	cell* c = ((cell*) args[0].value)->cdr;
-	if (c == 0) {
-	    return (atom_t) { ERROR, 0 };
-	}
-	return c->car;
+    value_t pred = ((cell*) v.value)->car;
+    value_t val = ((cell*) v.value)->cdr->car;
+    if (truthy(pred)) {
+	return val;
     }
-    return cond(len - 1, args + 1);
+    cell* c = ((cell*) v.value)->cdr->cdr;
+    if (c == 0) {
+	return (value_t) { ERROR, 0 };
+    }
+    return cond((value_t) { LIST, (chunk_t) c });
 }
 
-atom_t cons(int len, atom_t[] args) {
-    if (len != 2) {
-	return (atom_t) { ERROR, 0 };
+value_t cons(value_t v) {
+    if (len(v, 0) != 2) {
+	return (value_t) { ERROR, 0 };
     }
-    if (args[1].type != NIL && args[1].type != LIST) {
-	return (atom_t) { ERROR, 0 };
+    value_t car = ((cell*) v.value)->car;
+    value_t cdr = ((cell*) v.value)->cdr->car;
+    if (cdr.type != LIST && cdr.type != NIL) {
+	return (value_t) { ERROR, 0 };
     }
     cell_t* c = malloc(sizeof(cell_t));
-    c->car = args[0];
+    c->car = car;
     c->cdr = 0;
-    if (args[1].type == LIST) {
-	c->cdr = (cell_t*) args[1].value;
+    if (cdr.type == LIST) {
+	c->cdr = (cell_t*) cdr;
     }
-    return (atom_t) { LIST, (value_t) c };
+    return (value_t) { LIST, (chunk_t) c };
 }
 
-atom_t eq(int len, atom_t[] args) {
-    if (len != 2) {
-	return (atom_t) { ERROR, 0 };
+value_t eq_internal(value_t a, value_t b) {
+    if (a.type != b.type || a.value != b.value) {
+	return (value_t) { NIL, 0 };
     }
-    if (args[0].type != args[1].type || args[0].value != args[1].value) {
-	return (atom_t) { NIL, 0 };
+    if (a.type == LIST) {
+	return eq_internal((value_t) { LIST, ((cell*) a.value)->car },
+			   (value_t) { LIST, ((cell*) b.value)->car });
     }
-    if (args[0].type == LIST) {
-	return eq(cdr(args[0]), cdr(args[1]));
-    }
-    return (atom_t) { SYMBOL, 't' };
+    return (value_t) { SYMBOL, 't' };
 }
 
-atom_t quote(int len, atom_t[] args);
-
-atom_t lambda(atom_t a) {
-
+value_t eq(value_t v)) {
+    if (len(v, 0) != 2) {
+	return (value_t) { ERROR, 0 };
+    }
+    value_t a = ((cell*) v.value)->car;
+    value_t b = ((cell*) v.value)->cdr->car;
+    return eq_internal(a, b);
 }
 
-atom_t label(atom_t a) {
+value_t quote(value_t v) {
+    return v;
+}
 
+value_t lambda(int len, value_t[] args);
+
+value_t label(value_t a);
+
+value_t lookup(value_t s, value_t env) {
+    if (env.type == NIL) {
+	return (value_t) { ERROR, 0 };
+    }
+    value_t binding = ((cell*) env.value)->car;
+    value_t first = ((cell*) binding.value)->car;
+    if (eq_internal(first, s).type != NIL) {
+	return ((cell*) binding.value)->cdr->car;
+    }
+    cell* cdr = ((cell*) env.value)->cdr;
+    if (cdr == 0) {
+	return (value_t) { ERROR, 0 };
+    }
+    return lookup(s, (value_t) { LIST, (chunk_t) cdr});
+}
+
+value_t eval(value_t v, value_t env) {
+    switch (v.type) {
+    case NIL:
+    case NUMBER:
+    case ERROR:
+    case FUNC:
+	return v;
+    case SYMBOL:
+	return lookup(v, env);
+    case LIST: {
+	value_t func = ((cell*) v.value)->car;
+	if (func.type == SYMBOL) {
+	    func = lookup(func, env);
+	}
+	if (func.type != FUNC) {
+	    return (value_t) { ERROR, 0 };
+	}
+	cell* cdr = ((cell*) v.value)->cdr;
+	// TODO: eval params in turn
+	value_t params = (value_t) { NIL, 0 };
+	if (cdr != 0) {
+	    params = cdr->car;
+	}
+	return ((func_t) func)(params);
+    }
+    }
 }
