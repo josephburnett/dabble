@@ -17,13 +17,13 @@ typedef struct cell_t {
     struct cell_t* cdr;
 } cell_t;
 
-typedef value_t (*func_t)(int len, atom[] args);
+typedef value_t (*func_t(value_t));
 
-typedef struct lambda_t {
+typedef struct {
     int len;
-    []value_t args;
-    func_t func;
-};
+    value_t args;
+    func_t* func;
+} lambda_t;
 
 value_t read(FILE *fp);
 
@@ -191,7 +191,7 @@ int len(value_t v, int l) {
     if (v.type != LIST) {
 	return l;
     }
-    cell* c = ((cell*) v.value)->cdr;
+    cell_t* c = ((cell_t*) v.value)->cdr;
     if (c == 0) {
 	return l;
     }
@@ -200,33 +200,33 @@ int len(value_t v, int l) {
 
 value_t atom(value_t v) {
     if (len(v, 0) != 1) {
-	return (atom) { ERROR, 0 };
+	return (value_t) { ERROR, 0 };
     }
-    v = ((cell*) v.value)->car;
+    v = ((cell_t*) v.value)->car;
     if (v.type == LIST) {
-	return (atom) { NIL, 0 };
+	return (value_t) { NIL, 0 };
     }
-    return (atom) { SYMBOL, 't' };
+    return (value_t) { SYMBOL, 't' };
 }
 
 value_t car(value_t v) {
     if (len(v, 0) != 1) {
-	return (atom) { ERROR, 0 };
-    }
-    v = ((cell*) v.value)->car;
-    if (args[0].type != LIST) {
 	return (value_t) { ERROR, 0 };
     }
-    return ((cell*) args[0].value)->car;
+    v = ((cell_t*) v.value)->car;
+    if (v.type != LIST) {
+	return (value_t) { ERROR, 0 };
+    }
+    return ((cell_t*) v.value)->car;
 }
 
 value_t cdr(value_t v) {
     if (len(v, 0) != 1) {
-	return (atom) { ERROR, 0 };
+	return (value_t) { ERROR, 0 };
     }
-    v = ((cell*) v.value)->car;
+    v = ((cell_t*) v.value)->car;
     if (v.type != LIST) {
-	return (atom) { ERROR, 0 };
+	return (value_t) { ERROR, 0 };
     }
     cell_t* c = ((cell_t*) v.value)->cdr;
     if (c == 0) {
@@ -239,12 +239,13 @@ value_t cond(value_t v) {
     if (len(v, 0) < 2) {
 	return (value_t) { ERROR, 0 };
     }
-    value_t pred = ((cell*) v.value)->car;
-    value_t val = ((cell*) v.value)->cdr->car;
-    if (truthy(pred)) {
+    value_t pred = ((cell_t*) v.value)->car;
+    value_t val = ((cell_t*) v.value)->cdr->car;
+    if (pred.type == SYMBOL ||
+	(pred.type == NUMBER && pred.value != 0)) {
 	return val;
     }
-    cell* c = ((cell*) v.value)->cdr->cdr;
+    cell_t* c = ((cell_t*) v.value)->cdr->cdr;
     if (c == 0) {
 	return (value_t) { ERROR, 0 };
     }
@@ -255,8 +256,8 @@ value_t cons(value_t v) {
     if (len(v, 0) != 2) {
 	return (value_t) { ERROR, 0 };
     }
-    value_t car = ((cell*) v.value)->car;
-    value_t cdr = ((cell*) v.value)->cdr->car;
+    value_t car = ((cell_t*) v.value)->car;
+    value_t cdr = ((cell_t*) v.value)->cdr->car;
     if (cdr.type != LIST && cdr.type != NIL) {
 	return (value_t) { ERROR, 0 };
     }
@@ -264,7 +265,7 @@ value_t cons(value_t v) {
     c->car = car;
     c->cdr = 0;
     if (cdr.type == LIST) {
-	c->cdr = (cell_t*) cdr;
+	c->cdr = (cell_t*) cdr.value;
     }
     return (value_t) { LIST, (chunk_t) c };
 }
@@ -274,18 +275,18 @@ value_t eq_internal(value_t a, value_t b) {
 	return (value_t) { NIL, 0 };
     }
     if (a.type == LIST) {
-	return eq_internal((value_t) { LIST, ((cell*) a.value)->car },
-			   (value_t) { LIST, ((cell*) b.value)->car });
+	return eq_internal((value_t) { LIST, (chunk_t) ((cell_t*) a.value)->car.value },
+			   (value_t) { LIST, (chunk_t) ((cell_t*) b.value)->car.value });
     }
     return (value_t) { SYMBOL, 't' };
 }
 
-value_t eq(value_t v)) {
+value_t eq(value_t v) {
     if (len(v, 0) != 2) {
 	return (value_t) { ERROR, 0 };
     }
-    value_t a = ((cell*) v.value)->car;
-    value_t b = ((cell*) v.value)->cdr->car;
+    value_t a = ((cell_t*) v.value)->car;
+    value_t b = ((cell_t*) v.value)->cdr->car;
     return eq_internal(a, b);
 }
 
@@ -293,20 +294,20 @@ value_t quote(value_t v) {
     return v;
 }
 
-value_t lambda(int len, value_t[] args);
+value_t lambda(value_t v);
 
-value_t label(value_t a);
+value_t label(value_t v);
 
 value_t lookup(value_t s, value_t env) {
     if (env.type == NIL) {
 	return (value_t) { ERROR, 0 };
     }
-    value_t binding = ((cell*) env.value)->car;
-    value_t first = ((cell*) binding.value)->car;
+    value_t binding = ((cell_t*) env.value)->car;
+    value_t first = ((cell_t*) binding.value)->car;
     if (eq_internal(first, s).type != NIL) {
-	return ((cell*) binding.value)->cdr->car;
+	return ((cell_t*) binding.value)->cdr->car;
     }
-    cell* cdr = ((cell*) env.value)->cdr;
+    cell_t* cdr = ((cell_t*) env.value)->cdr;
     if (cdr == 0) {
 	return (value_t) { ERROR, 0 };
     }
@@ -323,14 +324,14 @@ value_t eval(value_t v, value_t env) {
     case SYMBOL:
 	return lookup(v, env);
     case LIST: {
-	value_t func = ((cell*) v.value)->car;
+	value_t func = ((cell_t*) v.value)->car;
 	if (func.type == SYMBOL) {
 	    func = lookup(func, env);
 	}
 	if (func.type != FUNC) {
 	    return (value_t) { ERROR, 0 };
 	}
-	cell* cdr = ((cell*) v.value)->cdr;
+	cell_t* cdr = ((cell_t*) v.value)->cdr;
 	// TODO: eval params in turn
 	value_t params = (value_t) { NIL, 0 };
 	if (cdr != 0) {

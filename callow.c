@@ -14,8 +14,8 @@ int main(int argc, char *argv[])
 	printf("callow: can't open %s\n", *argv);
 	return 1;
     }
-    cell* c = read(fp);
-    print(stdout, c);
+    value_t v = read(fp);
+    print(stdout, v);
     printf("\n");
     fclose(fp);
     return 0;
