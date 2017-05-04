@@ -331,13 +331,14 @@ value_t eval(value_t v, value_t env) {
 	if (func.type != FUNC) {
 	    return (value_t) { ERROR, 0 };
 	}
+	lambda_t* lamb = (lambda_t*) func.value;
 	cell_t* cdr = ((cell_t*) v.value)->cdr;
 	// TODO: eval params in turn
 	value_t params = (value_t) { NIL, 0 };
 	if (cdr != 0) {
-	    params = cdr->car;
+	    params = (value_t) { LIST, (chunk_t) ((cell_t*) cdr)->car.value }; 
 	}
-	return ((func_t) func)(params);
+	return *(lamb->func)(params);
     }
     }
 }

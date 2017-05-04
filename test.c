@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-char* test_cases[][3] = {
+char* parse_test_cases[][3] = {
     {
 	"Single symbol",
 	"abcd",
@@ -110,23 +110,36 @@ char* test_cases[][3] = {
     }
 };
 
-int check(char name[], char given[], char expect[])
-{
-    int ch;
-    FILE *stream;
+char* lookup_test_cases[][4] = {
+    {
+	"Lookup in empty list",
+	"()",
+	"a",
+	"<error>"
+    },
+    {
+	"Lookup symbol literal",
+	"((a b))",
+	"a",
+	"b"
+    },
+    {
+	"Lookup shadowing symbol literal",
+	"((a c) (a b))",
+	"a",
+	"c"
+    },
+    {
+	"Lookup number",
+	"((a 1))",
+	"a",
+	"1"
+    }
+};
 
-    stream = fmemopen(given, strlen(given), "r");
-    atom v = read(stream);
-
-    char* actual;
-    size_t size;
-    stream = open_memstream(&actual, &size);
-    print(stream, v);
-    fclose(stream);
-
+int check_result(char name[], char actual[], char expect[]) {
     if (strcmp(actual, expect) != 0) {
         printf("\nFAIL: %s\n", name);
-        printf("    Given:    %s\n", given);
         printf("    Expected: %s\n", expect);
         printf("    Got:      %s\n", actual);
         return 1;
@@ -134,12 +147,53 @@ int check(char name[], char given[], char expect[])
     return 0;
 }
 
+int check_parse(char name[], char given[], char expect[])
+{
+    FILE* stream;
+    stream = fmemopen(given, strlen(given), "r");
+    value_t v = read(stream);
+    fclose(stream);
+
+    char* actual;
+    size_t size;
+    stream = open_memstream(&actual, &size);
+    print(stream, v);
+    fclose(stream);
+
+    return check_result(name, actual, expect);
+}
+
+int check_lookup(char name[], char env[], char symbol[], char expect[]) {
+    FILE* stream;
+    stream = fmemopen(env, strlen(env), "r");
+    value_t env_value = read(stream);
+    fclose(stream);
+
+    stream = fmemopen(symbol, strlen(symbol), "r");
+    value_t symbol_value = read(stream);
+    fclose(stream);
+
+    value_t actual_value = lookup(symbol_value, env_value);
+    char* actual;
+    size_t size;
+    stream = open_memstream(&actual, &size);
+    print(stream, actual_value);
+    fclose(stream);
+
+    return check_result(name, actual, expect);
+}
+
 int main(int argc, char *argv[])
 {
     int fail = 0;
     int i;
-    for (i = 0; i < sizeof(test_cases) / sizeof(test_cases[0]); i++) {
-        fail += check(test_cases[i][0], test_cases[i][1], test_cases[i][2]);
+    for (i = 0; i < sizeof(parse_test_cases) / sizeof(parse_test_cases[0]); i++) {
+	char** args = parse_test_cases[i];
+        fail += check_parse(args[0], args[1], args[2]);
+    }
+    for (i = 0; i < sizeof(lookup_test_cases) / sizeof(lookup_test_cases[0]); i++) {
+	char** args = lookup_test_cases[i];
+	fail += check_lookup(args[0], args[1], args[2], args[3]);
     }
 
     if (fail == 0) {
