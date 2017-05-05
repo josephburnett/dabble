@@ -14,8 +14,10 @@ int main(int argc, char *argv[])
 	printf("callow: can't open %s\n", *argv);
 	return 1;
     }
-    value_t v = read(fp);
-    print(stdout, v);
+    value_t form = read(fp);
+    value_t env = callow_core();
+    value_t result = eval(form, env);
+    print(stdout, result);
     printf("\n");
     fclose(fp);
     return 0;
