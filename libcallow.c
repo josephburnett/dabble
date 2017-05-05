@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 #include <inttypes.h>
 
 typedef enum { NIL, SYMBOL, NUMBER, ERROR, LIST, FUNC } type;
@@ -17,15 +18,23 @@ typedef struct cell_t {
     struct cell_t* cdr;
 } cell_t;
 
-typedef value_t (*func_t(value_t));
+typedef value_t (*func_t)(value_t);
 
 typedef struct {
     int len;
     value_t args;
-    func_t* func;
+    func_t func;
 } lambda_t;
 
 value_t read(FILE *fp);
+
+value_t read_string(char form[]) {
+    FILE* stream;
+    stream = fmemopen(form, strlen(form), "r");
+    value_t v = read(stream);
+    fclose(stream);
+    return v;
+}
 
 value_t list(FILE *fp) {
     value_t car = read(fp);
@@ -191,11 +200,11 @@ int len(value_t v, int l) {
     if (v.type != LIST) {
 	return l;
     }
-    cell_t* c = ((cell_t*) v.value)->cdr;
+    cell_t* c = (cell_t*) v.value;
     if (c == 0) {
 	return l;
     }
-    return len((value_t) { LIST, (chunk_t) c }, l+1);
+    return len((value_t) { LIST, (chunk_t) c->cdr }, l+1);
 }
 
 value_t atom(value_t v) {
@@ -291,7 +300,10 @@ value_t eq(value_t v) {
 }
 
 value_t quote(value_t v) {
-    return v;
+    if (len(v, 0) != 1) {
+	return (value_t) { ERROR, 0 };
+    }
+    return ((cell_t*) v.value)->car;
 }
 
 value_t lambda(value_t v);
@@ -336,9 +348,44 @@ value_t eval(value_t v, value_t env) {
 	// TODO: eval params in turn
 	value_t params = (value_t) { NIL, 0 };
 	if (cdr != 0) {
-	    params = (value_t) { LIST, (chunk_t) ((cell_t*) cdr)->car.value }; 
+	    params = (value_t) { LIST, (chunk_t) cdr };
 	}
-	return *(lamb->func)(params);
+	return (*(lamb->func))(params);
     }
     }
+}
+
+value_t bind(char name[], func_t fn, value_t env) {
+    value_t name_value = read_string(name);
+    if (name_value.type != SYMBOL) {
+	return (value_t) { ERROR, 0 };
+    }
+    cell_t* first = malloc(sizeof(cell_t));
+    cell_t* second = malloc(sizeof(cell_t));
+    lambda_t* lamb = malloc(sizeof(lambda_t));
+    first->car = name_value;
+    first->cdr = second;
+    second->car = (value_t) { FUNC, (chunk_t) lamb };
+    second->cdr = 0;
+    lamb->func = fn;
+    cell_t* new_env = malloc(sizeof(cell_t));
+    new_env->car = (value_t) { LIST, (chunk_t) first };
+    if (env.type == LIST) {
+	new_env->cdr = (cell_t*) env.value;
+    } else {
+	new_env->cdr = 0;
+    }
+    return (value_t) { LIST, (chunk_t) new_env };
+}
+
+value_t callow_core() {
+    value_t env = (value_t) { NIL, 0 };
+    env = bind("atom", &atom, env);
+    env = bind("car", &car, env);
+    env = bind("cdr", &cdr, env);
+    env = bind("cond", &cond, env);
+    env = bind("cons", &cons, env);
+    env = bind("eq", &eq, env);
+    env = bind("quote", &quote, env);
+    return env;
 }

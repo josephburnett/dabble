@@ -2,6 +2,27 @@
 #include <stdio.h>
 #include <string.h>
 
+int check_result(char name[], char actual[], char expect[]) {
+    if (strcmp(actual, expect) != 0) {
+        printf("\nFAIL: %s\n", name);
+        printf("    Expected: %s\n", expect);
+        printf("    Got:      %s\n", actual);
+        return 1;
+    }
+    return 0;
+}
+
+int check_parse(char name[], char given[], char expect[])
+{
+    value_t v = read_string(given);
+    char* actual;
+    size_t size;
+    FILE* stream = open_memstream(&actual, &size);
+    print(stream, v);
+    fclose(stream);
+    return check_result(name, actual, expect);
+}
+
 char* parse_test_cases[][3] = {
     {
 	"Single symbol",
@@ -110,6 +131,18 @@ char* parse_test_cases[][3] = {
     }
 };
 
+int check_lookup(char name[], char env[], char symbol[], char expect[]) {
+    value_t env_value = read_string(env);
+    value_t symbol_value = read_string(symbol);
+    value_t actual_value = lookup(symbol_value, env_value);
+    char* actual;
+    size_t size;
+    FILE* stream = open_memstream(&actual, &size);
+    print(stream, actual_value);
+    fclose(stream);
+    return check_result(name, actual, expect);
+}
+
 char* lookup_test_cases[][4] = {
     {
 	"Lookup in empty list",
@@ -134,57 +167,89 @@ char* lookup_test_cases[][4] = {
 	"((a 1))",
 	"a",
 	"1"
+    },
+    {
+	"Lookup deep number",
+	"((a 1) (b 2) (c 3) (d 4))",
+	"d",
+	"4"
     }
 };
 
-int check_result(char name[], char actual[], char expect[]) {
-    if (strcmp(actual, expect) != 0) {
-        printf("\nFAIL: %s\n", name);
-        printf("    Expected: %s\n", expect);
-        printf("    Got:      %s\n", actual);
-        return 1;
-    }
-    return 0;
-}
-
-int check_parse(char name[], char given[], char expect[])
-{
-    FILE* stream;
-    stream = fmemopen(given, strlen(given), "r");
-    value_t v = read(stream);
-    fclose(stream);
-
+int check_eval(char name[], value_t env, char form[], char expect[]) {
+    value_t form_value = read_string(form);
+    value_t actual_value = eval(form_value, env);
     char* actual;
     size_t size;
-    stream = open_memstream(&actual, &size);
-    print(stream, v);
-    fclose(stream);
-
-    return check_result(name, actual, expect);
-}
-
-int check_lookup(char name[], char env[], char symbol[], char expect[]) {
-    FILE* stream;
-    stream = fmemopen(env, strlen(env), "r");
-    value_t env_value = read(stream);
-    fclose(stream);
-
-    stream = fmemopen(symbol, strlen(symbol), "r");
-    value_t symbol_value = read(stream);
-    fclose(stream);
-
-    value_t actual_value = lookup(symbol_value, env_value);
-    char* actual;
-    size_t size;
-    stream = open_memstream(&actual, &size);
+    FILE* stream = open_memstream(&actual, &size);
     print(stream, actual_value);
     fclose(stream);
-
     return check_result(name, actual, expect);
 }
+
+char* eval_test_cases[][4] = {
+    {
+	"Eval number literal",
+	"()",
+	"1",
+	"1"
+    },
+    {
+	"Eval nil literal",
+	"()",
+	"()",
+	"()"
+    },
+    {
+	"Eval lookup number literal",
+	"((a 1))",
+	"a",
+	"1"
+    }
+};
+
+char* core_test_cases[][4] = {
+    {
+	"Atom number",
+	"(atom 1)",
+	"t"
+    },
+    {
+	"Car single element list",
+	"(car (1))",
+	"1"
+    },
+    {
+	"Cdr single element list",
+	"(cdr (1))",
+	"()"
+    },
+    {
+	"Cond simple case",
+	"(cond t 1)",
+	"1"
+    },
+    {
+	"Cons with empty list",
+	"(cons 1 (2))",
+	"(1 2)"
+    },
+    {
+	"Eq with two numbers",
+	"(eq 1 1)",
+	"t"
+    },
+    {
+	"Quote symbol literal",
+	"(quote a)",
+	"a"
+    }
+};
 
 int main(int argc, char *argv[])
 {
+    value_t core_env = callow_core();
+
     int fail = 0;
     int i;
     for (i = 0; i < sizeof(parse_test_cases) / sizeof(parse_test_cases[0]); i++) {
@@ -194,6 +259,15 @@ int main(int argc, char *argv[])
     for (i = 0; i < sizeof(lookup_test_cases) / sizeof(lookup_test_cases[0]); i++) {
 	char** args = lookup_test_cases[i];
 	fail += check_lookup(args[0], args[1], args[2], args[3]);
+    }
+    for (i = 0; i < sizeof(eval_test_cases) / sizeof(eval_test_cases[0]); i++) {
+	char** args = eval_test_cases[i];
+	value_t test_env = read_string(args[1]);
+	fail += check_eval(args[0], test_env, args[2], args[3]);
+    }
+    for (i = 0; i < sizeof(core_test_cases) / sizeof(core_test_cases[0]); i++) {
+	char** args = core_test_cases[i];
+	fail += check_eval(args[0], core_env, args[1], args[2]);
     }
 
     if (fail == 0) {
