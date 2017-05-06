@@ -4,7 +4,7 @@
 #include <string.h>
 #include <inttypes.h>
 
-typedef enum { NIL, SYMBOL, NUMBER, ERROR, LIST, FUNC } type;
+typedef enum { NIL, SYMBOL, NUMBER, ERROR, LIST, LAMBDA, FUNC } type;
 
 typedef int64_t chunk_t;
 
@@ -18,13 +18,16 @@ typedef struct cell_t {
     struct cell_t* cdr;
 } cell_t;
 
-typedef value_t (*func_t)(value_t);
+typedef struct {
+    value_t names;
+    value_t form;
+} lambda_t;
+
+typedef value_t (*func_t)(value_t, value_t);
 
 typedef struct {
-    int len;
-    value_t args;
     func_t func;
-} lambda_t;
+} func_s;
 
 value_t read(FILE *fp);
 
@@ -207,66 +210,66 @@ int len(value_t v, int l) {
     return len((value_t) { LIST, (chunk_t) c->cdr }, l+1);
 }
 
-value_t atom(value_t v) {
-    if (len(v, 0) != 1) {
+value_t atom(value_t args, value_t env) {
+    if (len(args, 0) != 1) {
 	return (value_t) { ERROR, 0 };
     }
-    v = ((cell_t*) v.value)->car;
-    if (v.type == LIST) {
+    args = ((cell_t*) args.value)->car;
+    if (args.type == LIST) {
 	return (value_t) { NIL, 0 };
     }
     return (value_t) { SYMBOL, 't' };
 }
 
-value_t car(value_t v) {
-    if (len(v, 0) != 1) {
+value_t car(value_t args, value_t env) {
+    if (len(args, 0) != 1) {
 	return (value_t) { ERROR, 0 };
     }
-    v = ((cell_t*) v.value)->car;
-    if (v.type != LIST) {
+    args = ((cell_t*) args.value)->car;
+    if (args.type != LIST) {
 	return (value_t) { ERROR, 0 };
     }
-    return ((cell_t*) v.value)->car;
+    return ((cell_t*) args.value)->car;
 }
 
-value_t cdr(value_t v) {
-    if (len(v, 0) != 1) {
+value_t cdr(value_t args, value_t env) {
+    if (len(args, 0) != 1) {
 	return (value_t) { ERROR, 0 };
     }
-    v = ((cell_t*) v.value)->car;
-    if (v.type != LIST) {
+    args = ((cell_t*) args.value)->car;
+    if (args.type != LIST) {
 	return (value_t) { ERROR, 0 };
     }
-    cell_t* c = ((cell_t*) v.value)->cdr;
+    cell_t* c = ((cell_t*) args.value)->cdr;
     if (c == 0) {
 	return (value_t) { NIL, 0 };
     }
     return (value_t) { LIST, (chunk_t) c };
 }
 
-value_t cond(value_t v) {
-    if (len(v, 0) < 2) {
+value_t cond(value_t args, value_t env) {
+    if (len(args, 0) < 2) {
 	return (value_t) { ERROR, 0 };
     }
-    value_t pred = ((cell_t*) v.value)->car;
-    value_t val = ((cell_t*) v.value)->cdr->car;
+    value_t pred = ((cell_t*) args.value)->car;
+    value_t val = ((cell_t*) args.value)->cdr->car;
     if (pred.type == SYMBOL ||
 	(pred.type == NUMBER && pred.value != 0)) {
 	return val;
     }
-    cell_t* c = ((cell_t*) v.value)->cdr->cdr;
+    cell_t* c = ((cell_t*) args.value)->cdr->cdr;
     if (c == 0) {
 	return (value_t) { ERROR, 0 };
     }
-    return cond((value_t) { LIST, (chunk_t) c });
+    return cond((value_t) { LIST, (chunk_t) c }, env);
 }
 
-value_t cons(value_t v) {
-    if (len(v, 0) != 2) {
+value_t cons(value_t args, value_t env) {
+    if (len(args, 0) != 2) {
 	return (value_t) { ERROR, 0 };
     }
-    value_t car = ((cell_t*) v.value)->car;
-    value_t cdr = ((cell_t*) v.value)->cdr->car;
+    value_t car = ((cell_t*) args.value)->car;
+    value_t cdr = ((cell_t*) args.value)->cdr->car;
     if (cdr.type != LIST && cdr.type != NIL) {
 	return (value_t) { ERROR, 0 };
     }
@@ -290,25 +293,21 @@ value_t eq_internal(value_t a, value_t b) {
     return (value_t) { SYMBOL, 't' };
 }
 
-value_t eq(value_t v) {
-    if (len(v, 0) != 2) {
+value_t eq(value_t args, value_t env) {
+    if (len(args, 0) != 2) {
 	return (value_t) { ERROR, 0 };
     }
-    value_t a = ((cell_t*) v.value)->car;
-    value_t b = ((cell_t*) v.value)->cdr->car;
+    value_t a = ((cell_t*) args.value)->car;
+    value_t b = ((cell_t*) args.value)->cdr->car;
     return eq_internal(a, b);
 }
 
-value_t quote(value_t v) {
-    if (len(v, 0) != 1) {
+value_t quote(value_t args, value_t env) {
+    if (len(args, 0) != 1) {
 	return (value_t) { ERROR, 0 };
     }
-    return ((cell_t*) v.value)->car;
+    return ((cell_t*) args.value)->car;
 }
-
-value_t lambda(value_t v);
-
-value_t label(value_t v);
 
 value_t lookup(value_t s, value_t env) {
     if (env.type == NIL) {
@@ -343,31 +342,34 @@ value_t eval(value_t v, value_t env) {
 	if (func.type != FUNC) {
 	    return (value_t) { ERROR, 0 };
 	}
-	lambda_t* lamb = (lambda_t*) func.value;
+	func_s* lamb = (func_s*) func.value;
 	cell_t* cdr = ((cell_t*) v.value)->cdr;
 	// TODO: eval params in turn
 	value_t params = (value_t) { NIL, 0 };
 	if (cdr != 0) {
 	    params = (value_t) { LIST, (chunk_t) cdr };
 	}
-	return (*(lamb->func))(params);
+	return (*(lamb->func))(params, env);
     }
     }
 }
 
-value_t bind(char name[], func_t fn, value_t env) {
-    value_t name_value = read_string(name);
-    if (name_value.type != SYMBOL) {
+value_t wrap_fn(func_t fn) {
+    func_s* func = malloc(sizeof(func_s));
+    func->func = fn;
+    return (value_t) { FUNC, (chunk_t) func };
+}
+
+value_t bind(value_t name, value_t value, value_t env) {
+    if (name.type != SYMBOL) {
 	return (value_t) { ERROR, 0 };
     }
     cell_t* first = malloc(sizeof(cell_t));
     cell_t* second = malloc(sizeof(cell_t));
-    lambda_t* lamb = malloc(sizeof(lambda_t));
-    first->car = name_value;
+    first->car = name;
     first->cdr = second;
-    second->car = (value_t) { FUNC, (chunk_t) lamb };
+    second->car = value;
     second->cdr = 0;
-    lamb->func = fn;
     cell_t* new_env = malloc(sizeof(cell_t));
     new_env->car = (value_t) { LIST, (chunk_t) first };
     if (env.type == LIST) {
@@ -378,14 +380,28 @@ value_t bind(char name[], func_t fn, value_t env) {
     return (value_t) { LIST, (chunk_t) new_env };
 }
 
+value_t lambda(value_t args, value_t env);
+
+value_t label(value_t args, value_t env) {
+    if (len(args, 0) != 3) {
+	return (value_t) { ERROR, 0 };
+    }
+    value_t name = ((cell_t*) args.value)->car;
+    value_t value = ((cell_t*) args.value)->cdr->car;
+    value_t form = ((cell_t*) args.value)->cdr->cdr->car;
+    env = bind(name, value, env);
+    return eval(form, env);
+}
+
 value_t callow_core() {
     value_t env = (value_t) { NIL, 0 };
-    env = bind("atom", &atom, env);
-    env = bind("car", &car, env);
-    env = bind("cdr", &cdr, env);
-    env = bind("cond", &cond, env);
-    env = bind("cons", &cons, env);
-    env = bind("eq", &eq, env);
-    env = bind("quote", &quote, env);
+    env = bind(read_string("atom"), wrap_fn(&atom), env);
+    env = bind(read_string("car"), wrap_fn(&car), env);
+    env = bind(read_string("cdr"), wrap_fn(&cdr), env);
+    env = bind(read_string("cond"), wrap_fn(&cond), env);
+    env = bind(read_string("cons"), wrap_fn(&cons), env);
+    env = bind(read_string("eq"), wrap_fn(&eq), env);
+    env = bind(read_string("quote"), wrap_fn(&quote), env);
+    env = bind(read_string("label"), wrap_fn(&label), env);
     return env;
 }

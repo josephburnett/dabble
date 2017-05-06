@@ -25,29 +25,29 @@ int check_parse(char name[], char given[], char expect[])
 
 char* parse_test_cases[][3] = {
     {
-	"Single symbol",
-	"abcd",
-	"abcd"
+        "Single symbol",
+        "abcd",
+        "abcd"
     },
     {
-	"Symbol with numbers",
-	"a1b2c3d4",
-	"a1b2c3d4"
+        "Symbol with numbers",
+        "a1b2c3d4",
+        "a1b2c3d4"
     },
     {
-	"Symbol with dash",
-	"a-b-c-d",
-	"a-b-c-d"
+        "Symbol with dash",
+        "a-b-c-d",
+        "a-b-c-d"
     },
     {
-	"Multiple symbols. One read.",
-	"abcd efgh",
-	"abcd"
+        "Multiple symbols. One read.",
+        "abcd efgh",
+        "abcd"
     },
     {
-	"Symbol whitespace ignored",
-	"   abcd  ",
-	"abcd"
+        "Symbol whitespace ignored",
+        "   abcd  ",
+        "abcd"
     },
     {
         "Single symbol list",
@@ -90,14 +90,14 @@ char* parse_test_cases[][3] = {
         "(-1 -2 -3)"
     },
     {
-	"Invalid number",
-	"1-234",
-	"<error>"
+        "Invalid number",
+        "1-234",
+        "<error>"
     },
     {
-	"Invalid number",
-	"1a2b3c4d",
-	"<error>"
+        "Invalid number",
+        "1a2b3c4d",
+        "<error>"
     },
     {
         "Single string",
@@ -145,34 +145,34 @@ int check_lookup(char name[], char env[], char symbol[], char expect[]) {
 
 char* lookup_test_cases[][4] = {
     {
-	"Lookup in empty list",
-	"()",
-	"a",
-	"<error>"
+        "Lookup in empty list",
+        "()",
+        "a",
+        "<error>"
     },
     {
-	"Lookup symbol literal",
-	"((a b))",
-	"a",
-	"b"
+        "Lookup symbol literal",
+        "((a b))",
+        "a",
+        "b"
     },
     {
-	"Lookup shadowing symbol literal",
-	"((a c) (a b))",
-	"a",
-	"c"
+        "Lookup shadowing symbol literal",
+        "((a c) (a b))",
+        "a",
+        "c"
     },
     {
-	"Lookup number",
-	"((a 1))",
-	"a",
-	"1"
+        "Lookup number",
+        "((a 1))",
+        "a",
+        "1"
     },
     {
-	"Lookup deep number",
-	"((a 1) (b 2) (c 3) (d 4))",
-	"d",
-	"4"
+        "Lookup deep number",
+        "((a 1) (b 2) (c 3) (d 4))",
+        "d",
+        "4"
     }
 };
 
@@ -189,60 +189,65 @@ int check_eval(char name[], value_t env, char form[], char expect[]) {
 
 char* eval_test_cases[][4] = {
     {
-	"Eval number literal",
-	"()",
-	"1",
-	"1"
+        "Eval number literal",
+        "()",
+        "1",
+        "1"
     },
     {
-	"Eval nil literal",
-	"()",
-	"()",
-	"()"
+        "Eval nil literal",
+        "()",
+        "()",
+        "()"
     },
     {
-	"Eval lookup number literal",
-	"((a 1))",
-	"a",
-	"1"
+        "Eval lookup number literal",
+        "((a 1))",
+        "a",
+        "1"
     }
 };
 
 char* core_test_cases[][4] = {
     {
-	"Atom number",
-	"(atom 1)",
-	"t"
+        "Atom number",
+        "(atom 1)",
+        "t"
     },
     {
-	"Car single element list",
-	"(car (1))",
-	"1"
+        "Car single element list",
+        "(car (1))",
+        "1"
     },
     {
-	"Cdr single element list",
-	"(cdr (1))",
-	"()"
+        "Cdr single element list",
+        "(cdr (1))",
+        "()"
     },
     {
-	"Cond simple case",
-	"(cond t 1)",
-	"1"
+        "Cond simple case",
+        "(cond t 1)",
+        "1"
     },
     {
-	"Cons with empty list",
-	"(cons 1 (2))",
-	"(1 2)"
+        "Cons with empty list",
+        "(cons 1 (2))",
+        "(1 2)"
     },
     {
-	"Eq with two numbers",
-	"(eq 1 1)",
-	"t"
+        "Eq with two numbers",
+        "(eq 1 1)",
+        "t"
     },
     {
-	"Quote symbol literal",
-	"(quote a)",
-	"a"
+        "Quote symbol literal",
+        "(quote a)",
+        "a"
+    },
+    {
+        "Label number literal",
+        "(label a 1 a)",
+        "1"
     }
 };
 
@@ -253,21 +258,21 @@ int main(int argc, char *argv[])
     int fail = 0;
     int i;
     for (i = 0; i < sizeof(parse_test_cases) / sizeof(parse_test_cases[0]); i++) {
-	char** args = parse_test_cases[i];
+        char** args = parse_test_cases[i];
         fail += check_parse(args[0], args[1], args[2]);
     }
     for (i = 0; i < sizeof(lookup_test_cases) / sizeof(lookup_test_cases[0]); i++) {
-	char** args = lookup_test_cases[i];
-	fail += check_lookup(args[0], args[1], args[2], args[3]);
+        char** args = lookup_test_cases[i];
+        fail += check_lookup(args[0], args[1], args[2], args[3]);
     }
     for (i = 0; i < sizeof(eval_test_cases) / sizeof(eval_test_cases[0]); i++) {
-	char** args = eval_test_cases[i];
-	value_t test_env = read_string(args[1]);
-	fail += check_eval(args[0], test_env, args[2], args[3]);
+        char** args = eval_test_cases[i];
+        value_t test_env = read_string(args[1]);
+        fail += check_eval(args[0], test_env, args[2], args[3]);
     }
     for (i = 0; i < sizeof(core_test_cases) / sizeof(core_test_cases[0]); i++) {
-	char** args = core_test_cases[i];
-	fail += check_eval(args[0], core_env, args[1], args[2]);
+        char** args = core_test_cases[i];
+        fail += check_eval(args[0], core_env, args[1], args[2]);
     }
 
     if (fail == 0) {
