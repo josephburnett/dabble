@@ -21,6 +21,7 @@ typedef struct cell_t {
 typedef struct {
     value_t names;
     value_t form;
+    value_t env;
 } lambda_t;
 
 typedef value_t (*func_t)(value_t, value_t);
@@ -210,10 +211,14 @@ int len(value_t v, int l) {
     return len((value_t) { LIST, (chunk_t) c->cdr }, l+1);
 }
 
+value_t eval(value_t v, value_t env);
+value_t eval_list(value_t list, value_t env);
+
 value_t atom(value_t args, value_t env) {
     if (len(args, 0) != 1) {
 	return (value_t) { ERROR, 0 };
     }
+    args = eval_list(args, env);
     args = ((cell_t*) args.value)->car;
     if (args.type == LIST) {
 	return (value_t) { NIL, 0 };
@@ -225,6 +230,7 @@ value_t car(value_t args, value_t env) {
     if (len(args, 0) != 1) {
 	return (value_t) { ERROR, 0 };
     }
+    args = eval_list(args, env);
     args = ((cell_t*) args.value)->car;
     if (args.type != LIST) {
 	return (value_t) { ERROR, 0 };
@@ -236,6 +242,7 @@ value_t cdr(value_t args, value_t env) {
     if (len(args, 0) != 1) {
 	return (value_t) { ERROR, 0 };
     }
+    args = eval_list(args, env);
     args = ((cell_t*) args.value)->car;
     if (args.type != LIST) {
 	return (value_t) { ERROR, 0 };
@@ -251,6 +258,7 @@ value_t cond(value_t args, value_t env) {
     if (len(args, 0) < 2) {
 	return (value_t) { ERROR, 0 };
     }
+    args = eval_list(args, env);
     value_t pred = ((cell_t*) args.value)->car;
     value_t val = ((cell_t*) args.value)->cdr->car;
     if (pred.type == SYMBOL ||
@@ -268,6 +276,7 @@ value_t cons(value_t args, value_t env) {
     if (len(args, 0) != 2) {
 	return (value_t) { ERROR, 0 };
     }
+    args = eval_list(args, env);
     value_t car = ((cell_t*) args.value)->car;
     value_t cdr = ((cell_t*) args.value)->cdr->car;
     if (cdr.type != LIST && cdr.type != NIL) {
@@ -297,6 +306,7 @@ value_t eq(value_t args, value_t env) {
     if (len(args, 0) != 2) {
 	return (value_t) { ERROR, 0 };
     }
+    args = eval_list(args, env);
     value_t a = ((cell_t*) args.value)->car;
     value_t b = ((cell_t*) args.value)->cdr->car;
     return eq_internal(a, b);
@@ -325,41 +335,6 @@ value_t lookup(value_t s, value_t env) {
     return lookup(s, (value_t) { LIST, (chunk_t) cdr});
 }
 
-value_t eval(value_t v, value_t env) {
-    switch (v.type) {
-    case NIL:
-    case NUMBER:
-    case ERROR:
-    case FUNC:
-	return v;
-    case SYMBOL:
-	return lookup(v, env);
-    case LIST: {
-	value_t func = ((cell_t*) v.value)->car;
-	if (func.type == SYMBOL) {
-	    func = lookup(func, env);
-	}
-	if (func.type != FUNC) {
-	    return (value_t) { ERROR, 0 };
-	}
-	func_s* lamb = (func_s*) func.value;
-	cell_t* cdr = ((cell_t*) v.value)->cdr;
-	// TODO: eval params in turn
-	value_t params = (value_t) { NIL, 0 };
-	if (cdr != 0) {
-	    params = (value_t) { LIST, (chunk_t) cdr };
-	}
-	return (*(lamb->func))(params, env);
-    }
-    }
-}
-
-value_t wrap_fn(func_t fn) {
-    func_s* func = malloc(sizeof(func_s));
-    func->func = fn;
-    return (value_t) { FUNC, (chunk_t) func };
-}
-
 value_t bind(value_t name, value_t value, value_t env) {
     if (name.type != SYMBOL) {
 	return (value_t) { ERROR, 0 };
@@ -380,17 +355,99 @@ value_t bind(value_t name, value_t value, value_t env) {
     return (value_t) { LIST, (chunk_t) new_env };
 }
 
-value_t lambda(value_t args, value_t env);
+value_t eval_list(value_t list, value_t env) {
+    if (list.type == NIL) {
+	return list;
+    }
+    cell_t* cell = malloc(sizeof(cell_t));
+    value_t car = eval(((cell_t*) list.value)->car, env);
+    cell->car = car;
+    cell->cdr = 0;
+    cell_t* cdr = ((cell_t*) list.value)->cdr;
+    if (cdr != 0) {
+	value_t l = eval_list((value_t) { LIST, (chunk_t) cdr }, env);
+	cell->cdr = (cell_t*) l.value;
+    }
+    return (value_t) { LIST, (chunk_t) cell };
+}
+
+value_t eval(value_t v, value_t env) {
+    switch (v.type) {
+    case NIL:
+    case NUMBER:
+    case ERROR:
+    case FUNC:
+    case LAMBDA:
+	return v;
+    case SYMBOL:
+	return lookup(v, env);
+    case LIST: {
+	value_t params = (value_t) { NIL, 0 };
+	cell_t* cdr = ((cell_t*) v.value)->cdr;
+	if (cdr != 0) {
+	    params = (value_t) { LIST, (chunk_t) cdr };
+	}
+	value_t first = ((cell_t*) v.value)->car;
+	first = eval(first, env);
+	switch (first.type) {
+	case FUNC: {
+	    func_s* func = (func_s*) first.value;
+	    return (*(func->func))(params, env);
+	}
+	case LAMBDA: {
+	    lambda_t* lamb = (lambda_t*) first.value;
+	    if (len(params, 0) != len(lamb->names, 0)) {
+		return (value_t) { ERROR, 0 };
+	    }
+	    value_t lambda_env = lamb->env;
+	    cell_t* name = (cell_t*) lamb->names.value;
+	    cell_t* param = (cell_t*) params.value;
+	    while (name != 0) {
+		lambda_env = bind(name->car, param->car, lambda_env);
+		name = name->cdr;
+		param = param->cdr;
+	    }
+	    return eval(lamb->form, lambda_env);
+	}
+	default:
+	    return (value_t) { ERROR, 0 };
+	}
+    }
+    }
+}
+
+value_t wrap_fn(func_t fn) {
+    func_s* func = malloc(sizeof(func_s));
+    func->func = fn;
+    return (value_t) { FUNC, (chunk_t) func };
+}
 
 value_t label(value_t args, value_t env) {
     if (len(args, 0) != 3) {
 	return (value_t) { ERROR, 0 };
     }
+    args = eval_list(args, env);
     value_t name = ((cell_t*) args.value)->car;
     value_t value = ((cell_t*) args.value)->cdr->car;
     value_t form = ((cell_t*) args.value)->cdr->cdr->car;
     env = bind(name, value, env);
     return eval(form, env);
+}
+
+value_t lambda(value_t args, value_t env) {
+    if (len(args, 0) != 2) {
+	return (value_t) { ERROR, 0 };
+    }
+    value_t names = ((cell_t*) args.value)->car;
+    if (names.type != LIST) {
+	return (value_t) { ERROR, 0 };
+    }
+    value_t form = ((cell_t*) args.value)->cdr->car;
+    lambda_t* lamb = malloc(sizeof(lambda_t));
+    lamb->names = names;
+    lamb->form = form;
+    lamb->env = env;
+    return (value_t) { LAMBDA, (chunk_t) lamb };
 }
 
 value_t callow_core() {
@@ -403,5 +460,6 @@ value_t callow_core() {
     env = bind(read_string("eq"), wrap_fn(&eq), env);
     env = bind(read_string("quote"), wrap_fn(&quote), env);
     env = bind(read_string("label"), wrap_fn(&label), env);
+    env = bind(read_string("lambda"), wrap_fn(&lambda), env);
     return env;
 }

@@ -12,8 +12,7 @@ int check_result(char name[], char actual[], char expect[]) {
     return 0;
 }
 
-int check_parse(char name[], char given[], char expect[])
-{
+int check_parse(char name[], char given[], char expect[]) {
     value_t v = read_string(given);
     char* actual;
     size_t size;
@@ -210,28 +209,34 @@ char* eval_test_cases[][4] = {
 
 char* core_test_cases[][4] = {
     {
+	"BROKEN",
+	"((lambda (v) 4) 3)",
+	"4"
+    },
+    //
+    {
         "Atom number",
         "(atom 1)",
         "t"
     },
     {
         "Car single element list",
-        "(car (1))",
+        "(car (quote (1)))",
         "1"
     },
     {
         "Cdr single element list",
-        "(cdr (1))",
+        "(cdr (quote (1)))",
         "()"
     },
     {
         "Cond simple case",
-        "(cond t 1)",
+        "(cond (quote t) 1)",
         "1"
     },
     {
         "Cons with empty list",
-        "(cons 1 (2))",
+        "(cons 1 (quote (2)))",
         "(1 2)"
     },
     {
@@ -246,8 +251,13 @@ char* core_test_cases[][4] = {
     },
     {
         "Label number literal",
-        "(label a 1 a)",
+        "(label (quote a) 1 (quote a))",
         "1"
+    },
+    {
+	"Lambda with cond",
+	"((lambda (v) 4) 3)",
+	"4"
     }
 };
 
