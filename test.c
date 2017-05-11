@@ -127,6 +127,11 @@ char* parse_test_cases[][3] = {
         "Error on open parens",
         "(abc",
         "<error>"
+    },
+    {
+	"Nil in a list",
+	"(1 () 2)",
+	"(1 () 2)"
     }
 };
 
@@ -209,30 +214,34 @@ char* eval_test_cases[][4] = {
 
 char* core_test_cases[][4] = {
     {
-	"BROKEN",
-	"((lambda (v) 4) 3)",
-	"4"
-    },
-    //
-    {
         "Atom number",
         "(atom 1)",
         "t"
     },
     {
+	"Atom list",
+	"(atom (1))",
+	"()"
+    },
+    {
+	"Atom empty list",
+	"(atom ())",
+	"t"
+    },
+    {
         "Car single element list",
-        "(car (quote (1)))",
+        "(car (1))",
         "1"
     },
     {
         "Cdr single element list",
-        "(cdr (quote (1)))",
+        "(cdr (1))",
         "()"
     },
     {
         "Cond simple case",
-        "(cond (quote t) 1)",
-        "1"
+        "(cond (eq 1 1) 2)",
+        "2"
     },
     {
         "Cons with empty list",
@@ -251,12 +260,12 @@ char* core_test_cases[][4] = {
     },
     {
         "Label number literal",
-        "(label (quote a) 1 (quote a))",
+        "(label a 1 a)",
         "1"
     },
     {
-	"Lambda with cond",
-	"((lambda (v) 4) 3)",
+	"Lambda",
+	"((lambda (a) (cond (eq a 1) 2 (eq a 3) 4)) 3)",
 	"4"
     }
 };

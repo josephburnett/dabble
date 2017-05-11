@@ -40,12 +40,21 @@ value_t read_string(char form[]) {
     return v;
 }
 
-value_t list(FILE *fp) {
+value_t list(FILE *fp, int length) {
     value_t car = read(fp);
-    if (car.type == NIL || car.type == ERROR) {
+    if (car.type == ERROR) {
 	return car;
     }
-    value_t cdr = list(fp);
+    if (car.type == LIST && car.value == 0) {
+	if (length == 0) {
+	    // Special case nil
+	    return (value_t) { NIL, 0 };
+	} else {
+	    // End of non-zero length list
+	    return car;
+	}
+    }
+    value_t cdr = list(fp, length + 1);
     if (cdr.type == ERROR) {
 	return cdr;
     }
@@ -134,9 +143,9 @@ value_t read(FILE *fp) {
 	case ' ':
 	    continue;
 	case '(':
-	    return list(fp);
+	    return list(fp, 0);
 	case ')':
-	    return (value_t) { NIL, 0 };
+	    return (value_t) { LIST, 0 };
 	case '-':
 	case '0' ... '9':
 	    ungetc(ch, fp);
@@ -187,6 +196,9 @@ void print_index(FILE *fp, value_t v, int index) {
     case FUNC:
         fprintf(fp, "<func>");
         break;
+    case LAMBDA:
+	fprintf(fp, "<lambda>");
+	break;
     case ERROR:
         fprintf(fp, "<error>");
         break;
@@ -212,13 +224,13 @@ int len(value_t v, int l) {
 }
 
 value_t eval(value_t v, value_t env);
-value_t eval_list(value_t list, value_t env);
+value_t eval_args(value_t list, value_t env);
 
 value_t atom(value_t args, value_t env) {
     if (len(args, 0) != 1) {
 	return (value_t) { ERROR, 0 };
     }
-    args = eval_list(args, env);
+    args = eval_args(args, env);
     args = ((cell_t*) args.value)->car;
     if (args.type == LIST) {
 	return (value_t) { NIL, 0 };
@@ -230,7 +242,7 @@ value_t car(value_t args, value_t env) {
     if (len(args, 0) != 1) {
 	return (value_t) { ERROR, 0 };
     }
-    args = eval_list(args, env);
+    args = eval_args(args, env);
     args = ((cell_t*) args.value)->car;
     if (args.type != LIST) {
 	return (value_t) { ERROR, 0 };
@@ -242,7 +254,7 @@ value_t cdr(value_t args, value_t env) {
     if (len(args, 0) != 1) {
 	return (value_t) { ERROR, 0 };
     }
-    args = eval_list(args, env);
+    args = eval_args(args, env);
     args = ((cell_t*) args.value)->car;
     if (args.type != LIST) {
 	return (value_t) { ERROR, 0 };
@@ -258,7 +270,7 @@ value_t cond(value_t args, value_t env) {
     if (len(args, 0) < 2) {
 	return (value_t) { ERROR, 0 };
     }
-    args = eval_list(args, env);
+    args = eval_args(args, env);
     value_t pred = ((cell_t*) args.value)->car;
     value_t val = ((cell_t*) args.value)->cdr->car;
     if (pred.type == SYMBOL ||
@@ -276,7 +288,7 @@ value_t cons(value_t args, value_t env) {
     if (len(args, 0) != 2) {
 	return (value_t) { ERROR, 0 };
     }
-    args = eval_list(args, env);
+    args = eval_args(args, env);
     value_t car = ((cell_t*) args.value)->car;
     value_t cdr = ((cell_t*) args.value)->cdr->car;
     if (cdr.type != LIST && cdr.type != NIL) {
@@ -306,7 +318,7 @@ value_t eq(value_t args, value_t env) {
     if (len(args, 0) != 2) {
 	return (value_t) { ERROR, 0 };
     }
-    args = eval_list(args, env);
+    args = eval_args(args, env);
     value_t a = ((cell_t*) args.value)->car;
     value_t b = ((cell_t*) args.value)->cdr->car;
     return eq_internal(a, b);
@@ -355,7 +367,7 @@ value_t bind(value_t name, value_t value, value_t env) {
     return (value_t) { LIST, (chunk_t) new_env };
 }
 
-value_t eval_list(value_t list, value_t env) {
+value_t eval_args(value_t list, value_t env) {
     if (list.type == NIL) {
 	return list;
     }
@@ -365,7 +377,7 @@ value_t eval_list(value_t list, value_t env) {
     cell->cdr = 0;
     cell_t* cdr = ((cell_t*) list.value)->cdr;
     if (cdr != 0) {
-	value_t l = eval_list((value_t) { LIST, (chunk_t) cdr }, env);
+	value_t l = eval_args((value_t) { LIST, (chunk_t) cdr }, env);
 	cell->cdr = (cell_t*) l.value;
     }
     return (value_t) { LIST, (chunk_t) cell };
@@ -382,13 +394,18 @@ value_t eval(value_t v, value_t env) {
     case SYMBOL:
 	return lookup(v, env);
     case LIST: {
+	value_t first = ((cell_t*) v.value)->car;
+	if (first.type == NIL || first.type == NUMBER || first.type == ERROR) {
+	    return eval_args(v, env);
+	}
 	value_t params = (value_t) { NIL, 0 };
 	cell_t* cdr = ((cell_t*) v.value)->cdr;
 	if (cdr != 0) {
 	    params = (value_t) { LIST, (chunk_t) cdr };
 	}
-	value_t first = ((cell_t*) v.value)->car;
-	first = eval(first, env);
+	if (first.type == SYMBOL) {
+	    first = lookup(first, env);
+	}
 	switch (first.type) {
 	case FUNC: {
 	    func_s* func = (func_s*) first.value;
@@ -426,11 +443,11 @@ value_t label(value_t args, value_t env) {
     if (len(args, 0) != 3) {
 	return (value_t) { ERROR, 0 };
     }
-    args = eval_list(args, env);
     value_t name = ((cell_t*) args.value)->car;
     value_t value = ((cell_t*) args.value)->cdr->car;
-    value_t form = ((cell_t*) args.value)->cdr->cdr->car;
+    value = eval(value, env);
     env = bind(name, value, env);
+    value_t form = ((cell_t*) args.value)->cdr->cdr->car;
     return eval(form, env);
 }
 
