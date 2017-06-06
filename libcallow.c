@@ -70,7 +70,7 @@ value_t symbol(FILE *fp) {
     int index = 0;
     while((ch = getc(fp)) != EOF) {
 	if (index == 8) {
-	    return (value_t) { ERROR, 0 };
+	    return (value_t) { ERROR, (chunk_t) "Symbol too long." };
 	}
 	switch (ch) {
 	case 'a' ... 'z':
@@ -94,7 +94,7 @@ value_t number(FILE *fp) {
 	switch (ch) {
 	case '-':
 	    if (sign != 0) {
-		return (value_t) { ERROR, 0 };
+	        return (value_t) { ERROR, (chunk_t) "Invalid character '-' in number." };
 	    }
 	    sign = -1;
 	    continue;
@@ -105,7 +105,7 @@ value_t number(FILE *fp) {
 	    v.value = v.value * 10 + (ch - '0');
 	    continue;
 	case 'a' ... 'z':
-	    return (value_t) { ERROR, 0 };
+	    return (value_t) { ERROR, (chunk_t) "Invalid letter in number." };
 	default:
 	    ungetc(ch, fp);
 	    v.value = v.value * sign;
@@ -119,7 +119,7 @@ value_t number(FILE *fp) {
 value_t string(FILE *fp) {
     int ch = getc(fp);
     if (ch == EOF) {
-	return (value_t) { ERROR, 0 };
+        return (value_t) { ERROR, (chunk_t) "Unexpected EOF while reading string." };
     }
     if (ch == '"') {
 	return (value_t) { NIL, 0 };
@@ -156,10 +156,10 @@ value_t read(FILE *fp) {
 	case '"':
 	    return string(fp);
 	default:
-	    return (value_t) { ERROR, 0 };
+	    return (value_t) { ERROR, (chunk_t) "Invalid character." };
 	}
     }
-    return (value_t) { ERROR, 0 };
+    return (value_t) { ERROR, (chunk_t) "Unexpected EOF." };
 }
 
 void print_index(FILE *fp, value_t v, int index) {
@@ -200,7 +200,7 @@ void print_index(FILE *fp, value_t v, int index) {
 	fprintf(fp, "<lambda>");
 	break;
     case ERROR:
-        fprintf(fp, "<error>");
+        fprintf(fp, "<error: %s>", (char *) v.value);
         break;
     case NIL:
 	fprintf(fp, "()");
@@ -228,7 +228,7 @@ value_t eval_args(value_t list, value_t env);
 
 value_t atom(value_t args, value_t env) {
     if (len(args, 0) != 1) {
-	return (value_t) { ERROR, 0 };
+        return (value_t) { ERROR, (chunk_t) "Wrong arity for atom." };
     }
     args = eval_args(args, env);
     args = ((cell_t*) args.value)->car;
@@ -240,24 +240,24 @@ value_t atom(value_t args, value_t env) {
 
 value_t car(value_t args, value_t env) {
     if (len(args, 0) != 1) {
-	return (value_t) { ERROR, 0 };
+        return (value_t) { ERROR, (chunk_t) "Wrong arity for car." };
     }
     args = eval_args(args, env);
     args = ((cell_t*) args.value)->car;
     if (args.type != LIST) {
-	return (value_t) { ERROR, 0 };
+        return (value_t) { ERROR, (chunk_t) "Non-list argument to car."};
     }
     return ((cell_t*) args.value)->car;
 }
 
 value_t cdr(value_t args, value_t env) {
     if (len(args, 0) != 1) {
-	return (value_t) { ERROR, 0 };
+        return (value_t) { ERROR, (chunk_t) "Wrong arity for crd." };
     }
     args = eval_args(args, env);
     args = ((cell_t*) args.value)->car;
     if (args.type != LIST) {
-	return (value_t) { ERROR, 0 };
+        return (value_t) { ERROR, (chunk_t) "Non-list argument to crd." };
     }
     cell_t* c = ((cell_t*) args.value)->cdr;
     if (c == 0) {
@@ -268,7 +268,7 @@ value_t cdr(value_t args, value_t env) {
 
 value_t cond(value_t args, value_t env) {
     if (len(args, 0) < 2) {
-	return (value_t) { ERROR, 0 };
+        return (value_t) { ERROR, (chunk_t) "Uneven number of args to cond." };
     }
     args = eval_args(args, env);
     value_t pred = ((cell_t*) args.value)->car;
@@ -279,20 +279,20 @@ value_t cond(value_t args, value_t env) {
     }
     cell_t* c = ((cell_t*) args.value)->cdr->cdr;
     if (c == 0) {
-	return (value_t) { ERROR, 0 };
+        return (value_t) { ERROR, (chunk_t) "No matching condition." };
     }
     return cond((value_t) { LIST, (chunk_t) c }, env);
 }
 
 value_t cons(value_t args, value_t env) {
     if (len(args, 0) != 2) {
-	return (value_t) { ERROR, 0 };
+        return (value_t) { ERROR, (chunk_t) "Wrong arity for cons." };
     }
     args = eval_args(args, env);
     value_t car = ((cell_t*) args.value)->car;
     value_t cdr = ((cell_t*) args.value)->cdr->car;
     if (cdr.type != LIST && cdr.type != NIL) {
-	return (value_t) { ERROR, 0 };
+        return (value_t) { ERROR, (chunk_t) "Non list or nil arg to cons." };
     }
     cell_t* c = malloc(sizeof(cell_t));
     c->car = car;
@@ -316,7 +316,7 @@ value_t eq_internal(value_t a, value_t b) {
 
 value_t eq(value_t args, value_t env) {
     if (len(args, 0) != 2) {
-	return (value_t) { ERROR, 0 };
+        return (value_t) { ERROR, (chunk_t) "Wrong arity to eq." };
     }
     args = eval_args(args, env);
     value_t a = ((cell_t*) args.value)->car;
@@ -326,14 +326,14 @@ value_t eq(value_t args, value_t env) {
 
 value_t quote(value_t args, value_t env) {
     if (len(args, 0) != 1) {
-	return (value_t) { ERROR, 0 };
+        return (value_t) { ERROR, (chunk_t) "Wrong arity to quote." };
     }
     return ((cell_t*) args.value)->car;
 }
 
 value_t lookup(value_t s, value_t env) {
     if (env.type == NIL) {
-	return (value_t) { ERROR, 0 };
+        return (value_t) { ERROR, (chunk_t) "Nil environment." };
     }
     value_t binding = ((cell_t*) env.value)->car;
     value_t first = ((cell_t*) binding.value)->car;
@@ -342,14 +342,14 @@ value_t lookup(value_t s, value_t env) {
     }
     cell_t* cdr = ((cell_t*) env.value)->cdr;
     if (cdr == 0) {
-	return (value_t) { ERROR, 0 };
+        return (value_t) { ERROR, (chunk_t) "Lookup of symbol failed." };
     }
     return lookup(s, (value_t) { LIST, (chunk_t) cdr});
 }
 
 value_t bind(value_t name, value_t value, value_t env) {
     if (name.type != SYMBOL) {
-	return (value_t) { ERROR, 0 };
+        return (value_t) { ERROR, (chunk_t) "Attempt to bind non-symbol." };
     }
     cell_t* first = malloc(sizeof(cell_t));
     cell_t* second = malloc(sizeof(cell_t));
@@ -427,7 +427,7 @@ value_t eval(value_t v, value_t env) {
 	    return eval(lamb->form, lambda_env);
 	}
 	default:
-	    return (value_t) { ERROR, 0 };
+            return (value_t) { ERROR, (chunk_t) "Attempt to call non-function." };
 	}
     }
     }
@@ -441,7 +441,7 @@ value_t wrap_fn(func_t fn) {
 
 value_t label(value_t args, value_t env) {
     if (len(args, 0) != 3) {
-	return (value_t) { ERROR, 0 };
+        return (value_t) { ERROR, (chunk_t) "Wrong arity for label." };
     }
     value_t name = ((cell_t*) args.value)->car;
     value_t value = ((cell_t*) args.value)->cdr->car;
@@ -453,11 +453,11 @@ value_t label(value_t args, value_t env) {
 
 value_t lambda(value_t args, value_t env) {
     if (len(args, 0) != 2) {
-	return (value_t) { ERROR, 0 };
+        return (value_t) { ERROR, (chunk_t) "Wrong arity for lambda." };
     }
     value_t names = ((cell_t*) args.value)->car;
     if (names.type != LIST) {
-	return (value_t) { ERROR, 0 };
+        return (value_t) { ERROR, (chunk_t) "First argument to lambda is non-list." };
     }
     value_t form = ((cell_t*) args.value)->cdr->car;
     lambda_t* lamb = malloc(sizeof(lambda_t));

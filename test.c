@@ -91,12 +91,12 @@ char* parse_test_cases[][3] = {
     {
         "Invalid number",
         "1-234",
-        "<error>"
+        "<error: Invalid character '-' in number.>"
     },
     {
         "Invalid number",
         "1a2b3c4d",
-        "<error>"
+        "<error: Invalid letter in number.>"
     },
     {
         "Single string",
@@ -116,17 +116,17 @@ char* parse_test_cases[][3] = {
     {
         "Error on symbol too long",
         "abcdefghijklmn",
-        "<error>"
+        "<error: Symbol too long.>"
     },
     {
-        "Error on mismatched parens",
+        "Error on invalid delimiter",
         "(abc]",
-        "<error>"
+        "<error: Invalid character.>"
     },
     {
         "Error on open parens",
         "(abc",
-        "<error>"
+        "<error: Unexpected EOF.>"
     },
     {
 	"Nil in a list",
@@ -152,7 +152,7 @@ char* lookup_test_cases[][4] = {
         "Lookup in empty list",
         "()",
         "a",
-        "<error>"
+        "<error: Nil environment.>"
     },
     {
         "Lookup symbol literal",
