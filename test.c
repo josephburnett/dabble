@@ -219,14 +219,14 @@ char* core_test_cases[][4] = {
         "t"
     },
     {
-	"Atom list",
-	"(atom (1))",
-	"()"
+        "Atom list",
+        "(atom (1))",
+        "()"
     },
     {
-	"Atom empty list",
-	"(atom ())",
-	"t"
+        "Atom empty list",
+        "(atom ())",
+        "t"
     },
     {
         "Car single element list",
@@ -234,9 +234,29 @@ char* core_test_cases[][4] = {
         "1"
     },
     {
+        "Car of a non-list is error",
+        "(car 1)",
+        "<error: Non-list argument to car.>"
+    },
+    {
+        "Car of nil is error",
+        "(car ())",
+        "<error: Non-list argument to car.>"
+    },
+    {
         "Cdr single element list",
         "(cdr (1))",
         "()"
+    },
+    {
+        "Cdr of two element list",
+        "(cdr (1 2))",
+        "(2)"
+    },
+    {
+        "Cdr of a non-list is error",
+        "(cdr 1)",
+        "<error: Non-list argument to crd.>"
     },
     {
         "Cond simple case",
@@ -244,7 +264,27 @@ char* core_test_cases[][4] = {
         "2"
     },
     {
+        "Cond match at beginning",
+        "(cond (eq 1 1) 2 (eq 3 4) 5 (eq 6 6) 7)",
+        "2"
+    },
+    {
+        "Cond match in middle",
+        "(cond (eq 1 2) 3 (eq 4 4) 5 (eq 6 6) 7)",
+        "5"
+    },
+    {
+        "Cond match at end",
+        "(cond (eq 1 2) 3 (eq 4 5) 6 (eq 7 7) 8)",
+        "8"
+    },
+    {
         "Cons with empty list",
+        "(cons 1 ())",
+        "(1)",
+    },
+    {
+        "Cons with single element list",
         "(cons 1 (quote (2)))",
         "(1 2)"
     },
@@ -252,6 +292,26 @@ char* core_test_cases[][4] = {
         "Eq with two numbers",
         "(eq 1 1)",
         "t"
+    },
+    {
+        "Eq with nil",
+        "(eq () ())",
+        "t"
+    },
+    {
+        "List eq",
+        "(eq (1) (1))",
+        "t"
+    },
+    {
+        "List deep eq",
+        "(eq (1 (2 3)) (1 (2 3)))",
+        "t"
+    },
+    {
+        "List deep not eq",
+        "(eq (1 (2 3)) (1 (2 4)))",
+        "()"
     },
     {
         "Quote symbol literal",
@@ -264,9 +324,14 @@ char* core_test_cases[][4] = {
         "1"
     },
     {
-	"Lambda",
-	"((lambda (a) (cond (eq a 1) 2 (eq a 3) 4)) 3)",
-	"4"
+        "Lambda",
+        "((lambda (a) (cond (eq a 1) 2 (eq a 3) 4)) 3)",
+        "4"
+    },
+    {
+        "List identity",
+        "(1 2)",
+        "(1 2)"
     }
 };
 
