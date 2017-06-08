@@ -5,6 +5,13 @@
 int
 check_result (char name[], char actual[], char expect[])
 {
+  if (actual == 0 || expect == 0)
+    {
+      printf ("\nERROR: %s\n", name);
+      printf ("    Test parameters missing.\n");
+      printf ("    Missing a comma?\n");
+      return 1;
+    }
   if (strcmp (actual, expect) != 0)
     {
       printf ("\nFAIL: %s\n", name);
@@ -289,6 +296,10 @@ char *core_test_cases[][4] = {
    "Lambda with no args",
    "((lambda () 1))",
    "1"},
+  {
+    "Lambda called from label",
+    "(label a (lambda () 1) (a))",
+    "1"},
   {
    "List identity",
    "(1 2)",
