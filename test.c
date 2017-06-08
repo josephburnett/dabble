@@ -324,9 +324,14 @@ char* core_test_cases[][4] = {
         "1"
     },
     {
-        "Lambda",
+        "Lambda with cond",
         "((lambda (a) (cond (eq a 1) 2 (eq a 3) 4)) 3)",
         "4"
+    },
+    {
+        "Lambda with no args",
+        "((lambda () 1))",
+        "1"
     },
     {
         "List identity",

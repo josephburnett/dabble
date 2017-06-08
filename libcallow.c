@@ -469,7 +469,7 @@ value_t lambda(value_t args, value_t env) {
         return (value_t) { ERROR, (chunk_t) "Wrong arity for lambda." };
     }
     value_t names = ((cell_t*) args.value)->car;
-    if (names.type != LIST) {
+    if (names.type != LIST && names.type != NIL) {
         return (value_t) { ERROR, (chunk_t) "First argument to lambda is non-list." };
     }
     value_t form = ((cell_t*) args.value)->cdr->car;
