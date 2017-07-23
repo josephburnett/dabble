@@ -302,7 +302,7 @@ char *core_test_cases[][4] = {
     "1"},
   {
     "Simple macro",
-    "(let (m (macro (x) x)) (m y))",
+    "(label m (macro (x) x) (m y))",
     "y"},
   {
    "List identity",
