@@ -5,7 +5,7 @@
 #include <inttypes.h>
 
 typedef enum
-{ NIL, SYMBOL, NUMBER, ERROR, LIST, LAMBDA, FUNC } type;
+{ NIL, SYMBOL, NUMBER, ERROR, LIST, LAMBDA, MACRO, FUNC } type;
 
 typedef int64_t chunk_t;
 
@@ -27,6 +27,13 @@ typedef struct
   value_t form;
   value_t env;
 } lambda_t;
+
+typedef struct
+{
+  value_t names;
+  value_t form;
+  value_t env;
+} macro_t;
 
 typedef value_t (*func_t) (value_t, value_t);
 
@@ -600,6 +607,7 @@ eval (value_t v, value_t env)
     case ERROR:
     case FUNC:
     case LAMBDA:
+    case MACRO:
       return v;
     case SYMBOL:
       return lookup (v, env);
@@ -629,6 +637,7 @@ eval (value_t v, value_t env)
 	      func_s *func = (func_s *) first.value;
 	      return (*(func->func)) (params, env);
 	    }
+	  case MACRO:
 	  case LAMBDA:
 	    {
 	      lambda_t *lamb = (lambda_t *) first.value;
@@ -637,6 +646,10 @@ eval (value_t v, value_t env)
 		  return (value_t)
 		  {
 		  ERROR, 0};
+		}
+	      if (first.type == LAMBDA)
+		{
+		  params = eval_args (params, env, -1);
 		}
 	      value_t lambda_env = lamb->env;
 	      cell_t *name = (cell_t *) lamb->names.value;
@@ -712,6 +725,32 @@ lambda (value_t args, value_t env)
 }
 
 value_t
+macro (value_t args, value_t env)
+{
+  if (len (args, 0) != 2)
+    {
+      return (value_t)
+	{
+	ERROR, (chunk_t) "Wrong arity for macro."};
+    }
+  value_t names = ((cell_t *) args.value)->car;
+  if (names.type != LIST && names.type != NIL)
+    {
+      return (value_t)
+      {
+      ERROR, (chunk_t) "First argument to macro is non-list."};
+    }
+  value_t form = ((cell_t *) args.value)->cdr->car;
+  macro_t *mac = malloc (sizeof (macro_t));
+  mac->names = names;
+  mac->form = form;
+  mac->env = env;
+  return (value_t)
+  {
+  MACRO, (chunk_t) mac};
+}
+
+value_t
 callow_core ()
 {
   value_t env = (value_t) { NIL, 0 };
@@ -724,5 +763,6 @@ callow_core ()
   env = bind (read_string ("quote"), wrap_fn (&quote), env);
   env = bind (read_string ("label"), wrap_fn (&label), env);
   env = bind (read_string ("lambda"), wrap_fn (&lambda), env);
+  env = bind (read_string ("macro"), wrap_fn (&macro), env);
   return env;
 }
