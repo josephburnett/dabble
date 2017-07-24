@@ -297,13 +297,17 @@ char *core_test_cases[][4] = {
    "((lambda () 1))",
    "1"},
   {
-    "Lambda called from label",
-    "(label a (lambda () 1) (a))",
-    "1"},
+   "Lambda called from label",
+   "(label a (lambda () 1) (a))",
+   "1"},
   {
-    "Simple macro",
-    "(label m (macro (x) x) (m y))",
-    "y"},
+   "Identity macro",
+   "(label y 1 (label m (macro (x) x) (m y)))",
+   "1"},
+  {
+   "Wrapping macro",
+   "(label y 1 (label m (macro (x) (label y 2 x)) (m y)))",
+   "2"},
   {
    "List identity",
    "(1 2)",

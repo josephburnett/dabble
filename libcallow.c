@@ -276,6 +276,9 @@ print_index (FILE * fp, value_t v, int index)
     case LAMBDA:
       fprintf (fp, "<lambda>");
       break;
+    case MACRO:
+      fprintf (fp, "<macro>");
+      break;
     case ERROR:
       fprintf (fp, "<error: %s>", (char *) v.value);
       break;
@@ -600,6 +603,12 @@ eval_args (value_t list, value_t env, int limit)
 value_t
 eval (value_t v, value_t env)
 {
+  /* printf("evaluating "); */
+  /* print(stdout, v); */
+  /* printf("\n"); */
+  /* printf("  with env "); */
+  /* print(stdout, env); */
+  /* printf("\n"); */
   switch (v.type)
     {
     case NIL:
@@ -660,7 +669,13 @@ eval (value_t v, value_t env)
 		  name = name->cdr;
 		  param = param->cdr;
 		}
-	      return eval (lamb->form, lambda_env);
+	      value_t result = eval (lamb->form, lambda_env);
+	      if (first.type == MACRO)
+		{
+		  // TODO: expand, not eval
+		  result = eval (result, lambda_env);
+		}
+	      return result;
 	    }
 	  default:
 	    return (value_t)
