@@ -557,7 +557,7 @@ value_t eval(value_t v, value_t env)
 		{
 		    macro_t *mac = (macro_t *) first.value;
 		    value_t result = expand(first, params, mac->form);
-		    return eval(result, env);
+		    return eval(result, mac->env);
 		}
 	    case LAMBDA:
 		{

@@ -307,6 +307,10 @@ char *core_test_cases[][4] = {
       "(label m (macro (x) (cond (eq (quote x) (quote y)) 1 (eq (quote x) (quote z)) 2)) (m z))",
       "2"},
     {
+      "Macro captures environment.",
+      "(label m (label a 1 (macro (x) (cons a x))) (m (2)))",
+      "(1 2)"},
+    {
      "List identity",
      "(1 2)",
      "(1 2)"}
