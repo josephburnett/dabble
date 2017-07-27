@@ -554,6 +554,11 @@ value_t eval(value_t v, value_t env)
 		    return (*(func->func)) (params, env);
 		}
 	    case MACRO:
+		{
+		    macro_t *mac = (macro_t *) first.value;
+		    value_t result = expand(first, params, mac->form);
+		    return eval(result, env);
+		}
 	    case LAMBDA:
 		{
 		    lambda_t *lamb = (lambda_t *) first.value;
@@ -561,9 +566,7 @@ value_t eval(value_t v, value_t env)
 			return (value_t) {
 			ERROR, 0};
 		    }
-		    if (first.type == LAMBDA) {
-			params = eval_args(params, env, -1);
-		    }
+		    params = eval_args(params, env, -1);
 		    value_t lambda_env = lamb->env;
 		    cell_t *name = (cell_t *) lamb->names.value;
 		    cell_t *param = (cell_t *) params.value;
@@ -573,12 +576,7 @@ value_t eval(value_t v, value_t env)
 			name = name->cdr;
 			param = param->cdr;
 		    }
-		    if (first.type == LAMBDA) {
-			return eval(lamb->form, lambda_env);
-		    } else {
-			value_t result = expand(first, params, lamb->form);
-			return eval(result, env);
-		    }
+		    return eval(lamb->form, lambda_env);
 		}
 	    default:
 		return (value_t) {
