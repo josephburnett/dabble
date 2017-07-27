@@ -303,6 +303,10 @@ char *core_test_cases[][4] = {
      "(label y 1 (label m (macro (x) (label y 2 x)) (m y)))",
      "2"},
     {
+      "Macro with conditional",
+      "(label m (macro (x) (cond (eq x (quote y)) 1 (eq x (quote z)) 2)) (m z))",
+      "2"},
+    {
      "List identity",
      "(1 2)",
      "(1 2)"}
