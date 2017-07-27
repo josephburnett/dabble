@@ -601,14 +601,61 @@ eval_args (value_t list, value_t env, int limit)
 }
 
 value_t
+expand (value_t macro, value_t params, value_t form)
+{
+  if (len (params, 0) == 0)
+    {
+      return form;
+    }
+  if (form.type != LIST && form.type != SYMBOL)
+    {
+      return form;
+    }
+  macro_t *mac = (macro_t *) macro.value;
+  if (len (mac->names, 0) != len (params, 0))
+    {
+      return (value_t)
+      {
+      ERROR, (chunk_t) "Incorrect arity for macro."};
+    }
+  if (form.type == SYMBOL)
+    {
+      cell_t *name = (cell_t *) mac->names.value;
+      cell_t *param = (cell_t *) params.value;
+      while (name != 0)
+	{
+	  if (name->car.type == SYMBOL && name->car.value == form.value)
+	    {
+	      return param->car;
+	    }
+	  name = name->cdr;
+	  param = param->cdr;
+	}
+      return form;
+    }
+  if (form.type == LIST)
+    {
+      cell_t *form_list = (cell_t *) form.value;
+      cell_t *head = malloc(sizeof(cell_t));
+      cell_t *tail = head;
+      tail->car = expand(macro, params, form_list->car);
+      form_list = form_list->cdr;
+      while (form_list != 0)
+	{
+	  tail->cdr = malloc(sizeof(cell_t));
+	  tail = tail->cdr;
+	  tail->car = expand(macro, params, form_list->car);
+	  tail->cdr = 0;
+	  form_list = form_list->cdr;
+	}
+      return (value_t) { LIST, (chunk_t)  head };
+    }
+  return form;
+}
+
+value_t
 eval (value_t v, value_t env)
 {
-  /* printf("evaluating "); */
-  /* print(stdout, v); */
-  /* printf("\n"); */
-  /* printf("  with env "); */
-  /* print(stdout, env); */
-  /* printf("\n"); */
   switch (v.type)
     {
     case NIL:
@@ -669,13 +716,15 @@ eval (value_t v, value_t env)
 		  name = name->cdr;
 		  param = param->cdr;
 		}
-	      value_t result = eval (lamb->form, lambda_env);
-	      if (first.type == MACRO)
+	      if (first.type == LAMBDA)
 		{
-		  // TODO: expand, not eval
-		  result = eval (result, lambda_env);
+		  return eval (lamb->form, lambda_env);
 		}
-	      return result;
+	      else
+		{
+		  value_t result = expand (first, params, lamb->form);
+		  return eval(result, env);
+		}
 	    }
 	  default:
 	    return (value_t)
