@@ -303,13 +303,17 @@ char *core_test_cases[][4] = {
      "(label y 1 (label m (macro (x) (label y 2 x)) (m y)))",
      "2"},
     {
-      "Macro with conditional",
-      "(label m (macro (x) (cond (eq (quote x) (quote y)) 1 (eq (quote x) (quote z)) 2)) (m z))",
-      "2"},
+     "Macro with conditional",
+     "(label m (macro (x) (cond (eq (quote x) (quote y)) 1 (eq (quote x) (quote z)) 2)) (m z))",
+     "2"},
     {
-      "Macro captures environment.",
-      "(label m (label a 1 (macro (x) (cons a x))) (m (2)))",
-      "(1 2)"},
+     "Macro captures environment.",
+     "(label m (label a 1 (macro (x) (cons a x))) (m (2)))",
+     "(1 2)"},
+    {
+     "Macro preserves environment of parameters.",
+     "(label a 1 (label m (macro (x) (label a 2 x)) (m a)))",
+     "1"},
     {
      "List identity",
      "(1 2)",

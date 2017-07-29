@@ -5,7 +5,7 @@
 #include <inttypes.h>
 
 typedef enum
-    { NIL, SYMBOL, NUMBER, ERROR, LIST, LAMBDA, MACRO, FUNC } type;
+    { NIL, SYMBOL, NUMBER, ERROR, LIST, LAMBDA, MACRO, FUNC, ENV } type;
 
 typedef int64_t chunk_t;
 
@@ -31,11 +31,16 @@ typedef struct {
     value_t env;
 } macro_t;
 
-typedef value_t(*func_t) (value_t, value_t);
+typedef value_t(*func_fn) (value_t, value_t);
 
 typedef struct {
-    func_t func;
-} func_s;
+    func_fn func;
+} func_t;
+
+typedef struct {
+    value_t value;
+    value_t env;
+} env_t;
 
 value_t read(FILE * fp);
 
@@ -236,6 +241,9 @@ void print_index(FILE * fp, value_t v, int index)
     case NIL:
 	fprintf(fp, "()");
 	break;
+    case ENV:
+      print_index(fp, ((env_t*) v.value)->value, index);
+      break;
     }
 }
 
@@ -529,6 +537,11 @@ value_t eval(value_t v, value_t env)
     case LAMBDA:
     case MACRO:
 	return v;
+    case ENV:
+	{
+	    env_t *e = (env_t *) v.value;
+	    return eval(e->value, e->env);
+	}
     case SYMBOL:
 	return lookup(v, env);
     case LIST:
@@ -550,13 +563,19 @@ value_t eval(value_t v, value_t env)
 	    switch (first.type) {
 	    case FUNC:
 		{
-		    func_s *func = (func_s *) first.value;
+		    func_t *func = (func_t *) first.value;
 		    return (*(func->func)) (params, env);
 		}
 	    case MACRO:
 		{
 		    macro_t *mac = (macro_t *) first.value;
-		    value_t result = expand(first, params, mac->form);
+		    // Capture environment of parameters
+		    env_t *e = malloc(sizeof(env_t));
+		    e->value = params;
+		    e->env = env;
+		    // Inject parameters in macro
+		    value_t result = expand(first, (value_t) { ENV, (chunk_t) e}, mac->form);
+		    // Evaluate with environment of macro
 		    return eval(result, mac->env);
 		}
 	    case LAMBDA:
@@ -586,9 +605,9 @@ value_t eval(value_t v, value_t env)
     }
 }
 
-value_t wrap_fn(func_t fn)
+value_t wrap_fn(func_fn fn)
 {
-    func_s *func = malloc(sizeof(func_s));
+    func_t *func = malloc(sizeof(func_t));
     func->func = fn;
     return (value_t) {
     FUNC, (chunk_t) func};
