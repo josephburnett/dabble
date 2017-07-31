@@ -299,12 +299,12 @@ char *core_test_cases[][4] = {
      "(label y 1 (label m (macro (x) x) (m y)))",
      "1"},
     {
-     "Wrapping macro",
+     "Macro cannot capture variables (hermetic macros.)",
      "(label y 1 (label m (macro (x) (label y 2 x)) (m y)))",
-     "2"},
+     "1"},
     {
      "Macro with conditional",
-     "(label m (macro (x) (cond (eq (quote x) (quote y)) 1 (eq (quote x) (quote z)) 2)) (m z))",
+     "(label m (macro (x) (cond (eq x (quote y)) 1 (eq x (quote z)) 2)) (m (quote z)))",
      "2"},
     {
      "Macro captures environment.",

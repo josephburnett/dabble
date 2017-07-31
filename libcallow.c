@@ -242,8 +242,8 @@ void print_index(FILE * fp, value_t v, int index)
 	fprintf(fp, "()");
 	break;
     case ENV:
-      print_index(fp, ((env_t*) v.value)->value, index);
-      break;
+	print_index(fp, ((env_t *) v.value)->value, index);
+	break;
     }
 }
 
@@ -569,13 +569,33 @@ value_t eval(value_t v, value_t env)
 	    case MACRO:
 		{
 		    macro_t *mac = (macro_t *) first.value;
-		    // Capture environment of parameters
+		    // Wrap parameters with their environment
+		    cell_t *param_list = (cell_t *) params.value;
+		    cell_t *head = malloc(sizeof(cell_t));
+		    cell_t *tail = head;
 		    env_t *e = malloc(sizeof(env_t));
-		    e->value = params;
+		    e->value = param_list->car;
 		    e->env = env;
-		    // Inject parameters in macro
-		    value_t result = expand(first, (value_t) { ENV, (chunk_t) e}, mac->form);
-		    // Evaluate with environment of macro
+		    tail->car = (value_t) {
+		    ENV, (chunk_t) e};
+		    tail->cdr = 0;
+		    param_list = param_list->cdr;
+		    while (param_list != 0) {
+			tail->cdr = malloc(sizeof(cell_t));
+			tail = tail->cdr;
+			env_t *e = malloc(sizeof(env_t));
+			e->value = param_list->car;
+			e->env = env;
+			tail->car = (value_t) {
+			ENV, (chunk_t) e};
+			tail->cdr = 0;
+			param_list = param_list->cdr;
+		    }
+		    // Expand the macro
+		    value_t result =
+			expand(first, (value_t) { LIST, (chunk_t) head }
+			       , mac->form);
+		    // Evaluate with the environment of the macro
 		    return eval(result, mac->env);
 		}
 	    case LAMBDA:
