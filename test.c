@@ -279,6 +279,10 @@ char *core_test_cases[][4] = {
      "(quote a)",
      "a"},
     {
+     "Quote symbol list within list",
+     "((quote a))",
+     "(a)"},
+    {
      "Label number literal",
      "(label a 1 a)",
      "1"},
@@ -320,6 +324,17 @@ char *core_test_cases[][4] = {
      "(1 2)"}
 };
 
+int check_import(value_t env) {
+  value_t test = read_string("(import (\"tst/import_test.clw\") (b))");
+  value_t actual_value = eval(test, env);
+  char *actual;
+  size_t size;
+  FILE *stream = open_memstream(&actual, &size);
+  print(stream, actual_value);
+  fclose(stream);
+  return check_result("Check import", actual, "2");
+}
+
 int main(int argc, char *argv[])
 {
     value_t core_env = callow_core();
@@ -348,6 +363,7 @@ int main(int argc, char *argv[])
 	char **args = core_test_cases[i];
 	fail += check_eval(args[0], core_env, args[1], args[2]);
     }
+    fail += check_import(core_env);
 
     if (fail == 0) {
 	printf("\nALL TESTS PASSED!\n\n");

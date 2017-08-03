@@ -167,6 +167,7 @@ value_t read(FILE * fp)
     while ((ch = getc(fp)) != EOF) {
 	switch (ch) {
 	case ' ':
+	case '\n':
 	    continue;
 	case '(':
 	    return list(fp, 0);
@@ -618,6 +619,9 @@ value_t eval(value_t v, value_t env)
 		    return eval(lamb->form, lambda_env);
 		}
 	    default:
+	      printf("non-function: ");
+	      print(stdout, first);
+	      printf("\n");
 		return (value_t) {
 		ERROR, (chunk_t) "Attempt to call non-function."};
 	    }
@@ -687,6 +691,93 @@ value_t macro(value_t args, value_t env)
     MACRO, (chunk_t) mac};
 }
 
+value_t to_string(value_t v, char* str)
+{
+    if (v.type != LIST) {
+	return (value_t) {
+	ERROR, (chunk_t) "to_string requires a list of symbols."};
+    }
+    int size = len(v, 0) + 1;
+    cell_t *head = (cell_t *) v.value;
+    for (int i = 0; i < size-1; i++) {
+      if (head->car.type != SYMBOL) {
+	return (value_t) { ERROR, (chunk_t) "Non SYMBOL in to_string list"};
+      }
+      str[i] = (char) head->car.value;
+      head = head->cdr;
+    }
+    str[size-1] = 0;
+    printf("to_string(");
+    print(stdout, v);
+    printf(",%s)\n", str);
+    return (value_t) { NIL, 0 };
+}
+
+value_t load(value_t filename)
+{
+    char* str = malloc(len(filename, 0) + 1);
+    value_t err = to_string(filename, str);
+    if (err.type != NIL) {
+      return err;
+    }
+    FILE *fp;
+    if ((fp = fopen(str, "r")) == NULL) {
+      return (value_t) { ERROR, (chunk_t) "Error opening file"};
+    }
+    value_t form = read(fp);
+    fclose(fp);
+    free(str);
+    return form;
+}
+
+value_t import(value_t args, value_t env)
+{
+    if (len(args, 0) != 2) {
+      return (value_t) {
+	ERROR, (chunk_t) "Wrong arity for import."};
+    }
+    value_t first = ((cell_t *) args.value)->car;
+    if (first.type != LIST && first.type != NIL) {
+	return (value_t) {
+	ERROR, (chunk_t) "First argument to import is non-list."};
+    }
+    cell_t *import_list = (cell_t *) first.value;
+    while (import_list != 0) {
+      value_t import_env = load(import_list->car);
+      printf("import_env: ");
+      print(stdout, import_env);
+      printf("\n");
+      import_env = eval(import_env, env);
+      printf("evaluated import_env: ");
+      print(stdout, import_env);
+      printf("\n");
+      if (import_env.type == ERROR) {
+	return import_env;
+      }
+      if (import_env.type != LIST) {
+	return (value_t) {
+	  ERROR, (chunk_t) "Invalid import. Non-List."};
+      }
+      cell_t *binding = (cell_t *) import_env.value;
+      while (binding != 0) {
+	if (len((value_t) { LIST, (chunk_t) binding }, 0) != 2) {
+	  return (value_t) {
+	    ERROR, (chunk_t) "Invalid import. Non pair binding."};
+	}
+	value_t sym = binding->car;
+	value_t val = binding->cdr->car;
+	if (sym.type != SYMBOL) {
+	  return (value_t) {
+	    ERROR, (chunk_t) "Invalid import. First of pair not symbol."};
+	}
+	env = bind(sym, val, env);
+	binding = binding->cdr;
+      }
+      import_list = import_list->cdr;
+    }
+    return eval(((cell_t *) args.value)->cdr->car, env);
+}
+
 value_t callow_core()
 {
     value_t env = (value_t) { NIL, 0 };
@@ -700,5 +791,6 @@ value_t callow_core()
     env = bind(read_string("label"), wrap_fn(&label), env);
     env = bind(read_string("lambda"), wrap_fn(&lambda), env);
     env = bind(read_string("macro"), wrap_fn(&macro), env);
+    env = bind(read_string("import"), wrap_fn(&import), env);
     return env;
 }
