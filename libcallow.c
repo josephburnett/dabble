@@ -53,6 +53,18 @@ value_t read_string(char form[])
     return v;
 }
 
+value_t read_file(char *filename)
+{
+    FILE *fp;
+    if ((fp = fopen(filename, "r")) == NULL) {
+	return (value_t) {
+	ERROR, (chunk_t) "Error opening file"};
+    }
+    value_t form = read(fp);
+    fclose(fp);
+    return form;
+}
+
 value_t list(FILE * fp, int length)
 {
     value_t car = read(fp);
@@ -494,6 +506,7 @@ value_t expand(value_t macro, value_t params, value_t form)
     }
     macro_t *mac = (macro_t *) macro.value;
     if (len(mac->names, 0) != len(params, 0)) {
+        printf("macro args len: %d\n", len(params, 0));
 	return (value_t) {
 	ERROR, (chunk_t) "Incorrect arity for macro."};
     }
@@ -619,9 +632,6 @@ value_t eval(value_t v, value_t env)
 		    return eval(lamb->form, lambda_env);
 		}
 	    default:
-	      printf("non-function: ");
-	      print(stdout, first);
-	      printf("\n");
 		return (value_t) {
 		ERROR, (chunk_t) "Attempt to call non-function."};
 	    }
@@ -691,7 +701,7 @@ value_t macro(value_t args, value_t env)
     MACRO, (chunk_t) mac};
 }
 
-value_t to_string(value_t v, char* str)
+value_t to_string(value_t v, char *str)
 {
     if (v.type != LIST) {
 	return (value_t) {
@@ -699,27 +709,30 @@ value_t to_string(value_t v, char* str)
     }
     int size = len(v, 0) + 1;
     cell_t *head = (cell_t *) v.value;
-    for (int i = 0; i < size-1; i++) {
-      if (head->car.type != SYMBOL) {
-	return (value_t) { ERROR, (chunk_t) "Non SYMBOL in to_string list"};
-      }
-      str[i] = (char) head->car.value;
-      head = head->cdr;
+    for (int i = 0; i < size - 1; i++) {
+	if (head->car.type != SYMBOL) {
+	    return (value_t) {
+	    ERROR, (chunk_t) "Non SYMBOL in to_string list"};
+	}
+	str[i] = (char) head->car.value;
+	head = head->cdr;
     }
-    str[size-1] = 0;
-    return (value_t) { NIL, 0 };
+    str[size - 1] = 0;
+    return (value_t) {
+    NIL, 0};
 }
 
 value_t load(value_t filename)
 {
-    char* str = malloc(len(filename, 0) + 1);
+    char *str = malloc(len(filename, 0) + 1);
     value_t err = to_string(filename, str);
     if (err.type != NIL) {
-      return err;
+	return err;
     }
     FILE *fp;
     if ((fp = fopen(str, "r")) == NULL) {
-      return (value_t) { ERROR, (chunk_t) "Error opening file"};
+	return (value_t) {
+	ERROR, (chunk_t) "Error opening file"};
     }
     value_t form = read(fp);
     fclose(fp);
@@ -730,7 +743,7 @@ value_t load(value_t filename)
 value_t import(value_t args, value_t env)
 {
     if (len(args, 0) != 2) {
-      return (value_t) {
+	return (value_t) {
 	ERROR, (chunk_t) "Wrong arity for import."};
     }
     value_t first = ((cell_t *) args.value)->car;
@@ -740,31 +753,32 @@ value_t import(value_t args, value_t env)
     }
     cell_t *import_list = (cell_t *) first.value;
     while (import_list != 0) {
-      value_t import_env = load(import_list->car);
-      import_env = eval(import_env, env);
-      if (import_env.type == ERROR) {
-	return import_env;
-      }
-      if (import_env.type != LIST) {
-	return (value_t) {
-	  ERROR, (chunk_t) "Invalid import. Non-List."};
-      }
-      cell_t *binding = (cell_t *) import_env.value;
-      while (binding != 0) {
-	if (len(binding->car, 0) != 2) {
-	  return (value_t) {
-	    ERROR, (chunk_t) "Invalid import. Non pair binding."};
+	value_t import_env = load(import_list->car);
+	import_env = eval(import_env, env);
+	if (import_env.type == ERROR) {
+	    return import_env;
 	}
-	value_t sym = ((cell_t *) binding->car.value)->car;
-	value_t val = ((cell_t *) binding->car.value)->cdr->car;
-	if (sym.type != SYMBOL) {
-	  return (value_t) {
-	    ERROR, (chunk_t) "Invalid import. First of pair not symbol."};
+	if (import_env.type != LIST) {
+	    return (value_t) {
+	    ERROR, (chunk_t) "Invalid import. Non-List."};
 	}
-	env = bind(sym, val, env);
-	binding = binding->cdr;
-      }
-      import_list = import_list->cdr;
+	cell_t *binding = (cell_t *) import_env.value;
+	while (binding != 0) {
+	    if (len(binding->car, 0) != 2) {
+		return (value_t) {
+		ERROR, (chunk_t) "Invalid import. Non pair binding."};
+	    }
+	    value_t sym = ((cell_t *) binding->car.value)->car;
+	    value_t val = ((cell_t *) binding->car.value)->cdr->car;
+	    if (sym.type != SYMBOL) {
+		return (value_t) {
+		    ERROR, (chunk_t)
+		"Invalid import. First of pair not symbol."};
+	    }
+	    env = bind(sym, val, env);
+	    binding = binding->cdr;
+	}
+	import_list = import_list->cdr;
     }
     return eval(((cell_t *) args.value)->cdr->car, env);
 }

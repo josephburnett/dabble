@@ -324,15 +324,33 @@ char *core_test_cases[][4] = {
      "(1 2)"}
 };
 
-int check_import(value_t env) {
-  value_t test = read_string("(import (\"tst/import_test.clw\") (b))");
-  value_t actual_value = eval(test, env);
-  char *actual;
-  size_t size;
-  FILE *stream = open_memstream(&actual, &size);
-  print(stream, actual_value);
-  fclose(stream);
-  return check_result("Check import", actual, "2");
+int check_import(value_t env)
+{
+    value_t test = read_string("(import (\"tst/import_test.clw\") (b))");
+    value_t actual_value = eval(test, env);
+    char *actual;
+    size_t size;
+    FILE *stream = open_memstream(&actual, &size);
+    print(stream, actual_value);
+    fclose(stream);
+    return check_result("Check import", actual, "2");
+}
+
+char *callow_test_files[] = {
+    "tst/core/list.clw"
+};
+
+int check_callow_test(char *filename, value_t env)
+{
+    printf("testing %s\n", filename);
+    value_t test = read_file(filename);
+    value_t actual_value = eval(test, env);
+    char *actual;
+    size_t size;
+    FILE *stream = open_memstream(&actual, &size);
+    print(stream, actual_value);
+    fclose(stream);
+    return check_result(filename, actual, "t");
 }
 
 int main(int argc, char *argv[])
@@ -364,6 +382,10 @@ int main(int argc, char *argv[])
 	fail += check_eval(args[0], core_env, args[1], args[2]);
     }
     fail += check_import(core_env);
+    for (i = 0; i < sizeof(callow_test_files) / sizeof(char*); i++) {
+	char *filename = callow_test_files[i];
+	fail += check_callow_test(filename, core_env);
+    }
 
     if (fail == 0) {
 	printf("\nALL TESTS PASSED!\n\n");
