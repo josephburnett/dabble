@@ -707,9 +707,6 @@ value_t to_string(value_t v, char* str)
       head = head->cdr;
     }
     str[size-1] = 0;
-    printf("to_string(");
-    print(stdout, v);
-    printf(",%s)\n", str);
     return (value_t) { NIL, 0 };
 }
 
@@ -744,13 +741,7 @@ value_t import(value_t args, value_t env)
     cell_t *import_list = (cell_t *) first.value;
     while (import_list != 0) {
       value_t import_env = load(import_list->car);
-      printf("import_env: ");
-      print(stdout, import_env);
-      printf("\n");
       import_env = eval(import_env, env);
-      printf("evaluated import_env: ");
-      print(stdout, import_env);
-      printf("\n");
       if (import_env.type == ERROR) {
 	return import_env;
       }
@@ -760,12 +751,12 @@ value_t import(value_t args, value_t env)
       }
       cell_t *binding = (cell_t *) import_env.value;
       while (binding != 0) {
-	if (len((value_t) { LIST, (chunk_t) binding }, 0) != 2) {
+	if (len(binding->car, 0) != 2) {
 	  return (value_t) {
 	    ERROR, (chunk_t) "Invalid import. Non pair binding."};
 	}
-	value_t sym = binding->car;
-	value_t val = binding->cdr->car;
+	value_t sym = ((cell_t *) binding->car.value)->car;
+	value_t val = ((cell_t *) binding->car.value)->cdr->car;
 	if (sym.type != SYMBOL) {
 	  return (value_t) {
 	    ERROR, (chunk_t) "Invalid import. First of pair not symbol."};

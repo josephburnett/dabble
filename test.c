@@ -280,7 +280,7 @@ char *core_test_cases[][4] = {
      "a"},
     {
      "Quote symbol list within list",
-     "((quote a))",
+     "(cons (quote a) ())",
      "(a)"},
     {
      "Label number literal",
