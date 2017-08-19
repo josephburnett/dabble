@@ -35,3 +35,6 @@
 # Output binaries
 callow
 test
+
+# Temporary files
+*~
