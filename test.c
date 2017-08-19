@@ -299,6 +299,15 @@ char *core_test_cases[][4] = {
      "(label a (lambda () 1) (a))",
      "1"},
     {
+      "Recursive lambda",
+      "(label last"
+      "  (lambda (x)"
+      "    (cond"
+      "      (eq () (cdr x)) (car x)"
+      "      (quote t) (last (cdr x))))"
+      "  (last (1 2 3 4)))",
+      "4"},
+    {
      "Identity macro",
      "(label y 1 (label m (macro (x xs) x) (m y)))",
      "1"},
@@ -343,7 +352,6 @@ char *callow_test_files[] = {
 
 int check_callow_test(char *filename, value_t env)
 {
-    printf("testing %s\n", filename);
     value_t test = read_file(filename);
     value_t actual_value = eval(test, env);
     char *actual;
