@@ -337,6 +337,7 @@ int check_import(value_t env)
 }
 
 char *callow_test_files[] = {
+    "tst/core/and.clw",
     "tst/core/list.clw"
 };
 

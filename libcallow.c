@@ -578,6 +578,8 @@ value_t eval(value_t v, value_t env)
 		first = eval(first, env);
 	    }
 	    switch (first.type) {
+	    case ERROR:
+		return first;
 	    case FUNC:
 		{
 		    func_t *func = (func_t *) first.value;
@@ -593,9 +595,8 @@ value_t eval(value_t v, value_t env)
 		    int len_params = len(params, 0);
 		    if (len_names > len_params + 1) {
 			return (value_t) {
-			ERROR,
-				(chunk_t)
-				"Not enough arguments provided to macro."};
+			    ERROR, (chunk_t)
+			"Not enough arguments provided to macro."};
 		    }
 		    // new list
 		    cell_t *head = malloc(sizeof(cell_t));
