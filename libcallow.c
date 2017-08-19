@@ -505,23 +505,26 @@ value_t expand(value_t macro, value_t params, value_t form)
 	return form;
     }
     macro_t *mac = (macro_t *) macro.value;
-    if (len(mac->names, 0) != len(params, 0)) {
-        printf("macro args len: %d\n", len(params, 0));
+    int names_len = len(mac->names, 0);
+    int params_len = len(params, 0);
+    if (names_len > params_len + 1) {
 	return (value_t) {
-	ERROR, (chunk_t) "Incorrect arity for macro."};
+	ERROR, (chunk_t) "Not enough arguments provided to macro."};
     }
+    // Symbols are replaced
     if (form.type == SYMBOL) {
 	cell_t *name = (cell_t *) mac->names.value;
 	cell_t *param = (cell_t *) params.value;
 	while (name != 0) {
 	    if (name->car.type == SYMBOL && name->car.value == form.value) {
-		return param->car;
+		form = param->car;
+		break;
 	    }
 	    name = name->cdr;
 	    param = param->cdr;
 	}
-	return form;
     }
+    // Lists are recursively expanded
     if (form.type == LIST) {
 	cell_t *form_list = (cell_t *) form.value;
 	cell_t *head = malloc(sizeof(cell_t));
@@ -535,7 +538,7 @@ value_t expand(value_t macro, value_t params, value_t form)
 	    tail->cdr = 0;
 	    form_list = form_list->cdr;
 	}
-	return (value_t) {
+	form = (value_t) {
 	LIST, (chunk_t) head};
     }
     return form;
@@ -584,17 +587,34 @@ value_t eval(value_t v, value_t env)
 		{
 		    macro_t *mac = (macro_t *) first.value;
 		    // Wrap parameters with their environment
+		    // And group extra parameters into the last named symbol
 		    cell_t *param_list = (cell_t *) params.value;
+		    int len_names = len(mac->names, 0);
+		    int len_params = len(params, 0);
+		    if (len_names > len_params + 1) {
+			return (value_t) {
+			ERROR,
+				(chunk_t)
+				"Not enough arguments provided to macro."};
+		    }
+		    // new list
 		    cell_t *head = malloc(sizeof(cell_t));
 		    cell_t *tail = head;
 		    env_t *e = malloc(sizeof(env_t));
-		    e->value = param_list->car;
+		    // wrap the first element
+		    if (len_names == 1) {
+			e->value = params;
+		    } else {
+			e->value = param_list->car;
+		    }
 		    e->env = env;
 		    tail->car = (value_t) {
 		    ENV, (chunk_t) e};
 		    tail->cdr = 0;
 		    param_list = param_list->cdr;
-		    while (param_list != 0) {
+		    // wrap all the rest of the names bindings
+		    // except the last one
+		    for (int i = 1; i < len_names - 1; i++) {
 			tail->cdr = malloc(sizeof(cell_t));
 			tail = tail->cdr;
 			env_t *e = malloc(sizeof(env_t));
@@ -605,6 +625,17 @@ value_t eval(value_t v, value_t env)
 			tail->cdr = 0;
 			param_list = param_list->cdr;
 		    }
+		    // wrap the remaining params as the last name
+		    tail->cdr = malloc(sizeof(cell_t));
+		    tail = tail->cdr;
+		    e = malloc(sizeof(env_t));
+
+		    e->value = (value_t) {
+		    LIST, (chunk_t) param_list};
+		    e->env = env;
+		    tail->car = (value_t) {
+		    ENV, (chunk_t) e};
+		    tail->cdr = 0;
 		    // Expand the macro
 		    value_t result =
 			expand(first, (value_t) { LIST, (chunk_t) head }

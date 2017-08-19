@@ -1,7 +1,2 @@
 (cons (cons (quote list)
-            (cons (macro (form)
-                         (cond (eq () form)
-                               ()
-                               (quote t)
-                               (cons (quote (car form))
-                                     (list (cdr form))))) ())) ())
+            (cons (macro (form) form) ())) ())

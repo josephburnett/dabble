@@ -300,23 +300,23 @@ char *core_test_cases[][4] = {
      "1"},
     {
      "Identity macro",
-     "(label y 1 (label m (macro (x) x) (m y)))",
+     "(label y 1 (label m (macro (x xs) x) (m y)))",
      "1"},
     {
      "Macro cannot capture variables (hermetic macros.)",
-     "(label y 1 (label m (macro (x) (label y 2 x)) (m y)))",
+     "(label y 1 (label m (macro (x xs) (label y 2 x)) (m y)))",
      "1"},
     {
      "Macro with conditional",
-     "(label m (macro (x) (cond (eq x (quote y)) 1 (eq x (quote z)) 2)) (m (quote z)))",
+     "(label m (macro (x xs) (cond (eq x (quote y)) 1 (eq x (quote z)) 2)) (m (quote z)))",
      "2"},
     {
      "Macro captures environment.",
-     "(label m (label a 1 (macro (x) (cons a x))) (m (2)))",
+     "(label m (label a 1 (macro (x xs) (cons a x))) (m (2)))",
      "(1 2)"},
     {
      "Macro preserves environment of parameters.",
-     "(label a 1 (label m (macro (x) (label a 2 x)) (m a)))",
+     "(label a 1 (label m (macro (x xs) (label a 2 x)) (m a)))",
      "1"},
     {
      "List identity",
@@ -382,7 +382,7 @@ int main(int argc, char *argv[])
 	fail += check_eval(args[0], core_env, args[1], args[2]);
     }
     fail += check_import(core_env);
-    for (i = 0; i < sizeof(callow_test_files) / sizeof(char*); i++) {
+    for (i = 0; i < sizeof(callow_test_files) / sizeof(char *); i++) {
 	char *filename = callow_test_files[i];
 	fail += check_callow_test(filename, core_env);
     }
