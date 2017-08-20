@@ -5,7 +5,8 @@
 #include <inttypes.h>
 
 typedef enum
-    { NIL, SYMBOL, NUMBER, ERROR, LIST, LAMBDA, MACRO, FUNC, ENV } type;
+    { NIL, SYMBOL, NUMBER, ERROR, LIST, LAMBDA, RECUR, MACRO, FUNC,
+ENV } type;
 
 typedef int64_t chunk_t;
 
@@ -41,6 +42,11 @@ typedef struct {
     value_t value;
     value_t env;
 } env_t;
+
+typedef struct {
+    value_t params;
+    value_t env;
+} recur_t;
 
 value_t read(FILE * fp);
 
@@ -244,6 +250,9 @@ void print_index(FILE * fp, value_t v, int index)
 	break;
     case LAMBDA:
 	fprintf(fp, "<lambda>");
+	break;
+    case RECUR:
+	fprintf(fp, "<recur>");
 	break;
     case MACRO:
 	fprintf(fp, "<macro>");
@@ -647,21 +656,31 @@ value_t eval(value_t v, value_t env)
 	    case LAMBDA:
 		{
 		    lambda_t *lamb = (lambda_t *) first.value;
-		    if (len(params, 0) != len(lamb->names, 0)) {
-			return (value_t) {
-			ERROR, 0};
+		    while (1) {
+			if (len(params, 0) != len(lamb->names, 0)) {
+			    return (value_t) {
+			    ERROR, 0};
+			}
+			params = eval_args(params, env, -1);
+			value_t lambda_env = lamb->env;
+			cell_t *name = (cell_t *) lamb->names.value;
+			cell_t *param = (cell_t *) params.value;
+			while (name != 0) {
+			    if (param->car.type == ERROR) {
+				return param->car;
+			    }
+			    lambda_env =
+				bind(name->car, param->car, lambda_env);
+			    name = name->cdr;
+			    param = param->cdr;
+			}
+			value_t result = eval(lamb->form, lambda_env);
+			if (result.type != RECUR) {
+			    return result;
+			}
+			params = ((recur_t *) result.value)->params;
+			env = ((recur_t *) result.value)->env;
 		    }
-		    params = eval_args(params, env, -1);
-		    value_t lambda_env = lamb->env;
-		    cell_t *name = (cell_t *) lamb->names.value;
-		    cell_t *param = (cell_t *) params.value;
-		    while (name != 0) {
-			lambda_env =
-			    bind(name->car, param->car, lambda_env);
-			name = name->cdr;
-			param = param->cdr;
-		    }
-		    return eval(lamb->form, lambda_env);
 		}
 	    default:
 		return (value_t) {
@@ -711,6 +730,19 @@ value_t lambda(value_t args, value_t env)
     lamb->env = env;
     return (value_t) {
     LAMBDA, (chunk_t) lamb};
+}
+
+value_t recur(value_t args, value_t env)
+{
+    args = eval_args(args, env, -1);
+    if (args.type == ERROR) {
+	return args;
+    }
+    recur_t *r = malloc(sizeof(recur_t));
+    r->params = args;
+    r->env = env;
+    return (value_t) {
+    RECUR, (chunk_t) r};
 }
 
 value_t macro(value_t args, value_t env)
@@ -818,6 +850,7 @@ value_t import(value_t args, value_t env)
 value_t callow_core()
 {
     value_t env = (value_t) { NIL, 0 };
+    // The magnificent seven.
     env = bind(read_string("atom"), wrap_fn(&atom), env);
     env = bind(read_string("car"), wrap_fn(&car), env);
     env = bind(read_string("cdr"), wrap_fn(&cdr), env);
@@ -825,8 +858,11 @@ value_t callow_core()
     env = bind(read_string("cons"), wrap_fn(&cons), env);
     env = bind(read_string("eq"), wrap_fn(&eq), env);
     env = bind(read_string("quote"), wrap_fn(&quote), env);
+    // Two special forms.
     env = bind(read_string("label"), wrap_fn(&label), env);
     env = bind(read_string("lambda"), wrap_fn(&lambda), env);
+    // And some stuff I think is essential.
+    env = bind(read_string("recur"), wrap_fn(&recur), env);
     env = bind(read_string("macro"), wrap_fn(&macro), env);
     env = bind(read_string("import"), wrap_fn(&import), env);
     return env;

@@ -1,7 +1,8 @@
 (cons (cons (quote and)
             (cons (macro (x xs)
-                         (cond
-                           x (cond
-                               (eq () xs) (quote t)
-                               (quote t) (and xs))
-                           (quote t) ())) ())) ())
+                         ((lambda (y ys)
+                                  (cond
+                                    y (cond
+                                        (eq () ys) (quote t)
+                                        (quote t) (recur (car ys) (cdr ys)))
+                                    (quote t) ())) x xs)) ())) ())

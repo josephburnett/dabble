@@ -299,14 +299,13 @@ char *core_test_cases[][4] = {
      "(label a (lambda () 1) (a))",
      "1"},
     {
-      "Recursive lambda",
-      "(label last"
-      "  (lambda (x)"
-      "    (cond"
-      "      (eq () (cdr x)) (car x)"
-      "      (quote t) (last (cdr x))))"
-      "  (last (1 2 3 4)))",
-      "4"},
+     "Recursive lambda",
+     "(label last"
+     "  (lambda (x)"
+     "    (cond"
+     "      (eq () (cdr x)) (car x)"
+     "      (quote t) (recur (cdr x))))" "  (last (1 2 3 4)))",
+     "4"},
     {
      "Identity macro",
      "(label y 1 (label m (macro (x xs) x) (m y)))",
