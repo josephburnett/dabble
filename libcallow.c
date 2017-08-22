@@ -5,8 +5,7 @@
 #include <inttypes.h>
 
 typedef enum
-    { NIL, SYMBOL, NUMBER, ERROR, LIST, LAMBDA, RECUR, MACRO, FUNC,
-ENV } type;
+    { NIL, SYMBOL, NUMBER, ERROR, LIST, LAMBDA, MACRO, FUNC, ENV } type;
 
 typedef int64_t chunk_t;
 
@@ -42,11 +41,6 @@ typedef struct {
     value_t value;
     value_t env;
 } env_t;
-
-typedef struct {
-    value_t params;
-    value_t env;
-} recur_t;
 
 value_t read(FILE * fp);
 
@@ -250,9 +244,6 @@ void print_index(FILE * fp, value_t v, int index)
 	break;
     case LAMBDA:
 	fprintf(fp, "<lambda>");
-	break;
-    case RECUR:
-	fprintf(fp, "<recur>");
 	break;
     case MACRO:
 	fprintf(fp, "<macro>");
@@ -650,37 +641,39 @@ value_t eval(value_t v, value_t env)
 		    value_t result =
 			expand(first, (value_t) { LIST, (chunk_t) head }
 			       , mac->form);
+		    // Demark function scope
+		    value_t macro_env = mac->env;
+		    macro_env = bind((value_t) {
+				     SYMBOL, 0}
+				     , first, macro_env);
 		    // Evaluate with the environment of the macro
 		    return eval(result, mac->env);
 		}
 	    case LAMBDA:
 		{
 		    lambda_t *lamb = (lambda_t *) first.value;
-		    while (1) {
-			if (len(params, 0) != len(lamb->names, 0)) {
-			    return (value_t) {
-			    ERROR, 0};
-			}
-			params = eval_args(params, env, -1);
-			value_t lambda_env = lamb->env;
-			cell_t *name = (cell_t *) lamb->names.value;
-			cell_t *param = (cell_t *) params.value;
-			while (name != 0) {
-			    if (param->car.type == ERROR) {
-				return param->car;
-			    }
-			    lambda_env =
-				bind(name->car, param->car, lambda_env);
-			    name = name->cdr;
-			    param = param->cdr;
-			}
-			value_t result = eval(lamb->form, lambda_env);
-			if (result.type != RECUR) {
-			    return result;
-			}
-			params = ((recur_t *) result.value)->params;
-			env = ((recur_t *) result.value)->env;
+		    if (len(params, 0) != len(lamb->names, 0)) {
+			return (value_t) {
+			ERROR, 0};
 		    }
+		    params = eval_args(params, env, -1);
+		    value_t lambda_env = lamb->env;
+		    // Demark function scope
+		    lambda_env = bind((value_t) {
+				      SYMBOL, 0}
+				      , first, lambda_env);
+		    cell_t *name = (cell_t *) lamb->names.value;
+		    cell_t *param = (cell_t *) params.value;
+		    while (name != 0) {
+			if (param->car.type == ERROR) {
+			    return param->car;
+			}
+			lambda_env =
+			    bind(name->car, param->car, lambda_env);
+			name = name->cdr;
+			param = param->cdr;
+		    }
+		    return eval(lamb->form, lambda_env);
 		}
 	    default:
 		return (value_t) {
@@ -734,15 +727,44 @@ value_t lambda(value_t args, value_t env)
 
 value_t recur(value_t args, value_t env)
 {
-    args = eval_args(args, env, -1);
-    if (args.type == ERROR) {
-	return args;
+    // Special null symbol binding to demark function scope. :/
+    value_t last = lookup((value_t) { SYMBOL, 0 }
+			  , env);
+    if (last.type == ERROR) {
+	return last;
     }
-    recur_t *r = malloc(sizeof(recur_t));
-    r->params = args;
-    r->env = env;
-    return (value_t) {
-    RECUR, (chunk_t) r};
+    value_t fn;
+    switch (last.type) {
+    case LAMBDA:{
+	    lambda_t *a = (lambda_t *) last.value;
+	    lambda_t *b = malloc(sizeof(lambda_t));
+	    b->names = a->names;
+	    b->form = a->form;
+	    b->env = a->env;
+	    fn = (value_t) {
+	    LAMBDA, (chunk_t) b};
+	    break;
+	}
+    case MACRO:{
+	    macro_t *a = (macro_t *) last.value;
+	    macro_t *b = malloc(sizeof(lambda_t));
+	    b->names = a->names;
+	    b->form = a->form;
+	    b->env = a->env;
+	    fn = (value_t) {
+	    MACRO, (chunk_t) b};
+	    break;
+	}
+    default:
+	return (value_t) {
+	ERROR, (chunk_t) "Cannot recur on non-lambda or non-macro."};
+    }
+    cell_t *head = malloc(sizeof(cell_t));
+    head->car = fn;
+    head->cdr = (cell_t *) args.value;
+    return eval((value_t) {
+		LIST, (chunk_t) head}
+		, env);
 }
 
 value_t macro(value_t args, value_t env)
