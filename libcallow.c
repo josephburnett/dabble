@@ -445,6 +445,9 @@ value_t lookup(value_t s, value_t env)
     }
     cell_t *cdr = ((cell_t *) env.value)->cdr;
     if (cdr == 0) {
+      printf("Lookup of symbol failed: >");
+      print(stdout, s);
+      printf("<\n");
 	return (value_t) {
 	ERROR, (chunk_t) "Lookup of symbol failed."};
     }
@@ -541,6 +544,9 @@ value_t expand(value_t macro, value_t params, value_t form)
 	form = (value_t) {
 	LIST, (chunk_t) head};
     }
+    printf("Expanded form: ");
+    print(stdout, form);
+    printf("\n");
     return form;
 }
 

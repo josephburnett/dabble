@@ -1,0 +1,5 @@
+(import ("src/core/let.clw")
+        (let ((a 1)
+              (b (quote t))
+              (c 2))
+          b))
