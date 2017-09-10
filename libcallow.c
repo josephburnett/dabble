@@ -886,6 +886,15 @@ value_t import(value_t args, value_t env)
     return eval(((cell_t *) args.value)->cdr->car, env);
 }
 
+value_t error(value_t args, value_t env)
+{
+  if (len(args, 0) != 0) {
+    return (value_t) {
+      ERROR, (chunk_t) "Wrong arity for error." };
+  }
+  return (value_t) { ERROR, (chunk_t) "User error." };
+}
+
 value_t callow_core()
 {
     value_t env = (value_t) { NIL, 0 };
@@ -904,5 +913,6 @@ value_t callow_core()
     env = bind(read_string("recur"), wrap_fn(&recur), env);
     env = bind(read_string("macro"), wrap_fn(&macro), env);
     env = bind(read_string("import"), wrap_fn(&import), env);
+    env = bind(read_string("error"), wrap_fn(&error), env);
     return env;
 }

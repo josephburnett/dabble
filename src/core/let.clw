@@ -1,7 +1,7 @@
 (cons (cons (quote let)
             (cons (macro (binding form xs)
                          (cond
-                           (list xs) (error)
+                           (eq () (atom xs)) (error)
                            (eq () binding) (error)
                            (quote t) (label (car (car binding))
                                             (car (cdr (car binding)))
