@@ -445,9 +445,9 @@ value_t lookup(value_t s, value_t env)
     }
     cell_t *cdr = ((cell_t *) env.value)->cdr;
     if (cdr == 0) {
-      printf("Lookup of symbol failed: >");
-      print(stdout, s);
-      printf("<\n");
+      /* printf("Lookup of symbol failed: >"); */
+      /* print(stdout, s); */
+      /* printf("<\n"); */
 	return (value_t) {
 	ERROR, (chunk_t) "Lookup of symbol failed."};
     }
@@ -514,8 +514,9 @@ value_t expand(value_t macro, value_t params, value_t form)
 	return (value_t) {
 	ERROR, (chunk_t) "Not enough arguments provided to macro."};
     }
-    // Symbols are replaced
-    if (form.type == SYMBOL) {
+    switch (form.type) {
+    case SYMBOL: {
+        // Symbols are replaced
 	cell_t *name = (cell_t *) mac->names.value;
 	cell_t *param = (cell_t *) params.value;
 	while (name != 0) {
@@ -526,13 +527,15 @@ value_t expand(value_t macro, value_t params, value_t form)
 	    name = name->cdr;
 	    param = param->cdr;
 	}
+	break;
     }
-    // Lists are recursively expanded
-    if (form.type == LIST) {
+    case LIST: {
+        // Lists are recursively expanded
 	cell_t *form_list = (cell_t *) form.value;
 	cell_t *head = malloc(sizeof(cell_t));
 	cell_t *tail = head;
 	tail->car = expand(macro, params, form_list->car);
+	tail->cdr = 0;
 	form_list = form_list->cdr;
 	while (form_list != 0) {
 	    tail->cdr = malloc(sizeof(cell_t));
@@ -543,10 +546,14 @@ value_t expand(value_t macro, value_t params, value_t form)
 	}
 	form = (value_t) {
 	LIST, (chunk_t) head};
+	break;
     }
-    printf("Expanded form: ");
-    print(stdout, form);
-    printf("\n");
+    default:
+        break;
+    }
+    /* printf("Expanded form: "); */
+    /* print(stdout, form); */
+    /* printf("\n"); */
     return form;
 }
 
@@ -637,8 +644,12 @@ value_t eval(value_t v, value_t env)
 		    tail = tail->cdr;
 		    e = malloc(sizeof(env_t));
 
-		    e->value = (value_t) {
-		    LIST, (chunk_t) param_list};
+		    if (param_list == 0) {
+		      e->value = (value_t) { NIL, 0 };
+		    } else {
+		      e->value = (value_t) {
+			LIST, (chunk_t) param_list};
+		    }
 		    e->env = env;
 		    tail->car = (value_t) {
 		    ENV, (chunk_t) e};
