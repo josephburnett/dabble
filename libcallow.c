@@ -303,8 +303,8 @@ value_t atom(value_t args, value_t env)
 	return as_error("Wrong arity for atom.");
     }
     args = eval_args(args, env, -1);
-    args = ((cell_t *) args.value)->car;
-    if (args.type == LIST) {
+    value_t first = ((cell_t *) args.value)->car;
+    if (first.type == LIST) {
 	return nil;
     }
     return (value_t) {
@@ -317,11 +317,21 @@ value_t car(value_t args, value_t env)
 	return as_error("Wrong arity for car.");
     }
     args = eval_args(args, env, -1);
-    args = ((cell_t *) args.value)->car;
-    if (args.type != LIST) {
+    value_t first = ((cell_t *) args.value)->car;
+    if (first.type != LIST) {
 	return as_error("Non-list argument to car.");
     }
-    return ((cell_t *) args.value)->car;
+    return ((cell_t *) first.value)->car;
+}
+
+value_t cdr_internal(value_t list)
+{
+    cell_t *rest = ((cell_t *) list.value)->cdr;
+    if (rest == 0) {
+	return nil;
+    } else {
+	return as_list(rest);
+    }
 }
 
 value_t cdr(value_t args, value_t env)
@@ -330,15 +340,11 @@ value_t cdr(value_t args, value_t env)
 	return as_error("Wrong arity for crd.");
     }
     args = eval_args(args, env, -1);
-    args = ((cell_t *) args.value)->car;
-    if (args.type != LIST) {
+    value_t first = ((cell_t *) args.value)->car;
+    if (first.type != LIST) {
 	return as_error("Non-list argument to crd.");
     }
-    cell_t *c = ((cell_t *) args.value)->cdr;
-    if (c == 0) {
-	return nil;
-    }
-    return as_list(c);
+    return cdr_internal(first);
 }
 
 value_t cond(value_t args, value_t env)
@@ -368,57 +374,51 @@ value_t cons(value_t args, value_t env)
     value_t car = ((cell_t *) args.value)->car;
     value_t cdr = ((cell_t *) args.value)->cdr->car;
     if (cdr.type != LIST && cdr.type != NIL) {
-	return as_error("Non list or nil arg to cons.");
+	return as_error("Non-list or non-nil arg to cons.");
     }
     cell_t *c = malloc(sizeof(cell_t));
     c->car = car;
     c->cdr = 0;
-    if (cdr.type == LIST) {
+    if (cdr.type != NIL) {
 	c->cdr = (cell_t *) cdr.value;
     }
     return as_list(c);
 }
 
-value_t eq_internal(value_t a, value_t b)
+int eq_internal(value_t a, value_t b)
 {
     if (a.type != b.type) {
-	return nil;
+	return 0;
     }
     if (a.type == LIST) {
-	value_t first_eq = eq_internal(((cell_t *) a.value)->car,
-				       ((cell_t *) b.value)->car);
-	if (first_eq.type == SYMBOL) {
-	    value_t rest_a =
-		(value_t) { LIST, (chunk_t) ((cell_t *) a.value)->cdr };
-	    value_t rest_b =
-		(value_t) { LIST, (chunk_t) ((cell_t *) b.value)->cdr };
-	    if (rest_a.value == 0) {
-		rest_a.type = NIL;
-	    }
-	    if (rest_b.value == 0) {
-		rest_b.type = NIL;
-	    }
+	if (eq_internal(((cell_t *) a.value)->car,
+			((cell_t *) b.value)->car)) {
+	    value_t rest_a = cdr_internal(a);
+	    value_t rest_b = cdr_internal(b);
 	    return eq_internal(rest_a, rest_b);
 	} else {
-	    return first_eq;
+	    return 0;
 	}
     } else if (a.value != b.value) {
-	return nil;
+	return 0;
     }
-    return (value_t) {
-    SYMBOL, 't'};
+    return 1;
 }
 
 value_t eq(value_t args, value_t env)
 {
     if (len(args) != 2) {
-	return (value_t) {
-	ERROR, (chunk_t) "Wrong arity to eq."};
+	return as_error("Wrong arity to eq.");
     }
     args = eval_args(args, env, -1);
     value_t a = ((cell_t *) args.value)->car;
     value_t b = ((cell_t *) args.value)->cdr->car;
-    return eq_internal(a, b);
+    if (eq_internal(a, b)) {
+	return (value_t) {
+	SYMBOL, (chunk_t) 't'};
+    } else {
+	return nil;
+    }
 }
 
 value_t quote(value_t args, value_t env)
@@ -442,7 +442,7 @@ value_t lookup(value_t s, value_t env)
     /* print(stdout, env); */
     /* printf("\n"); */
     value_t first = ((cell_t *) binding.value)->car;
-    if (eq_internal(first, s).type != NIL) {
+    if (eq_internal(first, s)) {
 	return ((cell_t *) binding.value)->cdr->car;
     }
     cell_t *cdr = ((cell_t *) env.value)->cdr;
