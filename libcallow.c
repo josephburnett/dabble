@@ -279,6 +279,14 @@ int len(value_t v, int l)
 	       , l + 1);
 }
 
+value_t as_list(cell_t *cell)
+{
+  // Intentionally segfault sooner rather than later
+  cell->car;
+  /* print(stdout, cell->car); */
+  return (value_t) { LIST, (chunk_t) cell };
+}
+
 value_t eval(value_t v, value_t env);
 value_t eval_args(value_t list, value_t env, int limit);
 
@@ -330,8 +338,7 @@ value_t cdr(value_t args, value_t env)
 	return (value_t) {
 	NIL, 0};
     }
-    return (value_t) {
-    LIST, (chunk_t) c};
+    return as_list(c);
 }
 
 value_t cond(value_t args, value_t env)
@@ -351,9 +358,7 @@ value_t cond(value_t args, value_t env)
 	return (value_t) {
 	ERROR, (chunk_t) "No matching condition."};
     }
-    return cond((value_t) {
-		LIST, (chunk_t) c}
-		, env);
+    return cond(as_list(c), env);
 }
 
 value_t cons(value_t args, value_t env)
@@ -373,10 +378,9 @@ value_t cons(value_t args, value_t env)
     c->car = car;
     c->cdr = 0;
     if (cdr.type == LIST) {
-	c->cdr = (cell_t *) cdr.value;
+      c->cdr = (cell_t *) cdr.value;
     }
-    return (value_t) {
-    LIST, (chunk_t) c};
+    return as_list(c);
 }
 
 value_t eq_internal(value_t a, value_t b)
@@ -439,6 +443,12 @@ value_t lookup(value_t s, value_t env)
 	ERROR, (chunk_t) "Nil environment."};
     }
     value_t binding = ((cell_t *) env.value)->car;
+    /* printf("About to dereference %d while looking up ", binding.value); */
+    /* print(stdout, s); */
+    /* printf("\n"); */
+    /* printf("Environment is "); */
+    /* print(stdout, env); */
+    /* printf("\n"); */
     value_t first = ((cell_t *) binding.value)->car;
     if (eq_internal(first, s).type != NIL) {
 	return ((cell_t *) binding.value)->cdr->car;
@@ -451,16 +461,20 @@ value_t lookup(value_t s, value_t env)
 	return (value_t) {
 	ERROR, (chunk_t) "Lookup of symbol failed."};
     }
-    return lookup(s, (value_t) {
-		  LIST, (chunk_t) cdr}
-    );
+    return lookup(s, as_list(cdr));
 }
 
 value_t bind(value_t name, value_t value, value_t env)
 {
     if (name.type != SYMBOL) {
+      printf("\nDetails of: Attempt to bind non-symbol: ");
+      print(stdout, name);
+      printf("\n");
 	return (value_t) {
 	ERROR, (chunk_t) "Attempt to bind non-symbol."};
+    }
+    if (env.type == ERROR) {
+      return env;
     }
     cell_t *first = malloc(sizeof(cell_t));
     cell_t *second = malloc(sizeof(cell_t));
@@ -469,15 +483,13 @@ value_t bind(value_t name, value_t value, value_t env)
     second->car = value;
     second->cdr = 0;
     cell_t *new_env = malloc(sizeof(cell_t));
-    new_env->car = (value_t) {
-    LIST, (chunk_t) first};
+    new_env->car = as_list(first);
     if (env.type == LIST) {
-	new_env->cdr = (cell_t *) env.value;
+      new_env->cdr = (cell_t *) env.value;
     } else {
 	new_env->cdr = 0;
     }
-    return (value_t) {
-    LIST, (chunk_t) new_env};
+    return as_list(new_env);
 }
 
 value_t eval_args(value_t list, value_t env, int limit)
@@ -491,12 +503,10 @@ value_t eval_args(value_t list, value_t env, int limit)
     cell_t *cdr = ((cell_t *) list.value)->cdr;
     cell->cdr = cdr;
     if (cdr != 0 && limit != 0) {
-	value_t l = eval_args((value_t) { LIST, (chunk_t) cdr }
-			      , env, limit - 1);
+      value_t l = eval_args(as_list(cdr), env, limit - 1);
 	cell->cdr = (cell_t *) l.value;
     }
-    return (value_t) {
-    LIST, (chunk_t) cell};
+    return as_list(cell);
 }
 
 value_t expand(value_t macro, value_t params, value_t form)
@@ -544,8 +554,7 @@ value_t expand(value_t macro, value_t params, value_t form)
 	    tail->cdr = 0;
 	    form_list = form_list->cdr;
 	}
-	form = (value_t) {
-	LIST, (chunk_t) head};
+	form = as_list(head);
 	break;
     }
     default:
@@ -584,8 +593,7 @@ value_t eval(value_t v, value_t env)
 	    value_t params = (value_t) { NIL, 0 };
 	    cell_t *cdr = ((cell_t *) v.value)->cdr;
 	    if (cdr != 0) {
-		params = (value_t) {
-		LIST, (chunk_t) cdr};
+	      params = as_list(cdr);
 	    }
 	    if (first.type != FUNC) {
 		first = eval(first, env);
@@ -647,8 +655,7 @@ value_t eval(value_t v, value_t env)
 		    if (param_list == 0) {
 		      e->value = (value_t) { NIL, 0 };
 		    } else {
-		      e->value = (value_t) {
-			LIST, (chunk_t) param_list};
+		      e->value = as_list(param_list);
 		    }
 		    e->env = env;
 		    tail->car = (value_t) {
@@ -656,8 +663,7 @@ value_t eval(value_t v, value_t env)
 		    tail->cdr = 0;
 		    // Expand the macro
 		    value_t result =
-			expand(first, (value_t) { LIST, (chunk_t) head }
-			       , mac->form);
+		      expand(first, as_list(head), mac->form);
 		    // Demark function scope
 		    value_t macro_env = mac->env;
 		    macro_env = bind((value_t) {
@@ -683,6 +689,7 @@ value_t eval(value_t v, value_t env)
 		    cell_t *param = (cell_t *) params.value;
 		    while (name != 0) {
 			if (param->car.type == ERROR) {
+                            // Should I be doing this?
 			    return param->car;
 			}
 			lambda_env =
@@ -779,9 +786,7 @@ value_t recur(value_t args, value_t env)
     cell_t *head = malloc(sizeof(cell_t));
     head->car = fn;
     head->cdr = (cell_t *) args.value;
-    return eval((value_t) {
-		LIST, (chunk_t) head}
-		, env);
+    return eval(as_list(head), env);
 }
 
 value_t macro(value_t args, value_t env)
@@ -859,7 +864,11 @@ value_t import(value_t args, value_t env)
 	value_t import_env = load(import_list->car);
 	import_env = eval(import_env, env);
 	if (import_env.type == ERROR) {
-	    return import_env;
+	  printf("Error while importing: ");
+	  print(stdout, import_env);
+	  printf("\n");
+	  exit(1);
+	  return import_env;
 	}
 	if (import_env.type != LIST) {
 	    return (value_t) {
@@ -879,6 +888,9 @@ value_t import(value_t args, value_t env)
 		"Invalid import. First of pair not symbol."};
 	    }
 	    env = bind(sym, val, env);
+	    if (env.type == ERROR) {
+	      return env;
+	    }
 	    binding = binding->cdr;
 	}
 	import_list = import_list->cdr;
