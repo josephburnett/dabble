@@ -279,12 +279,13 @@ int len(value_t v, int l)
 	       , l + 1);
 }
 
-value_t as_list(cell_t *cell)
+value_t as_list(cell_t * cell)
 {
-  // Intentionally segfault sooner rather than later
-  cell->car;
-  /* print(stdout, cell->car); */
-  return (value_t) { LIST, (chunk_t) cell };
+    // Intentionally segfault sooner rather than later
+    cell->car;
+    /* print(stdout, cell->car); */
+    return (value_t) {
+    LIST, (chunk_t) cell};
 }
 
 value_t eval(value_t v, value_t env);
@@ -378,7 +379,7 @@ value_t cons(value_t args, value_t env)
     c->car = car;
     c->cdr = 0;
     if (cdr.type == LIST) {
-      c->cdr = (cell_t *) cdr.value;
+	c->cdr = (cell_t *) cdr.value;
     }
     return as_list(c);
 }
@@ -455,9 +456,9 @@ value_t lookup(value_t s, value_t env)
     }
     cell_t *cdr = ((cell_t *) env.value)->cdr;
     if (cdr == 0) {
-      /* printf("Lookup of symbol failed: >"); */
-      /* print(stdout, s); */
-      /* printf("<\n"); */
+	/* printf("Lookup of symbol failed: >"); */
+	/* print(stdout, s); */
+	/* printf("<\n"); */
 	return (value_t) {
 	ERROR, (chunk_t) "Lookup of symbol failed."};
     }
@@ -467,14 +468,14 @@ value_t lookup(value_t s, value_t env)
 value_t bind(value_t name, value_t value, value_t env)
 {
     if (name.type != SYMBOL) {
-      printf("\nDetails of: Attempt to bind non-symbol: ");
-      print(stdout, name);
-      printf("\n");
+	printf("\nDetails of: Attempt to bind non-symbol: ");
+	print(stdout, name);
+	printf("\n");
 	return (value_t) {
 	ERROR, (chunk_t) "Attempt to bind non-symbol."};
     }
     if (env.type == ERROR) {
-      return env;
+	return env;
     }
     cell_t *first = malloc(sizeof(cell_t));
     cell_t *second = malloc(sizeof(cell_t));
@@ -485,7 +486,7 @@ value_t bind(value_t name, value_t value, value_t env)
     cell_t *new_env = malloc(sizeof(cell_t));
     new_env->car = as_list(first);
     if (env.type == LIST) {
-      new_env->cdr = (cell_t *) env.value;
+	new_env->cdr = (cell_t *) env.value;
     } else {
 	new_env->cdr = 0;
     }
@@ -503,7 +504,7 @@ value_t eval_args(value_t list, value_t env, int limit)
     cell_t *cdr = ((cell_t *) list.value)->cdr;
     cell->cdr = cdr;
     if (cdr != 0 && limit != 0) {
-      value_t l = eval_args(as_list(cdr), env, limit - 1);
+	value_t l = eval_args(as_list(cdr), env, limit - 1);
 	cell->cdr = (cell_t *) l.value;
     }
     return as_list(cell);
@@ -525,40 +526,41 @@ value_t expand(value_t macro, value_t params, value_t form)
 	ERROR, (chunk_t) "Not enough arguments provided to macro."};
     }
     switch (form.type) {
-    case SYMBOL: {
-        // Symbols are replaced
-	cell_t *name = (cell_t *) mac->names.value;
-	cell_t *param = (cell_t *) params.value;
-	while (name != 0) {
-	    if (name->car.type == SYMBOL && name->car.value == form.value) {
-		form = param->car;
-		break;
+    case SYMBOL:{
+	    // Symbols are replaced
+	    cell_t *name = (cell_t *) mac->names.value;
+	    cell_t *param = (cell_t *) params.value;
+	    while (name != 0) {
+		if (name->car.type == SYMBOL
+		    && name->car.value == form.value) {
+		    form = param->car;
+		    break;
+		}
+		name = name->cdr;
+		param = param->cdr;
 	    }
-	    name = name->cdr;
-	    param = param->cdr;
+	    break;
 	}
-	break;
-    }
-    case LIST: {
-        // Lists are recursively expanded
-	cell_t *form_list = (cell_t *) form.value;
-	cell_t *head = malloc(sizeof(cell_t));
-	cell_t *tail = head;
-	tail->car = expand(macro, params, form_list->car);
-	tail->cdr = 0;
-	form_list = form_list->cdr;
-	while (form_list != 0) {
-	    tail->cdr = malloc(sizeof(cell_t));
-	    tail = tail->cdr;
+    case LIST:{
+	    // Lists are recursively expanded
+	    cell_t *form_list = (cell_t *) form.value;
+	    cell_t *head = malloc(sizeof(cell_t));
+	    cell_t *tail = head;
 	    tail->car = expand(macro, params, form_list->car);
 	    tail->cdr = 0;
 	    form_list = form_list->cdr;
+	    while (form_list != 0) {
+		tail->cdr = malloc(sizeof(cell_t));
+		tail = tail->cdr;
+		tail->car = expand(macro, params, form_list->car);
+		tail->cdr = 0;
+		form_list = form_list->cdr;
+	    }
+	    form = as_list(head);
+	    break;
 	}
-	form = as_list(head);
-	break;
-    }
     default:
-        break;
+	break;
     }
     /* printf("Expanded form: "); */
     /* print(stdout, form); */
@@ -593,7 +595,7 @@ value_t eval(value_t v, value_t env)
 	    value_t params = (value_t) { NIL, 0 };
 	    cell_t *cdr = ((cell_t *) v.value)->cdr;
 	    if (cdr != 0) {
-	      params = as_list(cdr);
+		params = as_list(cdr);
 	    }
 	    if (first.type != FUNC) {
 		first = eval(first, env);
@@ -653,9 +655,10 @@ value_t eval(value_t v, value_t env)
 		    e = malloc(sizeof(env_t));
 
 		    if (param_list == 0) {
-		      e->value = (value_t) { NIL, 0 };
+			e->value = (value_t) {
+			NIL, 0};
 		    } else {
-		      e->value = as_list(param_list);
+			e->value = as_list(param_list);
 		    }
 		    e->env = env;
 		    tail->car = (value_t) {
@@ -663,7 +666,7 @@ value_t eval(value_t v, value_t env)
 		    tail->cdr = 0;
 		    // Expand the macro
 		    value_t result =
-		      expand(first, as_list(head), mac->form);
+			expand(first, as_list(head), mac->form);
 		    // Demark function scope
 		    value_t macro_env = mac->env;
 		    macro_env = bind((value_t) {
@@ -689,7 +692,7 @@ value_t eval(value_t v, value_t env)
 		    cell_t *param = (cell_t *) params.value;
 		    while (name != 0) {
 			if (param->car.type == ERROR) {
-                            // Should I be doing this?
+			    // Should I be doing this?
 			    return param->car;
 			}
 			lambda_env =
@@ -864,11 +867,11 @@ value_t import(value_t args, value_t env)
 	value_t import_env = load(import_list->car);
 	import_env = eval(import_env, env);
 	if (import_env.type == ERROR) {
-	  printf("Error while importing: ");
-	  print(stdout, import_env);
-	  printf("\n");
-	  exit(1);
-	  return import_env;
+	    printf("Error while importing: ");
+	    print(stdout, import_env);
+	    printf("\n");
+	    exit(1);
+	    return import_env;
 	}
 	if (import_env.type != LIST) {
 	    return (value_t) {
@@ -889,7 +892,7 @@ value_t import(value_t args, value_t env)
 	    }
 	    env = bind(sym, val, env);
 	    if (env.type == ERROR) {
-	      return env;
+		return env;
 	    }
 	    binding = binding->cdr;
 	}
@@ -900,11 +903,12 @@ value_t import(value_t args, value_t env)
 
 value_t error(value_t args, value_t env)
 {
-  if (len(args, 0) != 0) {
+    if (len(args, 0) != 0) {
+	return (value_t) {
+	ERROR, (chunk_t) "Wrong arity for error."};
+    }
     return (value_t) {
-      ERROR, (chunk_t) "Wrong arity for error." };
-  }
-  return (value_t) { ERROR, (chunk_t) "User error." };
+    ERROR, (chunk_t) "User error."};
 }
 
 value_t callow_core()
