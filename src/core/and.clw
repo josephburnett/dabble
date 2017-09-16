@@ -3,6 +3,6 @@
                          ((lambda (y ys)
                                   (cond
                                     y (cond
-                                        (eq () ys) (quote t)
-                                        (quote t) (recur (car ys) (cdr ys)))
-                                    (quote t) ())) x xs)) ())) ())
+                                        (eq () ys) 1
+                                        1 (recur (car ys) (cdr ys)))
+                                    1 ())) x xs)) ())) ())

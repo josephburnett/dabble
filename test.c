@@ -257,19 +257,19 @@ char *core_test_cases[][4] = {
     {
      "Eq with two numbers",
      "(eq 1 1)",
-     "t"},
+     "1"},
     {
      "Eq with nil",
      "(eq () ())",
-     "t"},
+     "1"},
     {
      "List eq",
      "(eq (1) (1))",
-     "t"},
+     "1"},
     {
      "List deep eq",
      "(eq (1 (2 3)) (1 (2 3)))",
-     "t"},
+     "1"},
     {
      "List deep not eq",
      "(eq (1 (2 3)) (1 (2 4)))",
@@ -304,7 +304,7 @@ char *core_test_cases[][4] = {
      "  (lambda (x)"
      "    (cond"
      "      (eq () (cdr x)) (car x)"
-     "      (quote t) (recur (cdr x))))" "  (last (1 2 3 4)))",
+     "      1 (recur (cdr x))))" "  (last (1 2 3 4)))",
      "4"},
     {
      "Identity macro",
@@ -359,7 +359,7 @@ int check_callow_test(char *filename, value_t env)
     FILE *stream = open_memstream(&actual, &size);
     print(stream, actual_value);
     fclose(stream);
-    return check_result(filename, actual, "t");
+    return check_result(filename, actual, "1");
 }
 
 int main(int argc, char *argv[])

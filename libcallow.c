@@ -295,14 +295,14 @@ value_t as_list(cell_t * cell)
 }
 
 value_t eval(value_t v, value_t env);
-value_t eval_args(value_t list, value_t env, int limit);
+value_t eval_list(value_t list, value_t env, int limit);
 
 value_t atom(value_t args, value_t env)
 {
     if (len(args) != 1) {
 	return as_error("Wrong arity for atom.");
     }
-    args = eval_args(args, env, -1);
+    args = eval_list(args, env, -1);
     value_t first = ((cell_t *) args.value)->car;
     if (first.type == LIST) {
 	return nil;
@@ -316,7 +316,7 @@ value_t car(value_t args, value_t env)
     if (len(args) != 1) {
 	return as_error("Wrong arity for car.");
     }
-    args = eval_args(args, env, -1);
+    args = eval_list(args, env, -1);
     value_t first = ((cell_t *) args.value)->car;
     if (first.type != LIST) {
 	return as_error("Non-list argument to car.");
@@ -339,7 +339,7 @@ value_t cdr(value_t args, value_t env)
     if (len(args) != 1) {
 	return as_error("Wrong arity for crd.");
     }
-    args = eval_args(args, env, -1);
+    args = eval_list(args, env, -1);
     value_t first = ((cell_t *) args.value)->car;
     if (first.type != LIST) {
 	return as_error("Non-list argument to crd.");
@@ -352,7 +352,10 @@ value_t cond(value_t args, value_t env)
     if (len(args) < 2) {
 	return as_error("Uneven number of args to cond.");
     }
-    args = eval_args(args, env, 2);
+    args = eval_list(args, env, 2);
+    if (args.type == ERROR) {
+      return args;
+    }
     value_t pred = ((cell_t *) args.value)->car;
     value_t val = ((cell_t *) args.value)->cdr->car;
     if (pred.value != 0) {
@@ -370,7 +373,7 @@ value_t cons(value_t args, value_t env)
     if (len(args) != 2) {
 	return as_error("Wrong arity for cons.");
     }
-    args = eval_args(args, env, -1);
+    args = eval_list(args, env, -1);
     value_t car = ((cell_t *) args.value)->car;
     value_t cdr = ((cell_t *) args.value)->cdr->car;
     if (cdr.type != LIST && cdr.type != NIL) {
@@ -410,12 +413,11 @@ value_t eq(value_t args, value_t env)
     if (len(args) != 2) {
 	return as_error("Wrong arity to eq.");
     }
-    args = eval_args(args, env, -1);
+    args = eval_list(args, env, -1);
     value_t a = ((cell_t *) args.value)->car;
     value_t b = ((cell_t *) args.value)->cdr->car;
     if (eq_internal(a, b)) {
-	return (value_t) {
-	SYMBOL, (chunk_t) 't'};
+	return (value_t) { NUMBER, 1 };
     } else {
 	return nil;
     }
@@ -434,22 +436,16 @@ value_t lookup(value_t s, value_t env)
     if (env.type == NIL) {
 	return as_error("Nil environment.");
     }
+    if (s.type != SYMBOL) {
+	return as_error("Attempt to lookup non-symbol.");
+    }
     value_t binding = ((cell_t *) env.value)->car;
-    /* printf("About to dereference %d while looking up ", binding.value); */
-    /* print(stdout, s); */
-    /* printf("\n"); */
-    /* printf("Environment is "); */
-    /* print(stdout, env); */
-    /* printf("\n"); */
     value_t first = ((cell_t *) binding.value)->car;
     if (eq_internal(first, s)) {
 	return ((cell_t *) binding.value)->cdr->car;
     }
     cell_t *cdr = ((cell_t *) env.value)->cdr;
     if (cdr == 0) {
-	/* printf("Lookup of symbol failed: >"); */
-	/* print(stdout, s); */
-	/* printf("<\n"); */
 	return as_error("Lookup of symbol failed.");
     }
     return lookup(s, as_list(cdr));
@@ -457,15 +453,20 @@ value_t lookup(value_t s, value_t env)
 
 value_t bind(value_t name, value_t value, value_t env)
 {
+    if (name.type == ERROR) {
+	return name;
+    }
+    if (value.type == ERROR) {
+	return value;
+    }
+    if (env.type == ERROR) {
+	return env;
+    }
     if (name.type != SYMBOL) {
 	printf("\nDetails of: Attempt to bind non-symbol: ");
 	print(stdout, name);
 	printf("\n");
-	return (value_t) {
-	ERROR, (chunk_t) "Attempt to bind non-symbol."};
-    }
-    if (env.type == ERROR) {
-	return env;
+	return as_error("Attempt to bind non-symbol.");
     }
     cell_t *first = malloc(sizeof(cell_t));
     cell_t *second = malloc(sizeof(cell_t));
@@ -483,18 +484,27 @@ value_t bind(value_t name, value_t value, value_t env)
     return as_list(new_env);
 }
 
-value_t eval_args(value_t list, value_t env, int limit)
+value_t eval_list(value_t list, value_t env, int limit)
 {
     if (list.type == NIL) {
 	return list;
     }
+    if (list.type == ERROR) {
+      return list;
+    }
     cell_t *cell = malloc(sizeof(cell_t));
     value_t car = eval(((cell_t *) list.value)->car, env);
+    if (car.type == ERROR) {
+      return car;
+    }
     cell->car = car;
     cell_t *cdr = ((cell_t *) list.value)->cdr;
     cell->cdr = cdr;
     if (cdr != 0 && limit != 0) {
-	value_t l = eval_args(as_list(cdr), env, limit - 1);
+	value_t l = eval_list(as_list(cdr), env, limit - 1);
+	if (l.type == ERROR) {
+	  return l;
+	}
 	cell->cdr = (cell_t *) l.value;
     }
     return as_list(cell);
@@ -580,7 +590,7 @@ value_t eval(value_t v, value_t env)
 	    value_t first = ((cell_t *) v.value)->car;
 	    if (first.type == NIL || first.type == NUMBER
 		|| first.type == ERROR) {
-		return eval_args(v, env, -1);
+		return eval_list(v, env, -1);
 	    }
 	    value_t params = nil;
 	    cell_t *cdr = ((cell_t *) v.value)->cdr;
@@ -671,7 +681,7 @@ value_t eval(value_t v, value_t env)
 			return (value_t) {
 			ERROR, 0};
 		    }
-		    params = eval_args(params, env, -1);
+		    params = eval_list(params, env, -1);
 		    value_t lambda_env = lamb->env;
 		    // Demark function scope
 		    lambda_env = bind((value_t) {
