@@ -516,12 +516,13 @@ value_t expand(value_t macro, value_t params, value_t form)
     if (form.type != LIST && form.type != SYMBOL) {
 	return form;
     }
+    check_error(macro);
+    check_error(form);
     macro_t *mac = (macro_t *) macro.value;
     int names_len = len(mac->names);
     int params_len = len(params);
     if (names_len > params_len + 1) {
-	return (value_t) {
-	ERROR, (chunk_t) "Not enough arguments provided to macro."};
+      return as_error("Not enough arguments provided to macro.");
     }
     switch (form.type) {
     case SYMBOL:{
@@ -545,12 +546,14 @@ value_t expand(value_t macro, value_t params, value_t form)
 	    cell_t *head = malloc(sizeof(cell_t));
 	    cell_t *tail = head;
 	    tail->car = expand(macro, params, form_list->car);
+	    check_error(tail->car);
 	    tail->cdr = 0;
 	    form_list = form_list->cdr;
 	    while (form_list != 0) {
 		tail->cdr = malloc(sizeof(cell_t));
 		tail = tail->cdr;
 		tail->car = expand(macro, params, form_list->car);
+		check_error(tail->car);
 		tail->cdr = 0;
 		form_list = form_list->cdr;
 	    }
@@ -597,6 +600,7 @@ value_t eval(value_t v, value_t env)
 	    }
 	    if (first.type != FUNC) {
 		first = eval(first, env);
+		check_error(first);
 	    }
 	    switch (first.type) {
 	    case ERROR:
@@ -615,15 +619,13 @@ value_t eval(value_t v, value_t env)
 		    int len_names = len(mac->names);
 		    int len_params = len(params);
 		    if (len_names > len_params + 1) {
-			return (value_t) {
-			    ERROR, (chunk_t)
-			"Not enough arguments provided to macro."};
+		      return as_error("Not enough arguments provided to macro.");
 		    }
 		    // new list
 		    cell_t *head = malloc(sizeof(cell_t));
 		    cell_t *tail = head;
 		    env_t *e = malloc(sizeof(env_t));
-		    // wrap the first element
+		    // Wrap the first
 		    if (len_names == 1) {
 			e->value = params;
 		    } else {
@@ -634,8 +636,7 @@ value_t eval(value_t v, value_t env)
 		    ENV, (chunk_t) e};
 		    tail->cdr = 0;
 		    param_list = param_list->cdr;
-		    // wrap all the rest of the names bindings
-		    // except the last one
+		    // Wrap the middle
 		    for (int i = 1; i < len_names - 1; i++) {
 			tail->cdr = malloc(sizeof(cell_t));
 			tail = tail->cdr;
@@ -647,11 +648,10 @@ value_t eval(value_t v, value_t env)
 			tail->cdr = 0;
 			param_list = param_list->cdr;
 		    }
-		    // wrap the remaining params as the last name
+		    // Wrap the remaining as a list
 		    tail->cdr = malloc(sizeof(cell_t));
 		    tail = tail->cdr;
 		    e = malloc(sizeof(env_t));
-
 		    if (param_list == 0) {
 			e->value = nil;
 		    } else {
@@ -664,6 +664,7 @@ value_t eval(value_t v, value_t env)
 		    // Expand the macro
 		    value_t result =
 			expand(first, as_list(head), mac->form);
+		    check_error(result);
 		    // Demark function scope
 		    value_t macro_env = mac->env;
 		    macro_env = bind((value_t) {
@@ -676,8 +677,7 @@ value_t eval(value_t v, value_t env)
 		{
 		    lambda_t *lamb = (lambda_t *) first.value;
 		    if (len(params) != len(lamb->names)) {
-			return (value_t) {
-			ERROR, 0};
+		      return as_error("Wrong arity for lambda.");
 		    }
 		    params = eval_list(params, env, -1);
 		    value_t lambda_env = lamb->env;
@@ -685,20 +685,21 @@ value_t eval(value_t v, value_t env)
 		    lambda_env = bind((value_t) {
 				      SYMBOL, 0}
 				      , first, lambda_env);
+		    check_error(lambda_env);
 		    cell_t *name = (cell_t *) lamb->names.value;
 		    cell_t *param = (cell_t *) params.value;
 		    while (name != 0) {
 			check_error(param->car);
 			lambda_env =
 			    bind(name->car, param->car, lambda_env);
+			check_error(lambda_env);
 			name = name->cdr;
 			param = param->cdr;
 		    }
 		    return eval(lamb->form, lambda_env);
 		}
 	    default:
-		return (value_t) {
-		ERROR, (chunk_t) "Attempt to call non-function."};
+	      return as_error("Attempt to call non-function.");
 	    }
 	}
     }
@@ -715,29 +716,32 @@ value_t wrap_fn(func_fn fn)
 value_t label(value_t args, value_t env)
 {
     if (len(args) != 3) {
-	return (value_t) {
-	ERROR, (chunk_t) "Wrong arity for label."};
+      return as_error("Wrong arity for label.");
     }
     value_t name = ((cell_t *) args.value)->car;
+    check_error(name);
     value_t value = ((cell_t *) args.value)->cdr->car;
     value = eval(value, env);
+    check_error(value)
     env = bind(name, value, env);
+    check_error(env);
     value_t form = ((cell_t *) args.value)->cdr->cdr->car;
+    check_error(form);
     return eval(form, env);
 }
 
 value_t lambda(value_t args, value_t env)
 {
     if (len(args) != 2) {
-	return (value_t) {
-	ERROR, (chunk_t) "Wrong arity for lambda."};
+      return as_error("Wrong arity for lambda.");
     }
     value_t names = ((cell_t *) args.value)->car;
+    check_error(names);
     if (names.type != LIST && names.type != NIL) {
-	return (value_t) {
-	ERROR, (chunk_t) "First argument to lambda is non-list."};
+      return as_error("First argument to lambda is non-list.");
     }
     value_t form = ((cell_t *) args.value)->cdr->car;
+    check_error(form);
     lambda_t *lamb = malloc(sizeof(lambda_t));
     lamb->names = names;
     lamb->form = form;
@@ -775,8 +779,7 @@ value_t recur(value_t args, value_t env)
 	    break;
 	}
     default:
-	return (value_t) {
-	ERROR, (chunk_t) "Cannot recur on non-lambda or non-macro."};
+      return as_error("Cannot recur on non-lambda or non-macro.");
     }
     cell_t *head = malloc(sizeof(cell_t));
     head->car = fn;
@@ -787,15 +790,15 @@ value_t recur(value_t args, value_t env)
 value_t macro(value_t args, value_t env)
 {
     if (len(args) != 2) {
-	return (value_t) {
-	ERROR, (chunk_t) "Wrong arity for macro."};
+      return as_error("Wrong arity for macro.");
     }
     value_t names = ((cell_t *) args.value)->car;
+    check_error(names);
     if (names.type != LIST && names.type != NIL) {
-	return (value_t) {
-	ERROR, (chunk_t) "First argument to macro is non-list."};
+      return as_error("First argument to macro is non-list.");
     }
     value_t form = ((cell_t *) args.value)->cdr->car;
+    check_error(form);
     macro_t *mac = malloc(sizeof(macro_t));
     mac->names = names;
     mac->form = form;
@@ -806,16 +809,16 @@ value_t macro(value_t args, value_t env)
 
 value_t to_string(value_t v, char *str)
 {
+  check_error(v);
     if (v.type != LIST) {
-	return (value_t) {
-	ERROR, (chunk_t) "to_string requires a list of symbols."};
+      return as_error("to_string requires a list of symbols.");
     }
     int size = len(v) + 1;
     cell_t *head = (cell_t *) v.value;
     for (int i = 0; i < size - 1; i++) {
+      check_error(head->car);
 	if (head->car.type != SYMBOL) {
-	    return (value_t) {
-	    ERROR, (chunk_t) "Non SYMBOL in to_string list"};
+	  return as_error("Non SYMBOL in to_string list");
 	}
 	str[i] = (char) head->car.value;
 	head = head->cdr;
@@ -834,8 +837,7 @@ value_t load(value_t filename)
     }
     FILE *fp;
     if ((fp = fopen(str, "r")) == NULL) {
-	return (value_t) {
-	ERROR, (chunk_t) "Error opening file"};
+      return as_error("Error opening file");
     }
     value_t form = read(fp);
     fclose(fp);
@@ -846,13 +848,12 @@ value_t load(value_t filename)
 value_t import(value_t args, value_t env)
 {
     if (len(args) != 2) {
-	return (value_t) {
-	ERROR, (chunk_t) "Wrong arity for import."};
+      return as_error("Wrong arity for import.");
     }
     value_t first = ((cell_t *) args.value)->car;
+    check_error(first);
     if (first.type != LIST && first.type != NIL) {
-	return (value_t) {
-	ERROR, (chunk_t) "First argument to import is non-list."};
+      return as_error("First argument to import is non-list.");
     }
     cell_t *import_list = (cell_t *) first.value;
     while (import_list != 0) {
@@ -860,21 +861,19 @@ value_t import(value_t args, value_t env)
 	import_env = eval(import_env, env);
 	check_error(import_env);
 	if (import_env.type != LIST) {
-	    return (value_t) {
-	    ERROR, (chunk_t) "Invalid import. Non-List."};
+	  return as_error("Invalid import. Non-List.");
 	}
 	cell_t *binding = (cell_t *) import_env.value;
 	while (binding != 0) {
 	    if (len(binding->car) != 2) {
-		return (value_t) {
-		ERROR, (chunk_t) "Invalid import. Non pair binding."};
+	      return as_error("Invalid import. Non pair binding.");
 	    }
 	    value_t sym = ((cell_t *) binding->car.value)->car;
 	    value_t val = ((cell_t *) binding->car.value)->cdr->car;
+	    check_error(sym);
+	    check_error(val);
 	    if (sym.type != SYMBOL) {
-		return (value_t) {
-		    ERROR, (chunk_t)
-		"Invalid import. First of pair not symbol."};
+	      return as_error("Invalid import. First of pair not symbol.");
 	    }
 	    env = bind(sym, val, env);
 	    check_error(env);
@@ -888,11 +887,9 @@ value_t import(value_t args, value_t env)
 value_t error(value_t args, value_t env)
 {
     if (len(args) != 0) {
-	return (value_t) {
-	ERROR, (chunk_t) "Wrong arity for error."};
+      return as_error("Wrong arity for error.");
     }
-    return (value_t) {
-    ERROR, (chunk_t) "User error."};
+    return as_error("User error.");
 }
 
 value_t callow_core()
