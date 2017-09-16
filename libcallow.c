@@ -8,7 +8,7 @@ typedef enum
     { NIL, SYMBOL, NUMBER, ERROR, LIST, LAMBDA, MACRO, FUNC, ENV } type;
 
 #define nil (value_t) { NIL, 0 }
-#define return_error(A) if (A.type == ERROR) return A;
+#define check_error(A) if (A.type == ERROR) return A;
 
 typedef int64_t chunk_t;
 
@@ -77,7 +77,7 @@ value_t read_file(char *filename)
 value_t list(FILE * fp, int length)
 {
     value_t car = read(fp);
-    return_error(car);
+    check_error(car);
     if (car.type == LIST && car.value == 0) {
 	if (length == 0) {
 	    // Special case nil
@@ -88,7 +88,7 @@ value_t list(FILE * fp, int length)
 	}
     }
     value_t cdr = list(fp, length + 1);
-    return_error(cdr);
+    check_error(cdr);
     cell_t *cl = malloc(sizeof(cell_t));
     cl->car = car;
     cl->cdr = (cell_t *) cdr.value;
@@ -162,7 +162,7 @@ value_t string(FILE * fp)
     value_t car = { SYMBOL, 0 };
     ((char *) &car.value)[0] = ch;
     value_t cdr = string(fp);
-    return_error(cdr);
+    check_error(cdr);
     cell_t *cl = malloc(sizeof(cell_t));
     cl->car = car;
     cl->cdr = (cell_t *) cdr.value;
@@ -298,7 +298,9 @@ value_t atom(value_t args, value_t env)
 	return as_error("Wrong arity for atom.");
     }
     args = eval_list(args, env, -1);
+    check_error(args);
     value_t first = ((cell_t *) args.value)->car;
+    check_error(first);
     if (first.type == LIST) {
 	return nil;
     }
@@ -312,7 +314,9 @@ value_t car(value_t args, value_t env)
 	return as_error("Wrong arity for car.");
     }
     args = eval_list(args, env, -1);
+    check_error(args);
     value_t first = ((cell_t *) args.value)->car;
+    check_error(first);
     if (first.type != LIST) {
 	return as_error("Non-list argument to car.");
     }
@@ -335,7 +339,9 @@ value_t cdr(value_t args, value_t env)
 	return as_error("Wrong arity for crd.");
     }
     args = eval_list(args, env, -1);
+    check_error(args);
     value_t first = ((cell_t *) args.value)->car;
+    check_error(first);
     if (first.type != LIST) {
 	return as_error("Non-list argument to crd.");
     }
@@ -348,9 +354,11 @@ value_t cond(value_t args, value_t env)
 	return as_error("Uneven number of args to cond.");
     }
     args = eval_list(args, env, 2);
-    return_error(args);
+    check_error(args);
     value_t pred = ((cell_t *) args.value)->car;
+    check_error(pred);
     value_t val = ((cell_t *) args.value)->cdr->car;
+    check_error(val);
     if (pred.value != 0) {
 	return val;
     }
@@ -367,8 +375,11 @@ value_t cons(value_t args, value_t env)
 	return as_error("Wrong arity for cons.");
     }
     args = eval_list(args, env, -1);
+    check_error(args);
     value_t car = ((cell_t *) args.value)->car;
+    check_error(car);
     value_t cdr = ((cell_t *) args.value)->cdr->car;
+    check_error(cdr);
     if (cdr.type != LIST && cdr.type != NIL) {
 	return as_error("Non-list or non-nil arg to cons.");
     }
@@ -407,8 +418,11 @@ value_t eq(value_t args, value_t env)
 	return as_error("Wrong arity to eq.");
     }
     args = eval_list(args, env, -1);
+    check_error(args);
     value_t a = ((cell_t *) args.value)->car;
+    check_error(a);
     value_t b = ((cell_t *) args.value)->cdr->car;
+    check_error(b);
     if (eq_internal(a, b)) {
 	return (value_t) {
 	NUMBER, 1};
@@ -434,7 +448,9 @@ value_t lookup(value_t s, value_t env)
 	return as_error("Attempt to lookup non-symbol.");
     }
     value_t binding = ((cell_t *) env.value)->car;
+    check_error(binding);
     value_t first = ((cell_t *) binding.value)->car;
+    check_error(first);
     if (eq_internal(first, s)) {
 	return ((cell_t *) binding.value)->cdr->car;
     }
@@ -447,9 +463,9 @@ value_t lookup(value_t s, value_t env)
 
 value_t bind(value_t name, value_t value, value_t env)
 {
-    return_error(name);
-    return_error(value);
-    return_error(env);
+    check_error(name);
+    check_error(value);
+    check_error(env);
     if (name.type != SYMBOL) {
 	printf("\nDetails of: Attempt to bind non-symbol: ");
 	print(stdout, name);
@@ -477,16 +493,16 @@ value_t eval_list(value_t list, value_t env, int limit)
     if (list.type == NIL) {
 	return list;
     }
-    return_error(list);
+    check_error(list);
     cell_t *cell = malloc(sizeof(cell_t));
     value_t car = eval(((cell_t *) list.value)->car, env);
-    return_error(car);
+    check_error(car);
     cell->car = car;
     cell_t *cdr = ((cell_t *) list.value)->cdr;
     cell->cdr = cdr;
     if (cdr != 0 && limit != 0) {
 	value_t l = eval_list(as_list(cdr), env, limit - 1);
-	return_error(l);
+	check_error(l);
 	cell->cdr = (cell_t *) l.value;
     }
     return as_list(cell);
@@ -570,7 +586,7 @@ value_t eval(value_t v, value_t env)
     case LIST:
 	{
 	    value_t first = ((cell_t *) v.value)->car;
-	    return_error(first);
+	    check_error(first);
 	    if (first.type == NIL || first.type == NUMBER) {
 		return eval_list(v, env, -1);
 	    }
@@ -672,7 +688,7 @@ value_t eval(value_t v, value_t env)
 		    cell_t *name = (cell_t *) lamb->names.value;
 		    cell_t *param = (cell_t *) params.value;
 		    while (name != 0) {
-			return_error(param->car);
+			check_error(param->car);
 			lambda_env =
 			    bind(name->car, param->car, lambda_env);
 			name = name->cdr;
@@ -735,7 +751,7 @@ value_t recur(value_t args, value_t env)
     // Special null symbol binding to demark function scope. :/
     value_t last = lookup((value_t) { SYMBOL, 0 }
 			  , env);
-    return_error(last);
+    check_error(last);
     value_t fn;
     switch (last.type) {
     case LAMBDA:{
@@ -842,7 +858,7 @@ value_t import(value_t args, value_t env)
     while (import_list != 0) {
 	value_t import_env = load(import_list->car);
 	import_env = eval(import_env, env);
-	return_error(import_env);
+	check_error(import_env);
 	if (import_env.type != LIST) {
 	    return (value_t) {
 	    ERROR, (chunk_t) "Invalid import. Non-List."};
@@ -861,7 +877,7 @@ value_t import(value_t args, value_t env)
 		"Invalid import. First of pair not symbol."};
 	    }
 	    env = bind(sym, val, env);
-	    return_error(env);
+	    check_error(env);
 	    binding = binding->cdr;
 	}
 	import_list = import_list->cdr;
