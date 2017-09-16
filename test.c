@@ -196,7 +196,7 @@ char *core_test_cases[][4] = {
     {
      "Atom number",
      "(atom 1)",
-     "t"},
+     "1"},
     {
      "Atom list",
      "(atom (1))",
@@ -204,7 +204,7 @@ char *core_test_cases[][4] = {
     {
      "Atom empty list",
      "(atom ())",
-     "t"},
+     "1"},
     {
      "Car single element list",
      "(car (1))",

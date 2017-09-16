@@ -45,11 +45,7 @@ typedef struct {
     value_t env;
 } env_t;
 
-value_t as_error(char message[])
-{
-    return (value_t) {
-    ERROR, (chunk_t) message};
-}
+value_t string(FILE * fp);
 
 value_t read(FILE * fp);
 
@@ -62,12 +58,39 @@ value_t read_string(char form[])
     return v;
 }
 
+value_t as_error(char message[])
+{
+    int size = strlen(message);
+    char *quoted_message = malloc(size + 3);
+    int i = 0;
+    quoted_message[i++] = '"';
+    for (int j = 0; j < size; j++) {
+	quoted_message[i++] = message[j];
+    }
+    quoted_message[i++] = '"';
+    quoted_message[i++] = 0;
+    value_t v = read_string(quoted_message);
+    check_error(v);
+    if (v.type != LIST) {
+	return as_error("Invalid error message. Included quotes?");
+    }
+    return (value_t) {
+    ERROR, (chunk_t) v.value};
+}
+
+value_t as_list(cell_t * cell)
+{
+    // Intentionally segfault sooner rather than later
+    cell->car;
+    return (value_t) {
+    LIST, (chunk_t) cell};
+}
+
 value_t read_file(char *filename)
 {
     FILE *fp;
     if ((fp = fopen(filename, "r")) == NULL) {
-	return (value_t) {
-	ERROR, (chunk_t) "Error opening file"};
+	return as_error("Error opening file");
     }
     value_t form = read(fp);
     fclose(fp);
@@ -193,12 +216,50 @@ value_t read(FILE * fp)
 	case '"':
 	    return string(fp);
 	default:
-	    return (value_t) {
-	    ERROR, (chunk_t) "Invalid character."};
+	    return as_error("Invalid character.");
 	}
     }
+    return as_error("Unexpected EOF.");
+}
+
+int len_recur(value_t v, int l)
+{
+    if (v.type != LIST) {
+	return l;
+    }
+    cell_t *c = (cell_t *) v.value;
+    if (c == 0) {
+	return l;
+    }
+    return len_recur((value_t) {
+		     LIST, (chunk_t) c->cdr}
+		     , l + 1);
+}
+
+int len(value_t v)
+{
+    return len_recur(v, 0);
+}
+
+value_t to_string(value_t v, char *str)
+{
+    check_error(v);
+    if (v.type != LIST) {
+	return as_error("to_string requires a list of symbols.");
+    }
+    int size = len(v) + 1;
+    cell_t *head = (cell_t *) v.value;
+    for (int i = 0; i < size - 1; i++) {
+	check_error(head->car);
+	if (head->car.type != SYMBOL) {
+	    return as_error("Non SYMBOL in to_string list");
+	}
+	str[i] = (char) head->car.value;
+	head = head->cdr;
+    }
+    str[size - 1] = 0;
     return (value_t) {
-    ERROR, (chunk_t) "Unexpected EOF."};
+    NIL, 0};
 }
 
 void print_index(FILE * fp, value_t v, int index)
@@ -245,9 +306,13 @@ void print_index(FILE * fp, value_t v, int index)
     case MACRO:
 	fprintf(fp, "<macro>");
 	break;
-    case ERROR:
-	fprintf(fp, "<error: %s>", (char *) v.value);
-	break;
+    case ERROR:{
+	    value_t message = as_list((cell_t *) v.value);
+	    char *message_string = malloc(len(message));
+	    to_string(message, message_string);
+	    fprintf(fp, "<error: %s>", message_string);
+	    break;
+	}
     case NIL:
 	fprintf(fp, "()");
 	break;
@@ -260,33 +325,6 @@ void print_index(FILE * fp, value_t v, int index)
 void print(FILE * fp, value_t v)
 {
     print_index(fp, v, 0);
-}
-
-int len_recur(value_t v, int l)
-{
-    if (v.type != LIST) {
-	return l;
-    }
-    cell_t *c = (cell_t *) v.value;
-    if (c == 0) {
-	return l;
-    }
-    return len_recur((value_t) {
-		     LIST, (chunk_t) c->cdr}
-		     , l + 1);
-}
-
-int len(value_t v)
-{
-    return len_recur(v, 0);
-}
-
-value_t as_list(cell_t * cell)
-{
-    // Intentionally segfault sooner rather than later
-    cell->car;
-    return (value_t) {
-    LIST, (chunk_t) cell};
 }
 
 value_t eval(value_t v, value_t env);
@@ -305,7 +343,7 @@ value_t atom(value_t args, value_t env)
 	return nil;
     }
     return (value_t) {
-    SYMBOL, 't'};
+    NUMBER, 1};
 }
 
 value_t car(value_t args, value_t env)
@@ -343,6 +381,9 @@ value_t cdr(value_t args, value_t env)
     value_t first = ((cell_t *) args.value)->car;
     check_error(first);
     if (first.type != LIST) {
+	/* printf("Details of: Non-list argument to cdr: "); */
+	/* print(stdout, first); */
+	/* printf("\n"); */
 	return as_error("Non-list argument to crd.");
     }
     return cdr_internal(first);
@@ -353,13 +394,14 @@ value_t cond(value_t args, value_t env)
     if (len(args) < 2) {
 	return as_error("Uneven number of args to cond.");
     }
-    args = eval_list(args, env, 2);
+    args = eval_list(args, env, 0);
     check_error(args);
     value_t pred = ((cell_t *) args.value)->car;
     check_error(pred);
-    value_t val = ((cell_t *) args.value)->cdr->car;
-    check_error(val);
     if (pred.value != 0) {
+	value_t val = ((cell_t *) args.value)->cdr->car;
+	check_error(val);
+	val = eval(val, env);
 	return val;
     }
     cell_t *c = ((cell_t *) args.value)->cdr->cdr;
@@ -456,6 +498,9 @@ value_t lookup(value_t s, value_t env)
     }
     cell_t *cdr = ((cell_t *) env.value)->cdr;
     if (cdr == 0) {
+	/* printf("Details of: Lookup symbol failed: "); */
+	/* print(stdout, s); */
+	/* printf("\n"); */
 	return as_error("Lookup of symbol failed.");
     }
     return lookup(s, as_list(cdr));
@@ -467,9 +512,9 @@ value_t bind(value_t name, value_t value, value_t env)
     check_error(value);
     check_error(env);
     if (name.type != SYMBOL) {
-	printf("\nDetails of: Attempt to bind non-symbol: ");
-	print(stdout, name);
-	printf("\n");
+	/* printf("\nDetails of: Attempt to bind non-symbol: "); */
+	/* print(stdout, name); */
+	/* printf("\n"); */
 	return as_error("Attempt to bind non-symbol.");
     }
     cell_t *first = malloc(sizeof(cell_t));
@@ -522,7 +567,7 @@ value_t expand(value_t macro, value_t params, value_t form)
     int names_len = len(mac->names);
     int params_len = len(params);
     if (names_len > params_len + 1) {
-      return as_error("Not enough arguments provided to macro.");
+	return as_error("Not enough arguments provided to macro.");
     }
     switch (form.type) {
     case SYMBOL:{
@@ -619,7 +664,9 @@ value_t eval(value_t v, value_t env)
 		    int len_names = len(mac->names);
 		    int len_params = len(params);
 		    if (len_names > len_params + 1) {
-		      return as_error("Not enough arguments provided to macro.");
+			return
+			    as_error
+			    ("Not enough arguments provided to macro.");
 		    }
 		    // new list
 		    cell_t *head = malloc(sizeof(cell_t));
@@ -677,7 +724,7 @@ value_t eval(value_t v, value_t env)
 		{
 		    lambda_t *lamb = (lambda_t *) first.value;
 		    if (len(params) != len(lamb->names)) {
-		      return as_error("Wrong arity for lambda.");
+			return as_error("Wrong arity for lambda.");
 		    }
 		    params = eval_list(params, env, -1);
 		    value_t lambda_env = lamb->env;
@@ -699,7 +746,7 @@ value_t eval(value_t v, value_t env)
 		    return eval(lamb->form, lambda_env);
 		}
 	    default:
-	      return as_error("Attempt to call non-function.");
+		return as_error("Attempt to call non-function.");
 	    }
 	}
     }
@@ -716,14 +763,14 @@ value_t wrap_fn(func_fn fn)
 value_t label(value_t args, value_t env)
 {
     if (len(args) != 3) {
-      return as_error("Wrong arity for label.");
+	return as_error("Wrong arity for label.");
     }
     value_t name = ((cell_t *) args.value)->car;
     check_error(name);
     value_t value = ((cell_t *) args.value)->cdr->car;
     value = eval(value, env);
     check_error(value)
-    env = bind(name, value, env);
+	env = bind(name, value, env);
     check_error(env);
     value_t form = ((cell_t *) args.value)->cdr->cdr->car;
     check_error(form);
@@ -733,12 +780,12 @@ value_t label(value_t args, value_t env)
 value_t lambda(value_t args, value_t env)
 {
     if (len(args) != 2) {
-      return as_error("Wrong arity for lambda.");
+	return as_error("Wrong arity for lambda.");
     }
     value_t names = ((cell_t *) args.value)->car;
     check_error(names);
     if (names.type != LIST && names.type != NIL) {
-      return as_error("First argument to lambda is non-list.");
+	return as_error("First argument to lambda is non-list.");
     }
     value_t form = ((cell_t *) args.value)->cdr->car;
     check_error(form);
@@ -779,7 +826,7 @@ value_t recur(value_t args, value_t env)
 	    break;
 	}
     default:
-      return as_error("Cannot recur on non-lambda or non-macro.");
+	return as_error("Cannot recur on non-lambda or non-macro.");
     }
     cell_t *head = malloc(sizeof(cell_t));
     head->car = fn;
@@ -790,12 +837,12 @@ value_t recur(value_t args, value_t env)
 value_t macro(value_t args, value_t env)
 {
     if (len(args) != 2) {
-      return as_error("Wrong arity for macro.");
+	return as_error("Wrong arity for macro.");
     }
     value_t names = ((cell_t *) args.value)->car;
     check_error(names);
     if (names.type != LIST && names.type != NIL) {
-      return as_error("First argument to macro is non-list.");
+	return as_error("First argument to macro is non-list.");
     }
     value_t form = ((cell_t *) args.value)->cdr->car;
     check_error(form);
@@ -807,27 +854,6 @@ value_t macro(value_t args, value_t env)
     MACRO, (chunk_t) mac};
 }
 
-value_t to_string(value_t v, char *str)
-{
-  check_error(v);
-    if (v.type != LIST) {
-      return as_error("to_string requires a list of symbols.");
-    }
-    int size = len(v) + 1;
-    cell_t *head = (cell_t *) v.value;
-    for (int i = 0; i < size - 1; i++) {
-      check_error(head->car);
-	if (head->car.type != SYMBOL) {
-	  return as_error("Non SYMBOL in to_string list");
-	}
-	str[i] = (char) head->car.value;
-	head = head->cdr;
-    }
-    str[size - 1] = 0;
-    return (value_t) {
-    NIL, 0};
-}
-
 value_t load(value_t filename)
 {
     char *str = malloc(len(filename) + 1);
@@ -837,7 +863,7 @@ value_t load(value_t filename)
     }
     FILE *fp;
     if ((fp = fopen(str, "r")) == NULL) {
-      return as_error("Error opening file");
+	return as_error("Error opening file");
     }
     value_t form = read(fp);
     fclose(fp);
@@ -848,12 +874,12 @@ value_t load(value_t filename)
 value_t import(value_t args, value_t env)
 {
     if (len(args) != 2) {
-      return as_error("Wrong arity for import.");
+	return as_error("Wrong arity for import.");
     }
     value_t first = ((cell_t *) args.value)->car;
     check_error(first);
     if (first.type != LIST && first.type != NIL) {
-      return as_error("First argument to import is non-list.");
+	return as_error("First argument to import is non-list.");
     }
     cell_t *import_list = (cell_t *) first.value;
     while (import_list != 0) {
@@ -861,19 +887,20 @@ value_t import(value_t args, value_t env)
 	import_env = eval(import_env, env);
 	check_error(import_env);
 	if (import_env.type != LIST) {
-	  return as_error("Invalid import. Non-List.");
+	    return as_error("Invalid import. Non-List.");
 	}
 	cell_t *binding = (cell_t *) import_env.value;
 	while (binding != 0) {
 	    if (len(binding->car) != 2) {
-	      return as_error("Invalid import. Non pair binding.");
+		return as_error("Invalid import. Non pair binding.");
 	    }
 	    value_t sym = ((cell_t *) binding->car.value)->car;
 	    value_t val = ((cell_t *) binding->car.value)->cdr->car;
 	    check_error(sym);
 	    check_error(val);
 	    if (sym.type != SYMBOL) {
-	      return as_error("Invalid import. First of pair not symbol.");
+		return
+		    as_error("Invalid import. First of pair not symbol.");
 	    }
 	    env = bind(sym, val, env);
 	    check_error(env);
@@ -886,10 +913,16 @@ value_t import(value_t args, value_t env)
 
 value_t error(value_t args, value_t env)
 {
-    if (len(args) != 0) {
-      return as_error("Wrong arity for error.");
+    if (len(args) != 1) {
+	return as_error("Wrong arity for error.");
     }
-    return as_error("User error.");
+    value_t first = ((cell_t *) args.value)->car;
+    check_error(first);
+    if (first.type != LIST) {
+	return as_error("First parameter to error was not a list.");
+    }
+    return (value_t) {
+    ERROR, (chunk_t) first.value};
 }
 
 value_t callow_core()
