@@ -228,7 +228,7 @@ char *core_test_cases[][4] = {
     {
      "Cdr of a non-list is error",
      "(cdr 1)",
-     "<error: Non-list argument to crd.>"},
+     "<error: Non-list argument to cdr.>"},
     {
      "Cond simple case",
      "(cond (eq 1 1) 2)",
@@ -346,7 +346,7 @@ int check_import(value_t env)
 
 char *callow_test_files[] = {
     "tst/core/and.clw",
-    /* "tst/core/let.clw", */
+    "tst/core/let.clw",
     "tst/core/list.clw"
 };
 

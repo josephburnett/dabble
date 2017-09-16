@@ -5,16 +5,17 @@
 #include <inttypes.h>
 
 typedef enum
-    { NIL, SYMBOL, NUMBER, ERROR, LIST, LAMBDA, MACRO, FUNC, ENV } type;
+    { NIL, SYMBOL, NUMBER, ERROR, LIST, LAMBDA, MACRO, FUNC } type;
 
 #define nil (value_t) { NIL, 0 }
 #define check_error(A) if (A.type == ERROR) return A;
 
 typedef int64_t chunk_t;
 
-typedef struct {
+typedef struct value_t {
     type type;
     chunk_t value;
+    struct cell_t *env;
 } value_t;
 
 typedef struct cell_t {
@@ -39,11 +40,6 @@ typedef value_t(*func_fn) (value_t, value_t);
 typedef struct {
     func_fn func;
 } func_t;
-
-typedef struct {
-    value_t value;
-    value_t env;
-} env_t;
 
 value_t string(FILE * fp);
 
@@ -267,6 +263,9 @@ void print_index(FILE * fp, value_t v, int index)
     if (index > 0) {
 	fprintf(fp, " ");
     }
+    if (v.env) {
+	printf("*");
+    }
     switch (v.type) {
     case LIST:
 	if (index <= 0) {
@@ -316,9 +315,8 @@ void print_index(FILE * fp, value_t v, int index)
     case NIL:
 	fprintf(fp, "()");
 	break;
-    case ENV:
-	print_index(fp, ((env_t *) v.value)->value, index);
-	break;
+    default:
+        fprintf(fp, "<?>");
     }
 }
 
@@ -356,6 +354,9 @@ value_t car(value_t args, value_t env)
     value_t first = ((cell_t *) args.value)->car;
     check_error(first);
     if (first.type != LIST) {
+	printf("Details of: Non-list argument to car: ");
+	print(stdout, first);
+	printf("\n");
 	return as_error("Non-list argument to car.");
     }
     return ((cell_t *) first.value)->car;
@@ -381,10 +382,10 @@ value_t cdr(value_t args, value_t env)
     value_t first = ((cell_t *) args.value)->car;
     check_error(first);
     if (first.type != LIST) {
-	/* printf("Details of: Non-list argument to cdr: "); */
-	/* print(stdout, first); */
-	/* printf("\n"); */
-	return as_error("Non-list argument to crd.");
+	printf("Details of: Non-list argument to cdr: ");
+	print(stdout, first);
+	printf("\n");
+	return as_error("Non-list argument to cdr.");
     }
     return cdr_internal(first);
 }
@@ -498,9 +499,9 @@ value_t lookup(value_t s, value_t env)
     }
     cell_t *cdr = ((cell_t *) env.value)->cdr;
     if (cdr == 0) {
-	/* printf("Details of: Lookup symbol failed: "); */
-	/* print(stdout, s); */
-	/* printf("\n"); */
+	printf("Details of: Lookup symbol failed: >");
+	print(stdout, s);
+	printf("<\n");
 	return as_error("Lookup of symbol failed.");
     }
     return lookup(s, as_list(cdr));
@@ -512,9 +513,9 @@ value_t bind(value_t name, value_t value, value_t env)
     check_error(value);
     check_error(env);
     if (name.type != SYMBOL) {
-	/* printf("\nDetails of: Attempt to bind non-symbol: "); */
-	/* print(stdout, name); */
-	/* printf("\n"); */
+	printf("\nDetails of: Attempt to bind non-symbol: ");
+	print(stdout, name);
+	printf("\n");
 	return as_error("Attempt to bind non-symbol.");
     }
     cell_t *first = malloc(sizeof(cell_t));
@@ -616,6 +617,9 @@ value_t expand(value_t macro, value_t params, value_t form)
 
 value_t eval(value_t v, value_t env)
 {
+    if (v.env) {
+	env = as_list(v.env);
+    }
     switch (v.type) {
     case NIL:
     case NUMBER:
@@ -624,11 +628,6 @@ value_t eval(value_t v, value_t env)
     case LAMBDA:
     case MACRO:
 	return v;
-    case ENV:
-	{
-	    env_t *e = (env_t *) v.value;
-	    return eval(e->value, e->env);
-	}
     case SYMBOL:
 	return lookup(v, env);
     case LIST:
@@ -671,42 +670,33 @@ value_t eval(value_t v, value_t env)
 		    // new list
 		    cell_t *head = malloc(sizeof(cell_t));
 		    cell_t *tail = head;
-		    env_t *e = malloc(sizeof(env_t));
 		    // Wrap the first
 		    if (len_names == 1) {
-			e->value = params;
+			tail->car = params;
 		    } else {
-			e->value = param_list->car;
+			tail->car = param_list->car;
 		    }
-		    e->env = env;
-		    tail->car = (value_t) {
-		    ENV, (chunk_t) e};
+		    tail->car.env = (cell_t *) env.value;
 		    tail->cdr = 0;
 		    param_list = param_list->cdr;
 		    // Wrap the middle
 		    for (int i = 1; i < len_names - 1; i++) {
 			tail->cdr = malloc(sizeof(cell_t));
 			tail = tail->cdr;
-			env_t *e = malloc(sizeof(env_t));
-			e->value = param_list->car;
-			e->env = env;
-			tail->car = (value_t) {
-			ENV, (chunk_t) e};
+			tail->car = param_list->car;
+			tail->car.env = (cell_t *) env.value;
 			tail->cdr = 0;
 			param_list = param_list->cdr;
 		    }
 		    // Wrap the remaining as a list
 		    tail->cdr = malloc(sizeof(cell_t));
 		    tail = tail->cdr;
-		    e = malloc(sizeof(env_t));
 		    if (param_list == 0) {
-			e->value = nil;
+			tail->car = nil;
 		    } else {
-			e->value = as_list(param_list);
+			tail->car = as_list(param_list);
 		    }
-		    e->env = env;
-		    tail->car = (value_t) {
-		    ENV, (chunk_t) e};
+		    tail->car.env = (cell_t *) env.value;
 		    tail->cdr = 0;
 		    // Expand the macro
 		    value_t result =
@@ -718,7 +708,7 @@ value_t eval(value_t v, value_t env)
 				     SYMBOL, 0}
 				     , first, macro_env);
 		    // Evaluate with the environment of the macro
-		    return eval(result, mac->env);
+		    return eval(result, macro_env);
 		}
 	    case LAMBDA:
 		{
@@ -767,6 +757,10 @@ value_t label(value_t args, value_t env)
     }
     value_t name = ((cell_t *) args.value)->car;
     check_error(name);
+    if (name.type != SYMBOL) {
+      name = eval(name, env);
+      check_error(name);
+    }
     value_t value = ((cell_t *) args.value)->cdr->car;
     value = eval(value, env);
     check_error(value)
