@@ -8,6 +8,7 @@ typedef enum
     { NIL, SYMBOL, NUMBER, ERROR, LIST, LAMBDA, MACRO, FUNC, ENV } type;
 
 #define nil (value_t) { NIL, 0 }
+#define return_error(A) if (A.type == ERROR) return A;
 
 typedef int64_t chunk_t;
 
@@ -76,9 +77,7 @@ value_t read_file(char *filename)
 value_t list(FILE * fp, int length)
 {
     value_t car = read(fp);
-    if (car.type == ERROR) {
-	return car;
-    }
+    return_error(car);
     if (car.type == LIST && car.value == 0) {
 	if (length == 0) {
 	    // Special case nil
@@ -89,9 +88,7 @@ value_t list(FILE * fp, int length)
 	}
     }
     value_t cdr = list(fp, length + 1);
-    if (cdr.type == ERROR) {
-	return cdr;
-    }
+    return_error(cdr);
     cell_t *cl = malloc(sizeof(cell_t));
     cl->car = car;
     cl->cdr = (cell_t *) cdr.value;
@@ -165,9 +162,7 @@ value_t string(FILE * fp)
     value_t car = { SYMBOL, 0 };
     ((char *) &car.value)[0] = ch;
     value_t cdr = string(fp);
-    if (cdr.type == ERROR) {
-	return cdr;
-    }
+    return_error(cdr);
     cell_t *cl = malloc(sizeof(cell_t));
     cl->car = car;
     cl->cdr = (cell_t *) cdr.value;
@@ -353,9 +348,7 @@ value_t cond(value_t args, value_t env)
 	return as_error("Uneven number of args to cond.");
     }
     args = eval_list(args, env, 2);
-    if (args.type == ERROR) {
-      return args;
-    }
+    return_error(args);
     value_t pred = ((cell_t *) args.value)->car;
     value_t val = ((cell_t *) args.value)->cdr->car;
     if (pred.value != 0) {
@@ -417,7 +410,8 @@ value_t eq(value_t args, value_t env)
     value_t a = ((cell_t *) args.value)->car;
     value_t b = ((cell_t *) args.value)->cdr->car;
     if (eq_internal(a, b)) {
-	return (value_t) { NUMBER, 1 };
+	return (value_t) {
+	NUMBER, 1};
     } else {
 	return nil;
     }
@@ -453,15 +447,9 @@ value_t lookup(value_t s, value_t env)
 
 value_t bind(value_t name, value_t value, value_t env)
 {
-    if (name.type == ERROR) {
-	return name;
-    }
-    if (value.type == ERROR) {
-	return value;
-    }
-    if (env.type == ERROR) {
-	return env;
-    }
+    return_error(name);
+    return_error(value);
+    return_error(env);
     if (name.type != SYMBOL) {
 	printf("\nDetails of: Attempt to bind non-symbol: ");
 	print(stdout, name);
@@ -489,22 +477,16 @@ value_t eval_list(value_t list, value_t env, int limit)
     if (list.type == NIL) {
 	return list;
     }
-    if (list.type == ERROR) {
-      return list;
-    }
+    return_error(list);
     cell_t *cell = malloc(sizeof(cell_t));
     value_t car = eval(((cell_t *) list.value)->car, env);
-    if (car.type == ERROR) {
-      return car;
-    }
+    return_error(car);
     cell->car = car;
     cell_t *cdr = ((cell_t *) list.value)->cdr;
     cell->cdr = cdr;
     if (cdr != 0 && limit != 0) {
 	value_t l = eval_list(as_list(cdr), env, limit - 1);
-	if (l.type == ERROR) {
-	  return l;
-	}
+	return_error(l);
 	cell->cdr = (cell_t *) l.value;
     }
     return as_list(cell);
@@ -588,8 +570,8 @@ value_t eval(value_t v, value_t env)
     case LIST:
 	{
 	    value_t first = ((cell_t *) v.value)->car;
-	    if (first.type == NIL || first.type == NUMBER
-		|| first.type == ERROR) {
+	    return_error(first);
+	    if (first.type == NIL || first.type == NUMBER) {
 		return eval_list(v, env, -1);
 	    }
 	    value_t params = nil;
@@ -690,10 +672,7 @@ value_t eval(value_t v, value_t env)
 		    cell_t *name = (cell_t *) lamb->names.value;
 		    cell_t *param = (cell_t *) params.value;
 		    while (name != 0) {
-			if (param->car.type == ERROR) {
-			    // Should I be doing this?
-			    return param->car;
-			}
+			return_error(param->car);
 			lambda_env =
 			    bind(name->car, param->car, lambda_env);
 			name = name->cdr;
@@ -756,9 +735,7 @@ value_t recur(value_t args, value_t env)
     // Special null symbol binding to demark function scope. :/
     value_t last = lookup((value_t) { SYMBOL, 0 }
 			  , env);
-    if (last.type == ERROR) {
-	return last;
-    }
+    return_error(last);
     value_t fn;
     switch (last.type) {
     case LAMBDA:{
@@ -865,13 +842,7 @@ value_t import(value_t args, value_t env)
     while (import_list != 0) {
 	value_t import_env = load(import_list->car);
 	import_env = eval(import_env, env);
-	if (import_env.type == ERROR) {
-	    printf("Error while importing: ");
-	    print(stdout, import_env);
-	    printf("\n");
-	    exit(1);
-	    return import_env;
-	}
+	return_error(import_env);
 	if (import_env.type != LIST) {
 	    return (value_t) {
 	    ERROR, (chunk_t) "Invalid import. Non-List."};
@@ -890,9 +861,7 @@ value_t import(value_t args, value_t env)
 		"Invalid import. First of pair not symbol."};
 	    }
 	    env = bind(sym, val, env);
-	    if (env.type == ERROR) {
-		return env;
-	    }
+	    return_error(env);
 	    binding = binding->cdr;
 	}
 	import_list = import_list->cdr;
