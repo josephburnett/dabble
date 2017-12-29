@@ -3,9 +3,9 @@ local string = require "string"
 
 -- Types --
 
-local function _cell(car, cdr)
+local function _list (car, cdr)
    local c = {
-      type = "cell",
+      type = "list",
       car = car,
       cdr = cdr,
       len = 1,
@@ -16,10 +16,41 @@ local function _cell(car, cdr)
    return c
 end
 
-local function _lambda (fn, env)
+local function _symbol (sym)
+   return {
+      type = "symbol",
+      sym = sym,
+   }
+end
+
+local function _number (num)
+   return {
+      type = "number",
+      num = num
+   }
+end
+
+local function _fn (fn)
+   return {
+      type = "fn",
+      fn  = fn,
+   }
+end
+
+local function _lambda (args, body, env)
    return {
       type = "lambda",
-      fn = fn,
+      args = args,
+      body = body,
+      env = env,
+   }
+end
+
+local function _macro (args, body, env)
+   return {
+      type = "macro",
+      args = args,
+      body = body,
       env = env,
    }
 end
@@ -31,37 +62,37 @@ local function _error (msg)
    }
 end
 
-local function _is_error (v)
-   return type(v) == "table" and v.type == "error"
-end
-
-local function _is_list (v)
-   return type(v) == "table" and v.type == "cell"
+local function _is_fn (v)
+   return v.type == "fn"
 end
 
 local function _is_lambda (v)
-   return type(v) == "table" and v.type == "lambda"
+   return v.type == "lambda"
+end
+
+local function _is_macro (v)
+   return v.type == "macro"
+end
+
+local function _is_error (v)
+   return v.type == "error"
+end
+
+local function _is_list (v)
+   return v.type == "list"
 end
 
 local function _is_symbol_(v)
-   return type(v) == "string"
+   return v.type == "symbol"
 end
 
 local function _is_number (v)
-   return type(v) == "number"
+   return v.type == "number"
 end
 
 local function _type (v)
-   if _is_list(v) then
-      return "list"
-   elseif _is_lambda(v) then
-      return "lambda"
-   elseif _is_symbol(v) then
-      return "symbol"
-   elseif _is_number(v) then
-      return "number"
-   elseif _is_error(v) then
-      return "error"
+   if type(v) == "table" then
+      return v.type
    else
       return "nil"
    end
@@ -79,7 +110,7 @@ local function _read (str)
       local list, v, rest = {}, nil, l
       repeat
 	 v, rest = _read(rest)
-	 if is_error(v) then return v end
+	 if _is_error(v) then return v end
 	 list[#list + 1] = v
       until rest == nil
       return list
@@ -96,15 +127,15 @@ local function _read (str)
       return _read_list(list)
    end
    
-   local symbol, index = string.match(a, "^(%a%w*)()")
-   if symbol then
-      return symbol, string.sub(a, index, -1)
+   local sym, index = string.match(a, "^(%a%w*)()")
+   if sym then
+      return _symbol(sym), string.sub(a, index, -1)
    end
    
-   local number, index = string.match(a, "^(%d)()")
-   number = tonumber(number)
-   if number then
-      return number, string.sub(a, index, -1)
+   local num, index = string.match(a, "^(%d)()")
+   num = tonumber(num)
+   if num then
+      return _number(num), string.sub(a, index, -1)
    end
 
    return _error("invalid input")
@@ -123,12 +154,14 @@ local function _print (v)
 	 end
       end
       io.write(")")
-   elseif _is_symbol(v) or _is_number(v) then
-      io.write(v)
+   elseif _is_symbol(v) then
+      io.write(v.sym)
+   elseif _is_number(v) then
+      io.write(v.num)
    elseif _is_error(v) then
-      io.write(string.format("<error %s>" , v._str))
+      io.write(string.format("<error %s>" , v.msg))
    else
-      io.write("<unknown>")
+      io.write("<" .. v.type .. ">")
    end
 end
 
@@ -142,7 +175,7 @@ local function _len (v)
 end
 
 local function _bind (sym, v, env)
-   return _cell(_cell(sym, v), env)
+   return _list(_list(sym, v), env)
 end
 
 local function _lookup (sym, env)
@@ -159,7 +192,9 @@ end
 local function _eval (v, env)
    if _is_number(v) or
       _is_error(v) or
-      _is_lambda(v)
+      _is_fn(v) or
+      _is_lambda(v) or
+      _is_macro(v)
    then
       return v
    end
@@ -167,7 +202,14 @@ local function _eval (v, env)
       return _eval(_lookup(v, env))
    end
    if _is_list(v) then
-      return _cell(_eval(v.car), _eval(v.cdr))
+      local eval_list = _list(_eval(v.car), _eval(v.cdr))
+      if _is_fn(eval_list.car) then
+	 local fn = eval_list.car.fn
+	 local args = eval_list.cdr
+	 return fn(args, env)
+      end
+      -- TODO call lambda
+      -- TODO expand macro
    end
    return nil
 end
@@ -223,7 +265,7 @@ local function cons (args, env)
       return _error("cons requires a second list argument.  " ..
 		       _type(args.cdr.car) .. " provided.")
    end
-   return _cell(args.car, args.cdr.car)
+   return _list(args.car, args.cdr.car)
 end
 
 local function label (args, env)
@@ -237,6 +279,30 @@ local function label (args, env)
    end
    local label_env = bind(args.car, args.cdr.car, env)
    return _eval(args.cdr.cdr.car, label_env)
+end
+
+local function lambda (args, env)
+   if _len(args) != 2 then
+      return _error("lambda requires 2 arguments. " ..
+		       _len(args) .. " provided.")
+   end
+   if not _is_list(args.car) then
+      return _error("lambda requires first list argument. " ..
+		       _type(args.car) .. " provided.")
+   end
+   -- TODO verify all names are symbols
+   return _lambda(args.car, args.cdr.car, env)
+end
+
+local function macro (args, env)
+   if _len(args) != 2 then
+      return _error("macro requires 2 arguments. " ..
+		       _len(args) .. " provided.")
+   end
+   if not _is_list(args.car) then
+      return _error("macro requires first list argument. " ..
+		       _type(args.car) .. " provided.")
+   end
 end
 
 -- Library Exports --
