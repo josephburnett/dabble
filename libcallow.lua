@@ -63,31 +63,31 @@ local function _error (msg)
 end
 
 local function _is_fn (v)
-   return v.type == "fn"
+   return type(v) == "table" and v.type == "fn"
 end
 
 local function _is_lambda (v)
-   return v.type == "lambda"
+   return type(v) == "table" and v.type == "lambda"
 end
 
 local function _is_macro (v)
-   return v.type == "macro"
+   return type(v) == "table" and v.type == "macro"
 end
 
 local function _is_error (v)
-   return v.type == "error"
+   return type(v) == "table" and v.type == "error"
 end
 
 local function _is_list (v)
-   return v.type == "list"
+   return type(v) == "table" and v.type == "list"
 end
 
-local function _is_symbol_(v)
-   return v.type == "symbol"
+local function _is_symbol (v)
+   return type(v) == "table" and v.type == "symbol"
 end
 
 local function _is_number (v)
-   return v.type == "number"
+   return type(v) == "table" and v.type == "number"
 end
 
 local function _type (v)
@@ -107,13 +107,14 @@ end
 local function _read (str)
 
    local function _read_list (l)
-      local list, v, rest = {}, nil, l
-      repeat
-	 v, rest = _read(rest)
-	 if _is_error(v) then return v end
-	 list[#list + 1] = v
-      until rest == nil
-      return list
+      local v, rest = _read(l)
+      if _is_error(v) then return v end
+      if not v then return v end
+      local cdr = nil
+      if rest then
+	 cdr = _read_list(rest)
+      end
+      return _list(v, cdr)
    end
 
    local a = _strip(str)
@@ -145,14 +146,14 @@ end
 
 local function _print (v)
    if _is_list(v) then
-      local n = #v
       io.write("(")
-      for i,v in ipairs(v) do
-	 _print(v)
-	 if i ~= n then
+      repeat
+	 _print(v.car)
+	 if v.len > 1 then
 	    io.write(" ")
 	 end
-      end
+	 v = v.cdr
+      until not v
       io.write(")")
    elseif _is_symbol(v) then
       io.write(v.sym)
@@ -160,8 +161,12 @@ local function _print (v)
       io.write(v.num)
    elseif _is_error(v) then
       io.write(string.format("<error %s>" , v.msg))
-   else
+   elseif type(v) == "table" and v.type then
       io.write("<" .. v.type .. ">")
+   elseif v == nil then
+      io.write("<nil>")
+   else
+      io.write("<unknown>")
    end
 end
 
@@ -218,7 +223,7 @@ end
 
 local function car (args, env)
    args = _eval(args, env)
-   if _len(args) != 1 then
+   if _len(args) ~= 1 then
       return _error("car requires 1 argument. " ..
 		       _len(args) .. " provided.")
    end
@@ -231,7 +236,7 @@ end
 
 local function cdr (args, env)
    args = _eval(args, env)
-   if _len(args) != 1 then
+   if _len(args) ~= 1 then
       return _error("cdr requires 1 argument. " ..
 		       _len(args) .. " provided.")
    end
@@ -244,7 +249,7 @@ end
 
 local function list (args, env)
    args = _eval(args, env)
-   if _len(args) != 1 then
+   if _len(args) ~= 1 then
       return _error("list requires 1 argument. " ..
 		       _len(args) .. " provided.")
    end
@@ -257,7 +262,7 @@ end
 
 local function cons (args, env)
    args = _eval(args, env)
-   if _len(args) != 2 then 
+   if _len(args) ~= 2 then 
       return _error("cons requires 2 arguments. " ..
 		       _len(args) .. " provided.")
    end
@@ -269,11 +274,11 @@ local function cons (args, env)
 end
 
 local function label (args, env)
-   if _len(args) != 3 then
+   if _len(args) ~= 3 then
       return _error("label requires 2 arguments. " ..
 		       _len(args) .. " provided.")
    end
-   if _type(args.car) != "symbol" then
+   if _type(args.car) ~= "symbol" then
       return _error("label requires first symbol argument. " ..
 		       _type(args.car) .. " provided.")
    end
@@ -282,7 +287,7 @@ local function label (args, env)
 end
 
 local function lambda (args, env)
-   if _len(args) != 2 then
+   if _len(args) ~= 2 then
       return _error("lambda requires 2 arguments. " ..
 		       _len(args) .. " provided.")
    end
@@ -295,7 +300,7 @@ local function lambda (args, env)
 end
 
 local function macro (args, env)
-   if _len(args) != 2 then
+   if _len(args) ~= 2 then
       return _error("macro requires 2 arguments. " ..
 		       _len(args) .. " provided.")
    end
