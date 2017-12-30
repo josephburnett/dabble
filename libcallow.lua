@@ -164,7 +164,7 @@ local function _write (v)
    elseif type(v) == "table" and v.type then
       out = out .. "<" .. v.type .. ">"
    elseif v == nil then
-      out = out .. "<nil>"
+      out = out .. "()"
    else
       out = out .. "<unknown>"
    end
