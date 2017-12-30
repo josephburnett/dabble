@@ -1,4 +1,3 @@
-local io = require "io"
 local string = require "string"
 
 -- Types --
@@ -144,30 +143,32 @@ end
 
 -- Printing --
 
-local function _print (v)
+local function _write (v)
+   out = ""
    if _is_list(v) then
-      io.write("(")
+      out = out .. "("
       repeat
-	 _print(v.car)
+	 _write(v.car)
 	 if v.len > 1 then
-	    io.write(" ")
+	    out = out .. " "
 	 end
 	 v = v.cdr
       until not v
-      io.write(")")
+      out = out .. ")"
    elseif _is_symbol(v) then
-      io.write(v.sym)
+      out = out .. v.sym
    elseif _is_number(v) then
-      io.write(v.num)
+      out = out .. v.num
    elseif _is_error(v) then
-      io.write(string.format("<error %s>" , v.msg))
+      out = out .. string.format("<error %s>" , v.msg)
    elseif type(v) == "table" and v.type then
-      io.write("<" .. v.type .. ">")
+      out = out .. "<" .. v.type .. ">"
    elseif v == nil then
-      io.write("<nil>")
+      out = out .. "<nil>"
    else
-      io.write("<unknown>")
+      out = out .. "<unknown>"
    end
+   return out
 end
 
 -- Internal Functions --
@@ -314,5 +315,5 @@ end
 
 return {
    read = _read,
-   print = _print,
+   write = _write,
 }
