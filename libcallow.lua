@@ -2,14 +2,25 @@ local string = require "string"
 
 -- Types --
 
+local function _nil ()
+   return {
+   	type = "nil",
+   }
+end
+
+local function _is_nil (v)
+   return type(v) == "table" and v.type == "nil"
+end
+
 local function _list (car, cdr)
+   if not cdr then cdr = _nil() end
    local c = {
       type = "list",
       car = car,
       cdr = cdr,
       len = 1,
    }
-   if cdr then
+   if not _is_nil(cdr) then
       c.len = cdr.len + 1
    end
    return c
@@ -25,7 +36,7 @@ end
 local function _number (num)
    return {
       type = "number",
-      num = num
+      num = num,
    }
 end
 
@@ -92,8 +103,6 @@ end
 local function _type (v)
    if type(v) == "table" then
       return v.type
-   else
-      return "nil"
    end
 end
 
@@ -108,22 +117,24 @@ local function _read (str)
    local function _read_list (l)
       local v, rest = _read(l)
       if _is_error(v) then return v end
-      if not v then return v end
-      local cdr = nil
+      if _is_nil(v) then return v end
       if rest then
-	 cdr = _read_list(rest)
+         local cdr = _read_list(rest)
+         return _list(v, cdr)
+      else
+         return _list(v)
       end
-      return _list(v, cdr)
    end
 
    local a = _strip(str)
    
    if a == "" then
-      return nil
+      return _nil()
    end
    
-   local list = string.match(a, "^%((.*)%)")
+   local list = string.match(a, "^(%b())")
    if list then
+      list = string.match(list, "^%((.*)%)")
       return _read_list(list)
    end
    
@@ -148,23 +159,23 @@ local function _write (v)
    if _is_list(v) then
       out = out .. "("
       repeat
-	 out = out .. _write(v.car)
-	 if v.len > 1 then
-	    out = out .. " "
-	 end
-	 v = v.cdr
-      until not v
+         out = out .. _write(v.car)
+         if v.len > 1 then
+            out = out .. " "
+         end
+         v = v.cdr
+      until _is_nil(v)
       out = out .. ")"
    elseif _is_symbol(v) then
       out = out .. v.sym
    elseif _is_number(v) then
       out = out .. v.num
+   elseif _is_nil(v) then
+      out = out .. "()"
    elseif _is_error(v) then
       out = out .. string.format("<error %s>" , v.msg)
    elseif type(v) == "table" and v.type then
       out = out .. "<" .. v.type .. ">"
-   elseif v == nil then
-      out = out .. "()"
    else
       out = out .. "<unknown>"
    end
@@ -185,7 +196,7 @@ local function _bind (sym, v, env)
 end
 
 local function _lookup (sym, env)
-   if not env then
+   if _is_nil(env) then
       return _error("Lookup of symbol " ..
 		       sym .. " failed.")
    end
