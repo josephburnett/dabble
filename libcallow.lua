@@ -144,11 +144,11 @@ end
 -- Printing --
 
 local function _write (v)
-   out = ""
+   local out = ""
    if _is_list(v) then
       out = out .. "("
       repeat
-	 _write(v.car)
+	 out = out .. _write(v.car)
 	 if v.len > 1 then
 	    out = out .. " "
 	 end

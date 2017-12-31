@@ -18,6 +18,15 @@ end
 check_read("read symbol", "joe", "joe")
 check_read("read number", "1", "1")
 check_read("read nil", "()", "()")
+check_read("read list with one symbol", "(a)", "(a)")
+check_read("read list with multiple symbols",
+	   "(a b)", "(a b)")
+check_read("read list with one number", "(1)", "(1)")
+check_read("read list with multiple numbers",
+	   "(1 2)", "(1 2)")
+check_read("read list with one nil", "(())", "(())")
+check_read("read list with multiple nils",
+	   "(() ())", "(() ())")
 
 if fail == 0 then
    print("ALL TEST PASSED!")
