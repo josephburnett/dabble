@@ -117,7 +117,7 @@ local function _read (str)
    local function _read_list (l)
       local v, rest = _read(l)
       if _is_error(v) then return v end
-      if _is_nil(v) then return v end
+      if not v then return end
       if rest then
          local cdr = _read_list(rest)
          return _list(v, cdr)
@@ -129,7 +129,11 @@ local function _read (str)
    local a = _strip(str)
    
    if a == "" then
-      return _nil()
+      return nil
+   end
+   
+   if string.find(a, "^%(%)") then
+      return _nil(), string.sub(a, 3, -1)
    end
    
    local list = string.match(a, "^(%b())")
