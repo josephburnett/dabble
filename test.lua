@@ -27,6 +27,8 @@ check_read("read list with multiple numbers",
 check_read("read list with one nil", "(())", "(())")
 check_read("read list with multiple nils",
 	   "(() ())", "(() ())")
+check_read("read list with all types",
+       "(a 1 (b 2) ())", "(a 1 (b 2) ())")
 
 if fail == 0 then
    print("ALL TEST PASSED!")

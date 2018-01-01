@@ -119,8 +119,8 @@ local function _read (str)
       if _is_error(v) then return v end
       if not v then return end
       if rest then
-         local cdr = _read_list(rest)
-         return _list(v, cdr)
+         local cdr, rest = _read_list(rest)
+         return _list(v, cdr), rest
       else
          return _list(v)
       end
@@ -136,10 +136,10 @@ local function _read (str)
       return _nil(), string.sub(a, 3, -1)
    end
    
-   local list = string.match(a, "^(%b())")
+   local list, index = string.match(a, "^(%b())()")
    if list then
       list = string.match(list, "^%((.*)%)")
-      return _read_list(list)
+      return _read_list(list), string.sub(a, index, -1)
    end
    
    local sym, index = string.match(a, "^(%a%w*)()")
