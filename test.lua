@@ -47,6 +47,10 @@ end
 
 check_read_error("unbalanced parens left", "(()")
 check_read_error("unbalanced parens right", "())")
+check_read_error("symbol beginning with number",
+                 "123bad")
+check_read_error("number with two decimals", "1.2.3")
+check_read_error("invalid characters", "[]")
 
 if fail == 0 then
    print("ALL TEST PASSED!")
