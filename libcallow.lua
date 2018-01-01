@@ -156,6 +156,17 @@ local function _read (str)
    return _error("invalid input")
 end
 
+local function _read_all (str)
+   local v, extra = _read(str)
+   if extra then
+      extra = _strip(extra)
+      if extra ~= "" then
+         return _error("Extra input found: " .. extra)
+      end
+   end
+   return v
+end
+
 -- Printing --
 
 local function _write (v)
@@ -329,6 +340,6 @@ end
 -- Library Exports --
 
 return {
-   read = _read,
+   read = _read_all,
    write = _write,
 }

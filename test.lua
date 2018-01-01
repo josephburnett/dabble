@@ -7,7 +7,7 @@ local function check_read (name, test, expect)
    local actual = callow.write(t)
    if actual ~= expect then
       if not actual then
-	 actual = "<nil>"
+         actual = "<nil>"
       end
       print("FAIL " .. name)
       print("Expected " .. expect .. " but got " .. actual)
@@ -29,6 +29,24 @@ check_read("read list with multiple nils",
 	   "(() ())", "(() ())")
 check_read("read list with all types",
        "(a 1 (b 2) ())", "(a 1 (b 2) ())")
+check_read("read nested lists", "(((a)))", "(((a)))")
+
+local function check_read_error (name, test)
+   local t = callow.read(test)
+   local actual = callow.write(t)
+   local expect = "<error"
+   if string.sub(actual, 1, string.len(expect)) ~= expect then
+      if not actual then
+         actual = "<nil>"
+      end
+      print("FAIL " .. name)
+      print("Expected error but got " .. actual)
+      fail = fail + 1
+   end
+end
+
+check_read_error("unbalanced parens left", "(()")
+check_read_error("unbalanced parens right", "())")
 
 if fail == 0 then
    print("ALL TEST PASSED!")
