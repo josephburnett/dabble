@@ -69,6 +69,10 @@ check_eval("car of single element list",
            "(car (1))", "1")
 check_eval("car of multiple element list",
            "(car (1 2))", "1")
+check_eval("cdr of single element list",
+           "(cdr (1))", "()")
+check_eval("cdr of multiple element list",
+           " (cdr (1 2))", "(2)")
 
 local function check_eval_error (name, test)
    local t = callow.eval(test)
@@ -89,6 +93,11 @@ check_eval_error("car of number", "(car 1)")
 check_eval_error("car with no args", "(car)")
 check_eval_error("car with multiple args",
                  "(car (1) (1))")
+check_eval_error("cdr of nil", "(cdr ())")
+check_eval_error("cdr of number", "(cdr 1)")
+check_eval_error("cdr with no args", "(cdr)")
+check_eval_error("cdr with multiple args",
+                 "(cdr (1) (1))")
 
 if fail == 0 then
    print("ALL TEST PASSED!")

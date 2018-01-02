@@ -359,7 +359,8 @@ end
 local function _eval_std (str)
    local v = _read_all(str)
    local env = _nil()
-   env = _bind(_read("car"), _fn(car), env)
+   env = _bind(_symbol("car"), _fn(car), env)
+   env = _bind(_symbol("cdr"), _fn(cdr), env)
    return _eval(v, env)
 end
 
