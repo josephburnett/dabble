@@ -67,6 +67,28 @@ end
 
 check_eval("car of single element list",
            "(car (1))", "1")
+check_eval("car of multiple element list",
+           "(car (1 2))", "1")
+
+local function check_eval_error (name, test)
+   local t = callow.eval(test)
+   local actual = callow.write(t)
+   local expect = "<error"
+   if string.sub(actual, 1, string.len(expect)) ~= expect then
+      if not actual then
+         actual = "<nil>"
+      end
+      print("FAIL " .. name)
+      print("Expected error but got " .. actual)
+      fail = fail + 1
+   end
+end
+
+check_eval_error("car of nil", "(car ())")
+check_eval_error("car of number", "(car 1)")
+check_eval_error("car with no args", "(car)")
+check_eval_error("car with multiple args",
+                 "(car (1) (1))")
 
 if fail == 0 then
    print("ALL TEST PASSED!")
