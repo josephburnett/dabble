@@ -52,6 +52,22 @@ check_read_error("symbol beginning with number",
 check_read_error("number with two decimals", "1.2.3")
 check_read_error("invalid characters", "[]")
 
+local function check_eval (name, test, expect)
+   local t = callow.eval(test)
+   local actual = callow.write(t)
+   if actual ~= expect then
+      if not actual then
+         actual = "<nil>"
+      end
+      print("FAIL " .. name)
+      print("Expected " .. expect .. " but got " .. actual)
+      fail = fail + 1
+   end
+end
+
+check_eval("car of single element list",
+           "(car (1))", "1")
+
 if fail == 0 then
    print("ALL TEST PASSED!")
 end

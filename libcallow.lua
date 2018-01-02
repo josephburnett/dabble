@@ -12,8 +12,22 @@ local function _is_nil (v)
    return type(v) == "table" and v.type == "nil"
 end
 
+local function _error (msg)
+   return {
+      type = "error",
+      msg = msg,
+   }
+end
+
+local function _is_list (v)
+   return type(v) == "table" and v.type == "list"
+end
+
 local function _list (car, cdr)
    if not cdr then cdr = _nil() end
+   if not _is_nil(cdr) and not _is_list(cdr) then
+      return _error("non-list cdr")
+   end
    local c = {
       type = "list",
       car = car,
@@ -65,13 +79,6 @@ local function _macro (args, body, env)
    }
 end
 
-local function _error (msg)
-   return {
-      type = "error",
-      msg = msg,
-   }
-end
-
 local function _is_fn (v)
    return type(v) == "table" and v.type == "fn"
 end
@@ -86,10 +93,6 @@ end
 
 local function _is_error (v)
    return type(v) == "table" and v.type == "error"
-end
-
-local function _is_list (v)
-   return type(v) == "table" and v.type == "list"
 end
 
 local function _is_symbol (v)
@@ -156,17 +159,6 @@ local function _read (str)
    return _error("invalid input")
 end
 
-local function _read_all (str)
-   local v, extra = _read(str)
-   if extra then
-      extra = _strip(extra)
-      if extra ~= "" then
-         return _error("Extra input found: " .. extra)
-      end
-   end
-   return v
-end
-
 -- Printing --
 
 local function _write (v)
@@ -206,17 +198,31 @@ local function _len (v)
    return v.len
 end
 
+local function _equals (a, b)
+   if _type(a) ~= _type(b) then return false end
+   if _is_symbol(a) and a.sym == b.sym then return true end
+   if _is_number(a) and a.num == b.sym then return true end
+   if _is_nil(a) then return true end
+   if _is_list(a) and
+      _equals(a.car, b.car) and
+      _equals(a.cdr, b.cdr)
+   then
+      return true
+   end
+   return false
+end
+
 local function _bind (sym, v, env)
-   return _list(_list(sym, v), env)
+   return _list(_list(sym, _list(v)), env)
 end
 
 local function _lookup (sym, env)
    if _is_nil(env) then
       return _error("Lookup of symbol " ..
-		       sym .. " failed.")
+		       sym.sym .. " failed.")
    end
-   if env.car.car == sym then
-      return env.car.cdr
+   if _equals(env.car.car, sym) then
+      return env.car.cdr.car
    end
    return _lookup(sym, env.cdr)
 end
@@ -231,19 +237,19 @@ local function _eval (v, env)
       return v
    end
    if _is_symbol(v) then
-      return _eval(_lookup(v, env))
+      return _eval(_lookup(v, env), env)
    end
    if _is_list(v) then
-      local eval_list = _list(_eval(v.car), _eval(v.cdr))
+      local eval_list = _list(_eval(v.car, env), _eval(v.cdr, env))
       if _is_fn(eval_list.car) then
-	 local fn = eval_list.car.fn
-	 local args = eval_list.cdr
-	 return fn(args, env)
+         local fn = eval_list.car.fn
+         local args = eval_list.cdr
+         return fn(args, env)
       end
       -- TODO call lambda
       -- TODO expand macro
    end
-   return nil
+   return v
 end
 
 -- Lisp Functions --
@@ -339,7 +345,26 @@ end
 
 -- Library Exports --
 
+local function _read_all (str)
+   local v, extra = _read(str)
+   if extra then
+      extra = _strip(extra)
+      if extra ~= "" then
+         return _error("Extra input found: " .. extra)
+      end
+   end
+   return v
+end
+
+local function _eval_std (str)
+   local v = _read_all(str)
+   local env = _nil()
+   env = _bind(_read("car"), _fn(car), env)
+   return _eval(v, env)
+end
+
 return {
    read = _read_all,
    write = _write,
+   eval = _eval_std,
 }
