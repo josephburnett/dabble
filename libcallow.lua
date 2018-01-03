@@ -287,9 +287,9 @@ local function list (args, env)
 		       _len(args) .. " provided.")
    end
    if _is_list(args.car) then
-      return "t"
+      return _symbol("t")
    else
-      return nil
+      return _nil()
    end
 end
 
@@ -361,6 +361,7 @@ local function _eval_std (str)
    local env = _nil()
    env = _bind(_symbol("car"), _fn(car), env)
    env = _bind(_symbol("cdr"), _fn(cdr), env)
+   env = _bind(_symbol("list"), _fn(list), env)
    return _eval(v, env)
 end
 

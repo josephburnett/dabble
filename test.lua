@@ -73,6 +73,11 @@ check_eval("cdr of single element list",
            "(cdr (1))", "()")
 check_eval("cdr of multiple element list",
            " (cdr (1 2))", "(2)")
+check_eval("list of nil", "(list ())", "()")
+check_eval("list of number", "(list 1)", "()")
+check_eval("list of symbol", "(list t)", "()")
+check_eval("list of single element list",
+           "(list (1))", "t")
 
 local function check_eval_error (name, test)
    local t = callow.eval(test)
