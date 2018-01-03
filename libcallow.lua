@@ -240,7 +240,8 @@ local function _eval (v, env)
       return _eval(_lookup(v, env), env)
    end
    if _is_list(v) then
-      local eval_list = _list(_eval(v.car, env), _eval(v.cdr, env))
+      local eval_list =
+         _list(_eval(v.car, env), _eval(v.cdr, env))
       if _is_fn(eval_list.car) then
          local fn = eval_list.car.fn
          local args = eval_list.cdr
@@ -298,6 +299,9 @@ local function cons (args, env)
    if _len(args) ~= 2 then 
       return _error("cons requires 2 arguments. " ..
 		       _len(args) .. " provided.")
+   end
+   if _is_nil(args.cdr.car) then
+      return _list(args.car)
    end
    if not _is_list(args.cdr.car) then
       return _error("cons requires a second list argument.  " ..
@@ -362,6 +366,7 @@ local function _eval_std (str)
    env = _bind(_symbol("car"), _fn(car), env)
    env = _bind(_symbol("cdr"), _fn(cdr), env)
    env = _bind(_symbol("list"), _fn(list), env)
+   env = _bind(_symbol("cons"), _fn(cons), env)
    return _eval(v, env)
 end
 

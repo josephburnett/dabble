@@ -78,6 +78,16 @@ check_eval("list of number", "(list 1)", "()")
 check_eval("list of symbol", "(list t)", "()")
 check_eval("list of single element list",
            "(list (1))", "t")
+check_eval("cons number with nil",
+           "(cons 1 ())", "(1)")
+check_eval("cons number with one element list",
+           "(cons 1 (2))", "(1 2)")
+check_eval("cons list with list",
+           "(cons (1) (2))", "((1) 2)")
+check_eval("cons nil with list",
+           "(cons () (1))", "(() 1)")
+check_eval("cons nil with nil",
+           "(cons () ())", "(())")
 
 local function check_eval_error (name, test)
    local t = callow.eval(test)
@@ -103,6 +113,15 @@ check_eval_error("cdr of number", "(cdr 1)")
 check_eval_error("cdr with no args", "(cdr)")
 check_eval_error("cdr with multiple args",
                  "(cdr (1) (1))")
+check_eval_error("list with no args", "(list)")
+check_eval_error("list with multiple args",
+                 "(list 1 2)")
+check_eval_error("cons with non-list",
+                 "(cons 1 2)")
+check_eval_error("cons with no args", "(cons)")
+check_eval_error("cons with one arg", "(cons 1)")
+check_eval_error("cons with multiple args",
+                 "(cons () () ())")
 
 if fail == 0 then
    print("ALL TEST PASSED!")
