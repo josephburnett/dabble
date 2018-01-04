@@ -201,7 +201,7 @@ end
 local function _equals (a, b)
    if _type(a) ~= _type(b) then return false end
    if _is_symbol(a) and a.sym == b.sym then return true end
-   if _is_number(a) and a.num == b.sym then return true end
+   if _is_number(a) and a.num == b.num then return true end
    if _is_nil(a) then return true end
    if _is_list(a) and
       _equals(a.car, b.car) and
@@ -310,6 +310,18 @@ local function cons (args, env)
    return _list(args.car, args.cdr.car)
 end
 
+local function eq (args, env)
+   if _len(args) ~= 2 then
+      return _error("label requires 2 arguments. " ..
+		       _len(args) .. " provided.")
+   end
+   if _equals(args.car, args.cdr.car) then
+      return _symbol("t")
+   else
+      return _nil()
+   end
+end
+
 local function label (args, env)
    if _len(args) ~= 3 then
       return _error("label requires 2 arguments. " ..
@@ -367,6 +379,7 @@ local function _eval_std (str)
    env = _bind(_symbol("cdr"), _fn(cdr), env)
    env = _bind(_symbol("list"), _fn(list), env)
    env = _bind(_symbol("cons"), _fn(cons), env)
+   env = _bind(_symbol("eq"), _fn(eq), env)
    return _eval(v, env)
 end
 

@@ -88,6 +88,15 @@ check_eval("cons nil with list",
            "(cons () (1))", "(() 1)")
 check_eval("cons nil with nil",
            "(cons () ())", "(())")
+check_eval("eq nils", "(eq () ())", "t")
+check_eval("eq numbers", "(eq 1 1)", "t")
+check_eval("eq lists", "(eq (1) (1))", "t")
+check_eval("eq nested lists",
+           "(eq (1 (2 3) 4) (1 (2 3) 4))", "t")
+check_eval("eq not number and nil",
+           "(eq 1 ())", "()")
+check_eval("eq not number and list",
+           "(eq 1 (1))", "()")
 
 local function check_eval_error (name, test)
    local t = callow.eval(test)
@@ -122,6 +131,10 @@ check_eval_error("cons with no args", "(cons)")
 check_eval_error("cons with one arg", "(cons 1)")
 check_eval_error("cons with multiple args",
                  "(cons () () ())")
+check_eval_error("eq with no args", "(eq)")
+check_eval_error("eq with one arg", "(eq 1)")
+check_eval_error("eq with multiple args",
+                 "(eq 1 1 1)")
 
 if fail == 0 then
    print("ALL TEST PASSED!")
