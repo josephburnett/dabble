@@ -339,7 +339,7 @@ local function label (args, env)
       return _error("label requires first symbol argument. " ..
 		       _type(args.car) .. " provided.")
    end
-   local label_env = bind(args.car, args.cdr.car, env)
+   local label_env = _bind(args.car, args.cdr.car, env)
    return _eval(args.cdr.cdr.car, label_env)
 end
 
@@ -389,6 +389,7 @@ local function _eval_std (str)
    env = _bind(_symbol("cons"), _fn(cons), env)
    env = _bind(_symbol("eq"), _fn(eq), env)
    env = _bind(_symbol("quote"), _fn(quote), env)
+   env = _bind(_symbol("label"), _fn(label), env)
    return _eval(v, env)
 end
 

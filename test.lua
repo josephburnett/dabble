@@ -101,6 +101,18 @@ check_eval("quote number", "(quote 1)", "1")
 check_eval("quote nil", "(quote ())", "()")
 check_eval("quote list", "(quote (1 2))", "(1 2)")
 check_eval("quote symbol", "(quote a)", "a")
+check_eval("label bind number",
+           "(label a 1 a)", "1")
+check_eval("label bind nil",
+           "(label a () a)", "()")
+check_eval("label bind list",
+           "(label a (1) a)", "(1)")
+check_eval("label shadowing binding",
+           "(label a 1 (label a 2 a))", "2")
+check_eval("label nested scope",
+           "(label a 1 (label b 2 a))", "1")
+check_eval("label resolving symbol",
+           "(label a 1 (label b a b))", "1")
 
 local function check_eval_error (name, test)
    local t = callow.eval(test)
@@ -142,6 +154,12 @@ check_eval_error("eq with multiple args",
 check_eval_error("quote with no args", "(quote)")
 check_eval_error("quote with multiple args",
                  "(quote 1 2)")
+check_eval_error("label with no args", "(label)")
+check_eval_error("label with one arg", "(label a)")
+check_eval_error("label with two args",
+                 "(label a 1)")
+check_eval_error("label with multiple args",
+                 "(label a 1 a a)")
 
 if fail == 0 then
    print("ALL TEST PASSED!")
