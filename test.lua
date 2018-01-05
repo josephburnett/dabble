@@ -97,6 +97,10 @@ check_eval("eq not number and nil",
            "(eq 1 ())", "()")
 check_eval("eq not number and list",
            "(eq 1 (1))", "()")
+check_eval("quote number", "(quote 1)", "1")
+check_eval("quote nil", "(quote ())", "()")
+check_eval("quote list", "(quote (1 2))", "(1 2)")
+check_eval("quote symbol", "(quote a)", "a")
 
 local function check_eval_error (name, test)
    local t = callow.eval(test)
@@ -135,6 +139,9 @@ check_eval_error("eq with no args", "(eq)")
 check_eval_error("eq with one arg", "(eq 1)")
 check_eval_error("eq with multiple args",
                  "(eq 1 1 1)")
+check_eval_error("quote with no args", "(quote)")
+check_eval_error("quote with multiple args",
+                 "(quote 1 2)")
 
 if fail == 0 then
    print("ALL TEST PASSED!")

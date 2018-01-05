@@ -322,6 +322,14 @@ local function eq (args, env)
    end
 end
 
+local function quote (args, env)
+   if _len(args) ~= 1 then
+      return _error("label requires 1 arguments. " ..
+		       _len(args) .. " provided.")
+   end
+   return args.car
+end
+
 local function label (args, env)
    if _len(args) ~= 3 then
       return _error("label requires 2 arguments. " ..
@@ -380,6 +388,7 @@ local function _eval_std (str)
    env = _bind(_symbol("list"), _fn(list), env)
    env = _bind(_symbol("cons"), _fn(cons), env)
    env = _bind(_symbol("eq"), _fn(eq), env)
+   env = _bind(_symbol("quote"), _fn(quote), env)
    return _eval(v, env)
 end
 
