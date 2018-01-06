@@ -321,6 +321,26 @@ local function eq (args, env)
    end
 end
 
+local function cond (args, env)
+   if _len(args) == 0 then
+      return _error("no matching condition")
+   end
+   local c = args.car
+   if not _is_list(c) then
+      return _error("cond requires list arguments. " ..
+                    _type(c) .. " provided.")
+   end
+   if _len(c) ~= 2 then
+      return _error("cond requires pairs. " ..
+                    _len(c) .. " provided.")
+   end
+   if not _equals(_nil(), _eval(c.car, env)) then
+      return _eval(c.cdr.car, env)
+   else
+      return cond(args.cdr, env)
+   end
+end
+
 local function quote (args, env)
    if _len(args) ~= 1 then
       return _error("label requires 1 arguments. " ..
@@ -387,6 +407,7 @@ local function _eval_std (str)
    env = _bind(_symbol("list"), _fn(list), env)
    env = _bind(_symbol("cons"), _fn(cons), env)
    env = _bind(_symbol("eq"), _fn(eq), env)
+   env = _bind(_symbol("cond"), _fn(cond), env)
    env = _bind(_symbol("quote"), _fn(quote), env)
    env = _bind(_symbol("label"), _fn(label), env)
    return _eval(v, env)

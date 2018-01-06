@@ -107,6 +107,8 @@ check_eval("eq not number and list",
            "(eq 1 (1))", "()")
 check_eval("eq evals args",
            "(label a 1 (eq a 1))", "t")
+check_eval("cond one condition",
+           "(cond ((quote t) 1))", "1")
 check_eval("quote number", "(quote 1)", "1")
 check_eval("quote nil", "(quote ())", "()")
 check_eval("quote list", "(quote (1 2))", "(1 2)")
