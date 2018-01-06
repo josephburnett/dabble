@@ -240,15 +240,13 @@ local function _eval (v, env)
       return _eval(_lookup(v, env), env)
    end
    if _is_list(v) then
-      local eval_list =
-         _list(_eval(v.car, env), _eval(v.cdr, env))
-      if _is_fn(eval_list.car) then
-         local fn = eval_list.car.fn
-         local args = eval_list.cdr
-         return fn(args, env)
+      first = _eval(v.car, env)
+      if _is_fn(first) then
+         return first.fn(v.cdr, env)
       end
       -- TODO call lambda
       -- TODO expand macro
+      return _list(first, _eval(v.cdr, env))
    end
    return v
 end
@@ -311,6 +309,7 @@ local function cons (args, env)
 end
 
 local function eq (args, env)
+   args = _eval(args, env)
    if _len(args) ~= 2 then
       return _error("label requires 2 arguments. " ..
 		       _len(args) .. " provided.")
