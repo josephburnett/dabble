@@ -71,12 +71,14 @@ check_eval("car of multiple element list",
            "(car (1 2))", "1")
 check_eval("car evals args",
            "(label a 1 (car (a 2)))", "1")
+
 check_eval("cdr of single element list",
            "(cdr (1))", "()")
 check_eval("cdr of multiple element list",
            " (cdr (1 2))", "(2)")
 check_eval("cdr evals args",
            "(label a 2 (cdr (1 a)))", "(2)")
+
 check_eval("list of nil", "(list ())", "()")
 check_eval("list of number", "(list 1)", "()")
 check_eval("list of symbol", "(list t)", "()")
@@ -84,6 +86,7 @@ check_eval("list of single element list",
            "(list (1))", "t")
 check_eval("list evals args",
            "(label a 1 (list (a)))", "t")
+
 check_eval("cons number with nil",
            "(cons 1 ())", "(1)")
 check_eval("cons number with one element list",
@@ -96,6 +99,7 @@ check_eval("cons nil with nil",
            "(cons () ())", "(())")
 check_eval("cons evals args",
            "(label a 1 (cons a ()))", "(1)")
+
 check_eval("eq nils", "(eq () ())", "t")
 check_eval("eq numbers", "(eq 1 1)", "t")
 check_eval("eq lists", "(eq (1) (1))", "t")
@@ -107,14 +111,27 @@ check_eval("eq not number and list",
            "(eq 1 (1))", "()")
 check_eval("eq evals args",
            "(label a 1 (eq a 1))", "t")
+
 check_eval("cond one condition",
            "(cond ((quote t) 1))", "1")
+check_eval("cond evals match",
+           "(label a 1 (cond ((quote t) a)))", "1")
+check_eval("cond eval only match",
+           "(cond (() a) ((quote t) 1))", "1")
+check_eval("cond any number truthy",
+           "(cond (0 1))", "1")
+check_eval("cond any symbol truthy",
+           "(cond ((quote a) 1))", "1")
+check_eval("cond any list truthy",
+           "(cond ((0) 1))", "1")
+
 check_eval("quote number", "(quote 1)", "1")
 check_eval("quote nil", "(quote ())", "()")
 check_eval("quote list", "(quote (1 2))", "(1 2)")
 check_eval("quote symbol", "(quote a)", "a")
 check_eval("quote not eval args",
            "(label a 1 (quote a))", "a")
+
 check_eval("label bind number",
            "(label a 1 a)", "1")
 check_eval("label bind nil",
@@ -147,27 +164,40 @@ check_eval_error("car of number", "(car 1)")
 check_eval_error("car with no args", "(car)")
 check_eval_error("car with multiple args",
                  "(car (1) (1))")
+
 check_eval_error("cdr of nil", "(cdr ())")
 check_eval_error("cdr of number", "(cdr 1)")
 check_eval_error("cdr with no args", "(cdr)")
 check_eval_error("cdr with multiple args",
                  "(cdr (1) (1))")
+
 check_eval_error("list with no args", "(list)")
 check_eval_error("list with multiple args",
                  "(list 1 2)")
+
 check_eval_error("cons with non-list",
                  "(cons 1 2)")
 check_eval_error("cons with no args", "(cons)")
 check_eval_error("cons with one arg", "(cons 1)")
 check_eval_error("cons with multiple args",
                  "(cons () () ())")
+
 check_eval_error("eq with no args", "(eq)")
 check_eval_error("eq with one arg", "(eq 1)")
 check_eval_error("eq with multiple args",
                  "(eq 1 1 1)")
+
+check_eval_error("cond no matching",
+                 "(cond (() 1))")
+check_eval_error("cond no args", "(cond)")
+check_eval_error("cond short clause", "(cond (1))")
+check_eval_error("cond long clause",
+                 "(cond (1 1 1))")
+
 check_eval_error("quote with no args", "(quote)")
 check_eval_error("quote with multiple args",
                  "(quote 1 2)")
+
 check_eval_error("label with no args", "(label)")
 check_eval_error("label with one arg", "(label a)")
 check_eval_error("label with two args",

@@ -393,7 +393,7 @@ local function _read_all (str)
    if extra then
       extra = _strip(extra)
       if extra ~= "" then
-         return _error("Extra input found: " .. extra)
+         return _error("extra input found: " .. extra)
       end
    end
    return v
