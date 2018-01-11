@@ -145,6 +145,11 @@ check_eval("label nested scope",
 check_eval("label resolving symbol",
            "(label a 1 (label b a b))", "1")
 
+check_eval("lambda with no args",
+           "(label f (lambda () 1) (f))", "1")
+check_eval("lambda with one arg",
+           "(label f (lambda (a) a) (f 1))", "1")
+
 local function check_eval_error (name, test)
    local t = callow.eval(test)
    local actual = callow.write(t)

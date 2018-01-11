@@ -61,10 +61,10 @@ local function _fn (fn)
    }
 end
 
-local function _lambda (args, body, env)
+local function _lambda (names, body, env)
    return {
       type = "lambda",
-      args = args,
+      names = names,
       body = body,
       env = env,
    }
@@ -180,7 +180,7 @@ local function _write (v)
    elseif _is_nil(v) then
       out = out .. "()"
    elseif _is_error(v) then
-      out = out .. string.format("<error %s>" , v.msg)
+      out = out .. string.format("<error: %s>" , v.msg)
    elseif type(v) == "table" and v.type then
       out = out .. "<" .. v.type .. ">"
    else
@@ -227,6 +227,8 @@ local function _lookup (sym, env)
    return _lookup(sym, env.cdr)
 end
 
+local _eval_lambda
+
 local function _eval (v, env)
    if _is_number(v) or
       _is_error(v) or
@@ -240,15 +242,33 @@ local function _eval (v, env)
       return _eval(_lookup(v, env), env)
    end
    if _is_list(v) then
-      first = _eval(v.car, env)
+      local first = _eval(v.car, env)
       if _is_fn(first) then
          return first.fn(v.cdr, env)
       end
-      -- TODO call lambda
+      if _is_lambda(first) then
+         local args = _eval(v.cdr, env)
+         if _is_error(args) then return args end
+         return _eval_lambda(first, args)
+      end
       -- TODO expand macro
       return _list(first, _eval(v.cdr, env))
    end
    return v
+end
+
+_eval_lambda = function (l, args)
+   if _len(args) ~= _len(l.names) then
+      return _error("<lambda> requires " .. _len(l.names) ..
+                    " args. " .. _len(args) .. " provided.")
+   end
+   local n, a, env = l.names, args, l.env
+   while not _is_nil(n) do
+      env = _bind(n.car, a.car, env)
+      n = n.cdr
+      a = a.cdr
+   end
+   return _eval(l.body, env)
 end
 
 -- Lisp Functions --
@@ -367,11 +387,20 @@ local function lambda (args, env)
       return _error("lambda requires 2 arguments. " ..
 		       _len(args) .. " provided.")
    end
-   if not _is_list(args.car) then
-      return _error("lambda requires first list argument. " ..
-		       _type(args.car) .. " provided.")
+   local names = args.car
+   if not _is_list(names) and
+      not _is_nil(names)
+   then
+      return _error("lambda requires first list or nil argument. " ..
+		       _type(names) .. " provided.")
    end
-   -- TODO verify all names are symbols
+   while not _is_nil(names) do
+      if not _is_symbol(names.car) then
+         return _error("lambda names must be symbols ." ..
+                       _type(names.car) .. " provided.")
+      end
+      names = names.cdr
+   end
    return _lambda(args.car, args.cdr.car, env)
 end
 
@@ -410,6 +439,7 @@ local function _eval_std (str)
    env = _bind(_symbol("cond"), _fn(cond), env)
    env = _bind(_symbol("quote"), _fn(quote), env)
    env = _bind(_symbol("label"), _fn(label), env)
+   env = _bind(_symbol("lambda"), _fn(lambda), env)
    return _eval(v, env)
 end
 
