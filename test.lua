@@ -219,6 +219,14 @@ check_eval_error("label with two args",
 check_eval_error("label with multiple args",
                  "(label a 1 a a)")
 
+check_eval_error("lambda with no args", "(lambda)")
+check_eval_error("lambda with too many args",
+                 "(lambda () 1 1)")
+check_eval_error("lambda with non-list first arg",
+                 "(lambda 1 1)")
+check_eval_error("lambda with non-symbol name",
+                 "(lambda (1) 1)")
+
 if fail == 0 then
    print("ALL TEST PASSED!")
 end
