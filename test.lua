@@ -144,11 +144,20 @@ check_eval("label nested scope",
            "(label a 1 (label b 2 a))", "1")
 check_eval("label resolving symbol",
            "(label a 1 (label b a b))", "1")
+check_eval("label evals bound value",
+           "(label a 1 (label b a b))", "1")
 
 check_eval("lambda with no args",
            "(label f (lambda () 1) (f))", "1")
 check_eval("lambda with one arg",
            "(label f (lambda (a) a) (f 1))", "1")
+check_eval("lambda inline execution",
+           "((lambda () 1))", "1")
+check_eval("lambda captures environment",
+           "(label a 1 (label f (lambda () a) (label a 2 (f))))",
+           "1")
+check_eval("lambda evals args",
+           "(label a 1 ((lambda (a) a) a))", "1")
 
 local function check_eval_error (name, test)
    local t = callow.eval(test)

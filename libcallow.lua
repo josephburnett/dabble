@@ -212,10 +212,6 @@ local function _equals (a, b)
    return false
 end
 
-local function _bind (sym, v, env)
-   return _list(_list(sym, _list(v)), env)
-end
-
 local function _lookup (sym, env)
    if _is_nil(env) then
       return _error("Lookup of symbol " ..
@@ -227,9 +223,14 @@ local function _lookup (sym, env)
    return _lookup(sym, env.cdr)
 end
 
-local _eval_lambda
+local _eval, _eval_lambda
 
-local function _eval (v, env)
+local function _bind (sym, val, env)
+   local v = _eval(val, env)
+   return _list(_list(sym, _list(v)), env)
+end
+
+_eval = function (v, env)
    if _is_number(v) or
       _is_error(v) or
       _is_fn(v) or
