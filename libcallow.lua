@@ -70,10 +70,10 @@ local function _lambda (names, body, env)
    }
 end
 
-local function _macro (args, body, env)
+local function _macro (names, body, env)
    return {
       type = "macro",
-      args = args,
+      names = names,
       body = body,
       env = env,
    }
@@ -223,7 +223,7 @@ local function _lookup (sym, env)
    return _lookup(sym, env.cdr)
 end
 
-local _eval, _eval_lambda
+local _eval, _eval_lambda, _expand_macro
 
 local function _bind (sym, val, env)
    local v = _eval(val, env)
@@ -252,7 +252,11 @@ _eval = function (v, env)
          if _is_error(args) then return args end
          return _eval_lambda(first, args)
       end
-      -- TODO expand macro
+      if _is_macro(first) then
+         local body = _expand_macro(first, v.cdr)
+         if _is_error(body) then return body end
+         return _eval(body, env)
+      end
       return _list(first, _eval(v.cdr, env))
    end
    return v
@@ -270,6 +274,35 @@ _eval_lambda = function (l, args)
       a = a.cdr
    end
    return _eval(l.body, env)
+end
+
+function _sub (arg, sym, val)
+   if _is_list(arg) then
+      return _list(_sub(arg.car, sym, val), 
+                   _sub(arg.cdr, sym, val))
+   end
+   if _is_symbol(arg) and _equals(arg, sym) then
+      return val
+   end
+   return arg
+end
+
+_expand_macro = function (m, args)
+   if _len(args) < _len(m.names) - 1 then
+      return _error("<macro> requires at least " ..
+                    _len(m.names) - 1 .. " args. " ..
+                    _len(args) .. " provided.")
+   end
+   local n, a, b, i = m.names, args, m.body, 1
+   while i <= _len(m.names) - 1 do
+      b = _sub(b, n.car, a.car)
+      if _is_error(b) then return b end
+      n = n.cdr
+      a = a.cdr
+      i = i + 1
+   end
+   b = _sub(b, n.car, a)
+   return b
 end
 
 -- Lisp Functions --
@@ -410,10 +443,19 @@ local function macro (args, env)
       return _error("macro requires 2 arguments. " ..
 		       _len(args) .. " provided.")
    end
-   if not _is_list(args.car) then
+   local names = args.car
+   if not _is_list(names) then
       return _error("macro requires first list argument. " ..
-		       _type(args.car) .. " provided.")
+		       _type(names) .. " provided.")
    end
+   while not _is_nil(names) do
+      if not _is_symbol(names.car) then
+         return _error("macro names must be symbols ." ..
+                       _type(names.car) .. " provided.")
+      end
+      names = names.cdr
+   end
+   return _macro(args.car, args.cdr.car, env)
 end
 
 -- Library Exports --
@@ -441,6 +483,7 @@ local function _eval_std (str)
    env = _bind(_symbol("quote"), _fn(quote), env)
    env = _bind(_symbol("label"), _fn(label), env)
    env = _bind(_symbol("lambda"), _fn(lambda), env)
+   env = _bind(_symbol("macro"), _fn(macro), env)
    return _eval(v, env)
 end
 

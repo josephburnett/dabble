@@ -159,6 +159,10 @@ check_eval("lambda captures environment",
 check_eval("lambda evals args",
            "(label a 1 ((lambda (a) a) a))", "1")
 
+check_eval("macro indentity",
+           "(label y 1 (label m (macro (x xs) x) (m y)))",
+           "1")
+
 local function check_eval_error (name, test)
    local t = callow.eval(test)
    local actual = callow.write(t)
