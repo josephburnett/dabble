@@ -162,7 +162,16 @@ check_eval("lambda evals args",
 check_eval("macro indentity",
            "(label y 1 (label m (macro (x xs) x) (m y)))",
            "1")
+check_eval("macro cannot capture variables",
+           "(label y 1 (label m (macro (x xs) (label y 2 x)) (m y)))",
+           "1")
+check_eval("macro with cond",
+           "(label m (macro (x xs) (cond ((eq x (quote y)) 1) ((eq x (quote z)) 2))) (m (quote z)))",
+           "2")
 check_eval("macro captures env from definition",
+           "(label m (label a 1 (macro (x xs) (cons a x))) (m (2)))",
+           "(1 2)")
+check_eval("macro captures env from args",
            "(label a 1 (label m (macro (x xs) (label a 2 x)) (m a)))",
            "1")
 
@@ -233,6 +242,14 @@ check_eval_error("lambda with non-list first arg",
                  "(lambda 1 1)")
 check_eval_error("lambda with non-symbol name",
                  "(lambda (1) 1)")
+
+check_eval_error("macro with no args", "(macro)")
+check_eval_error("macro with no names",
+                 "(macro () 1)")
+check_eval_error("macro with no body",
+                 "(macro (x xs))")
+check_eval_error("macro with non-symbol args",
+                 "(macro (1) 2)")
 
 if fail == 0 then
    print("ALL TEST PASSED!")
