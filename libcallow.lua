@@ -253,7 +253,7 @@ _eval = function (v, env)
          return _eval_lambda(first, args)
       end
       if _is_macro(first) then
-         local body = _expand_macro(first, v.cdr)
+         local body = _expand_macro(first, v.cdr, env)
          if _is_error(body) then return body end
          return _eval(body, env)
       end
@@ -287,7 +287,11 @@ function _sub (arg, sym, val)
    return arg
 end
 
-_expand_macro = function (m, args)
+function _thunk (body, env)
+   return _list(_lambda(_nil(), body, env))
+end
+
+_expand_macro = function (m, args, env)
    if _len(args) < _len(m.names) - 1 then
       return _error("<macro> requires at least " ..
                     _len(m.names) - 1 .. " args. " ..
@@ -295,14 +299,15 @@ _expand_macro = function (m, args)
    end
    local n, a, b, i = m.names, args, m.body, 1
    while i <= _len(m.names) - 1 do
-      b = _sub(b, n.car, a.car)
+      arg = _thunk(a.car, env)
+      b = _sub(b, n.car, arg)
       if _is_error(b) then return b end
       n = n.cdr
       a = a.cdr
       i = i + 1
    end
-   b = _sub(b, n.car, a)
-   return b
+   b = _sub(b, n.car, _thunk(a, env))
+   return _thunk(b, m.env)
 end
 
 -- Lisp Functions --
