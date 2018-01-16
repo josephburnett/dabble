@@ -389,19 +389,16 @@ local function cond (args, env, loop)
    if _len(args) == 0 then
       return _error("no matching condition")
    end
-   local c = args.car
-   if not _is_list(c) then
-      return _error("cond requires list arguments. " ..
-                    _type(c) .. " provided.")
+   if _len(args) % 2 == 1 then
+      return _error("cond requires an even number of arguments. " ..
+		       _len(args) .. " provided.")
    end
-   if _len(c) ~= 2 then
-      return _error("cond requires pairs. " ..
-                    _len(c) .. " provided.")
-   end
-   if not _equals(_nil(), _eval(c.car, env), loop) then
-      return _eval(c.cdr.car, env, loop)
+   local test = args.car
+   local value = args.cdr.car
+   if not _equals(_nil(), _eval(test, env, loop)) then
+      return _eval(value, env, loop)
    else
-      return cond(args.cdr, env, loop)
+      return cond(args.cdr.cdr, env, loop)
    end
 end
 

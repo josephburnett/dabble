@@ -113,17 +113,17 @@ check_eval("eq evals args",
            "(label a 1 (eq a 1))", "t")
 
 check_eval("cond one condition",
-           "(cond ((quote t) 1))", "1")
+           "(cond (quote t) 1)", "1")
 check_eval("cond evals match",
-           "(label a 1 (cond ((quote t) a)))", "1")
+           "(label a 1 (cond (quote t) a))", "1")
 check_eval("cond eval only match",
-           "(cond (() a) ((quote t) 1))", "1")
+           "(cond () a (quote t) 1)", "1")
 check_eval("cond any number truthy",
-           "(cond (0 1))", "1")
+           "(cond 0 1)", "1")
 check_eval("cond any symbol truthy",
-           "(cond ((quote a) 1))", "1")
+           "(cond (quote a) 1)", "1")
 check_eval("cond any list truthy",
-           "(cond ((0) 1))", "1")
+           "(cond (0) 1)", "1")
 
 check_eval("quote number", "(quote 1)", "1")
 check_eval("quote nil", "(quote ())", "()")
@@ -166,7 +166,7 @@ check_eval("macro cannot capture variables",
            "(label y 1 (label m (macro (x xs) (label y 2 x)) (m y)))",
            "1")
 check_eval("macro with cond",
-           "(label m (macro (x xs) (cond ((eq x (quote y)) 1) ((eq x (quote z)) 2))) (m (quote z)))",
+           "(label m (macro (x xs) (cond (eq x (quote y)) 1 (eq x (quote z)) 2)) (m (quote z)))",
            "2")
 check_eval("macro captures env from definition",
            "(label m (label a 1 (macro (x xs) (cons a x))) (m (2)))",
@@ -178,14 +178,14 @@ check_eval("macro captures env from args",
 check_eval("recur calls lambda",
 	   "((lambda (x)" ..
 	   "   (cond" ..
-	   "     ((list (cdr x)) (recur (cdr x)))" ..
-	   "     ((quote t) (car x)))) (1 2 3))",
+	   "     (list (cdr x)) (recur (cdr x))" ..
+	   "     (quote t) (car x))) (1 2 3))",
 	   "3")
 check_eval("recur calls macro",
 	   "((macro (x xs)" ..
 	   "   (cond" ..
-	   "     ((list (cdr x)) (recur (cdr x)))" ..
-	   "     ((quote t) (car x)))) (1 2 3))",
+	   "     (list (cdr x)) (recur (cdr x))" ..
+	   "     (quote t) (car x))) (1 2 3))",
 	   "3")
 check_eval("recur returns nil outside lambda",
 	   "(recur)",
@@ -194,23 +194,23 @@ check_eval("recur in lambda with macro",
 	   "(label wrap (macro (xs) xs)" ..
 	   "  ((lambda (a)" ..
 	   "     (cond" ..
-	   "       ((list a) (cons (wrap (car a))" ..
-           "                       (recur (cdr a))))" ..
-	   "       ((quote t) a)))" ..
+	   "       (list a) (cons (wrap (car a))" ..
+           "                       (recur (cdr a)))" ..
+	   "       (quote t) a))" ..
 	   "   (1 2 3)))",
 	   "((1) (2) (3))")
 check_eval("recur in lambda with recursive macro",
 	   "(label wrap" ..
            "  (macro (x xs)" ..
 	   "    (cond" ..
-	   "      ((list x) (cons (cons (car x) ())" ..
-	   "                      (recur (cdr x))))" ..
-	   "      ((quote t) x)))" ..
+	   "      (list x) (cons (cons (car x) ())" ..
+	   "                      (recur (cdr x)))" ..
+	   "      (quote t) x))" ..
 	   "  ((lambda (a)" ..
 	   "     (cond" ..
-	   "       ((list a) (cons (wrap (car a))" ..
-           "                       (recur (cdr a))))" ..
-	   "       ((quote t) a)))" ..
+	   "       (list a) (cons (wrap (car a))" ..
+           "                       (recur (cdr a)))" ..
+	   "       (quote t) a))" ..
 	   "     ((1 2 3) (4 5 6) (7 8 9))))",
            "(((1) (2) (3)) ((4) (5) (6)) ((7) (8) (9)))")
 
