@@ -190,6 +190,29 @@ check_eval("recur calls macro",
 check_eval("recur returns nil outside lambda",
 	   "(recur)",
 	   "()")
+check_eval("recur in lambda with macro",
+	   "(label wrap (macro (xs) xs)" ..
+	   "  ((lambda (a)" ..
+	   "     (cond" ..
+	   "       ((list a) (cons (wrap (car a))" ..
+           "                       (recur (cdr a))))" ..
+	   "       ((quote t) a)))" ..
+	   "   (1 2 3)))",
+	   "((1) (2) (3))")
+check_eval("recur in lambda with recursive macro",
+	   "(label wrap" ..
+           "  (macro (x xs)" ..
+	   "    (cond" ..
+	   "      ((list x) (cons (cons (car x) ())" ..
+	   "                      (recur (cdr x))))" ..
+	   "      ((quote t) x)))" ..
+	   "  ((lambda (a)" ..
+	   "     (cond" ..
+	   "       ((list a) (cons (wrap (car a))" ..
+           "                       (recur (cdr a))))" ..
+	   "       ((quote t) a)))" ..
+	   "     ((1 2 3) (4 5 6) (7 8 9))))",
+           "(((1) (2) (3)) ((4) (5) (6)) ((7) (8) (9)))")
 
 local function check_eval_error (name, test)
    local t = callow.eval(test)

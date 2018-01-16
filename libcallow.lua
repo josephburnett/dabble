@@ -375,7 +375,7 @@ end
 local function eq (args, env)
    args = _eval(args, env, loop)
    if _len(args) ~= 2 then
-      return _error("label requires 2 arguments. " ..
+      return _error("eq requires 2 arguments. " ..
 		       _len(args) .. " provided.")
    end
    if _equals(args.car, args.cdr.car) then
@@ -415,7 +415,7 @@ end
 
 local function label (args, env, loop)
    if _len(args) ~= 3 then
-      return _error("label requires 2 arguments. " ..
+      return _error("label requires 3 arguments. " ..
 		       _len(args) .. " provided.")
    end
    if _type(args.car) ~= "symbol" then
