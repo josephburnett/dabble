@@ -61,12 +61,13 @@ local function _fn (fn)
    }
 end
 
-local function _lambda (names, body, env)
+local function _lambda (names, body, env, loop)
    return {
       type = "lambda",
       names = names,
       body = body,
       env = env,
+      loop = loop,
    }
 end
 
@@ -184,7 +185,7 @@ local function _write (v)
    elseif type(v) == "table" and v.type then
       out = out .. "<" .. v.type .. ">"
    else
-      out = out .. "<unknown>"
+      out = out .. "<unknown: " .. type(v) .. ">"
    end
    return out
 end
@@ -230,7 +231,7 @@ local function _bind (sym, val, env)
    return _list(_list(sym, _list(v)), env)
 end
 
-_eval = function (v, env)
+_eval = function (v, env, loop)
    if _is_number(v) or
       _is_error(v) or
       _is_fn(v) or
@@ -240,29 +241,29 @@ _eval = function (v, env)
       return v
    end
    if _is_symbol(v) then
-      return _eval(_lookup(v, env), env)
+      return _eval(_lookup(v, env), env, loop)
    end
    if _is_list(v) then
-      local first = _eval(v.car, env)
+      local first = _eval(v.car, env, loop)
       if _is_fn(first) then
-         return first.fn(v.cdr, env)
+         return first.fn(v.cdr, env, loop)
       end
       if _is_lambda(first) then
-         local args = _eval(v.cdr, env)
+         local args = _eval(v.cdr, env, loop)
          if _is_error(args) then return args end
-         return _eval_lambda(first, args)
+         return _eval_lambda(first, args, loop)
       end
       if _is_macro(first) then
-         local body = _expand_macro(first, v.cdr, env)
+         local body = _expand_macro(first, v.cdr, env, loop)
          if _is_error(body) then return body end
-         return _eval(body, env)
+         return _eval(body, env, loop)
       end
-      return _list(first, _eval(v.cdr, env))
+      return _list(first, _eval(v.cdr, env, loop))
    end
    return v
 end
 
-_eval_lambda = function (l, args)
+_eval_lambda = function (l, args, loop)
    if _len(args) ~= _len(l.names) then
       return _error("<lambda> requires " .. _len(l.names) ..
                     " args. " .. _len(args) .. " provided.")
@@ -273,7 +274,11 @@ _eval_lambda = function (l, args)
       n = n.cdr
       a = a.cdr
    end
-   return _eval(l.body, env)
+   if l.loop then
+      return _eval(l.body, env, l.loop)
+   else
+      return _eval(l.body, env, l)
+   end
 end
 
 function _sub (arg, sym, val)
@@ -287,11 +292,11 @@ function _sub (arg, sym, val)
    return arg
 end
 
-function _thunk (body, env)
-   return _list(_lambda(_nil(), body, env))
+function _thunk (body, env, loop)
+   return _list(_lambda(_nil(), body, env, loop))
 end
 
-_expand_macro = function (m, args, env)
+_expand_macro = function (m, args, env, loop)
    if _len(args) < _len(m.names) - 1 then
       return _error("<macro> requires at least " ..
                     _len(m.names) - 1 .. " args. " ..
@@ -299,21 +304,21 @@ _expand_macro = function (m, args, env)
    end
    local n, a, b, i = m.names, args, m.body, 1
    while i <= _len(m.names) - 1 do
-      arg = _thunk(a.car, env)
+      arg = _thunk(a.car, env, loop)
       b = _sub(b, n.car, arg)
       if _is_error(b) then return b end
       n = n.cdr
       a = a.cdr
       i = i + 1
    end
-   b = _sub(b, n.car, _thunk(a, env))
-   return _thunk(b, m.env)
+   b = _sub(b, n.car, _thunk(a, env), loop)
+   return _thunk(b, m.env, m)
 end
 
 -- Lisp Functions --
 
-local function car (args, env)
-   args = _eval(args, env)
+local function car (args, env, loop)
+   args = _eval(args, env, loop)
    if _len(args) ~= 1 then
       return _error("car requires 1 argument. " ..
 		       _len(args) .. " provided.")
@@ -325,8 +330,8 @@ local function car (args, env)
    return args.car.car
 end
 
-local function cdr (args, env)
-   args = _eval(args, env)
+local function cdr (args, env, loop)
+   args = _eval(args, env, loop)
    if _len(args) ~= 1 then
       return _error("cdr requires 1 argument. " ..
 		       _len(args) .. " provided.")
@@ -338,8 +343,8 @@ local function cdr (args, env)
    return args.car.cdr
 end
 
-local function list (args, env)
-   args = _eval(args, env)
+local function list (args, env, loop)
+   args = _eval(args, env, loop)
    if _len(args) ~= 1 then
       return _error("list requires 1 argument. " ..
 		       _len(args) .. " provided.")
@@ -351,8 +356,8 @@ local function list (args, env)
    end
 end
 
-local function cons (args, env)
-   args = _eval(args, env)
+local function cons (args, env, loop)
+   args = _eval(args, env, loop)
    if _len(args) ~= 2 then 
       return _error("cons requires 2 arguments. " ..
 		       _len(args) .. " provided.")
@@ -368,7 +373,7 @@ local function cons (args, env)
 end
 
 local function eq (args, env)
-   args = _eval(args, env)
+   args = _eval(args, env, loop)
    if _len(args) ~= 2 then
       return _error("label requires 2 arguments. " ..
 		       _len(args) .. " provided.")
@@ -380,7 +385,7 @@ local function eq (args, env)
    end
 end
 
-local function cond (args, env)
+local function cond (args, env, loop)
    if _len(args) == 0 then
       return _error("no matching condition")
    end
@@ -393,22 +398,22 @@ local function cond (args, env)
       return _error("cond requires pairs. " ..
                     _len(c) .. " provided.")
    end
-   if not _equals(_nil(), _eval(c.car, env)) then
-      return _eval(c.cdr.car, env)
+   if not _equals(_nil(), _eval(c.car, env), loop) then
+      return _eval(c.cdr.car, env, loop)
    else
-      return cond(args.cdr, env)
+      return cond(args.cdr, env, loop)
    end
 end
 
-local function quote (args, env)
+local function quote (args, env, loop)
    if _len(args) ~= 1 then
-      return _error("label requires 1 arguments. " ..
+      return _error("quote requires 1 arguments. " ..
 		       _len(args) .. " provided.")
    end
    return args.car
 end
 
-local function label (args, env)
+local function label (args, env, loop)
    if _len(args) ~= 3 then
       return _error("label requires 2 arguments. " ..
 		       _len(args) .. " provided.")
@@ -418,10 +423,10 @@ local function label (args, env)
 		       _type(args.car) .. " provided.")
    end
    local label_env = _bind(args.car, args.cdr.car, env)
-   return _eval(args.cdr.cdr.car, label_env)
+   return _eval(args.cdr.cdr.car, label_env, loop)
 end
 
-local function lambda (args, env)
+local function lambda (args, env, loop)
    if _len(args) ~= 2 then
       return _error("lambda requires 2 arguments. " ..
 		       _len(args) .. " provided.")
@@ -443,7 +448,7 @@ local function lambda (args, env)
    return _lambda(args.car, args.cdr.car, env)
 end
 
-local function macro (args, env)
+local function macro (args, env, loop)
    if _len(args) ~= 2 then
       return _error("macro requires 2 arguments. " ..
 		       _len(args) .. " provided.")
@@ -460,7 +465,12 @@ local function macro (args, env)
       end
       names = names.cdr
    end
-   return _macro(args.car, args.cdr.car, env)
+   return _macro(args.car, args.cdr.car, env, loop)
+end
+
+local function recur (args, env, loop)
+   if _is_nil(loop) then return loop end
+   return _eval(_list(loop, args), env, loop)
 end
 
 -- Library Exports --
@@ -489,7 +499,8 @@ local function _eval_std (str)
    env = _bind(_symbol("label"), _fn(label), env)
    env = _bind(_symbol("lambda"), _fn(lambda), env)
    env = _bind(_symbol("macro"), _fn(macro), env)
-   return _eval(v, env)
+   env = _bind(_symbol("recur"), _fn(recur), env)
+   return _eval(v, env, _nil())
 end
 
 return {

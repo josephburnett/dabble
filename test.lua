@@ -175,6 +175,22 @@ check_eval("macro captures env from args",
            "(label a 1 (label m (macro (x xs) (label a 2 x)) (m a)))",
            "1")
 
+check_eval("recur calls lambda",
+	   "((lambda (x)" ..
+	   "   (cond" ..
+	   "     ((list (cdr x)) (recur (cdr x)))" ..
+	   "     ((quote t) (car x)))) (1 2 3))",
+	   "3")
+check_eval("recur calls macro",
+	   "((macro (x xs)" ..
+	   "   (cond" ..
+	   "     ((list (cdr x)) (recur (cdr x)))" ..
+	   "     ((quote t) (car x)))) (1 2 3))",
+	   "3")
+check_eval("recur returns nil outside lambda",
+	   "(recur)",
+	   "()")
+
 local function check_eval_error (name, test)
    local t = callow.eval(test)
    local actual = callow.write(t)
