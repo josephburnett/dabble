@@ -30,6 +30,10 @@ check_read("read list with multiple nils",
 check_read("read list with all types",
        "(a 1 (b 2) ())", "(a 1 (b 2) ())")
 check_read("read nested lists", "(((a)))", "(((a)))")
+check_read("read string", "\"abc\"", "(a b c)")
+check_read("read two strings", "(\"ab\" \"cd\")",
+	   "((a b) (c d))")
+check_read("read empty string as nil", "\"\"", "()")
 
 local function check_read_error (name, test)
    local t = callow.read(test)

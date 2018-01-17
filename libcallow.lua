@@ -130,6 +130,16 @@ local function _read (str)
       end
    end
 
+   local function _read_string (s)
+      if string.len(s) == 0 then
+	 return _nil()
+      else
+	 local sym = _symbol(string.sub(s, 1, 1))
+	 local rest = string.sub(s, 2, -1)
+	 return _list(sym, _read_string(rest))
+      end
+   end
+
    local a = _strip(str)
    
    if a == "" then
@@ -144,6 +154,11 @@ local function _read (str)
    if list then
       list = string.match(list, "^%((.*)%)")
       return _read_list(list), string.sub(a, index, -1)
+   end
+
+   local str, index = string.match(a, "^%\"([^\"]*)%\"()")
+   if str then
+      return _read_string(str), string.sub(a, index + 1, -1)
    end
    
    local sym, index = string.match(a, "^(%a%w*)()")
