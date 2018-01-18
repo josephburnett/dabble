@@ -175,6 +175,17 @@ local function _read (str)
    return _error("invalid input")
 end
 
+local function _read_all (str)
+   local v, extra = _read(str)
+   if extra then
+      extra = _strip(extra)
+      if extra ~= "" then
+         return _error("extra input found: " .. extra)
+      end
+   end
+   return v
+end
+
 -- Printing --
 
 local function _write (v)
@@ -328,6 +339,54 @@ _expand_macro = function (m, args, env, loop)
    end
    b = _sub(b, n.car, _thunk(a, env), loop)
    return _thunk(b, m.env, m)
+end
+
+local function _list_to_string (l)
+   local str = ""
+   while not _is_nil(l) do
+      local sym = l.car
+      if not _is_symbol(sym) then
+	 return _error("all elements of list must be symbols")
+      end
+      str = str .. _write(sym)
+      l = l.cdr
+   end
+   return str
+end
+
+local function _import_file (filename, env)
+   local file, err = io.open(filename, "r")
+   if not file then
+      return _error("import could not read " .. filename ..
+		    ": " .. err)
+   end
+   local data = _read_all(file:read("a"))
+   if _is_error(data) then return data end
+   if not _is_list(data) then
+      return _error("import expects top level list in " ..
+		       filename .. ". provided  " .. _type(data))
+   end
+   local import_env = env
+   repeat
+      local pair = data.car
+      if not _is_list(pair) then
+	 return _error("import expects list pairs. " ..
+			  _type(pair) .. " provided.")
+      end
+      if _len(pair) ~= 2 then
+	 return _error("import expects list pairs. list " ..
+			  "of length " .. _len(pair) ..
+			  "provided.")
+      end
+      local sym, value = pair.car, pair.cdr.car
+      if not _is_symbol(sym) then
+	 return _error("import expects first symbol in pair. " ..
+			  _type(sym) .. " provided.")
+      end
+      import_env = _bind(sym, value, env)
+      data = data.cdr
+   until _is_nil(data)
+   return import_env
 end
 
 -- Lisp Functions --
@@ -485,18 +544,28 @@ local function recur (args, env, loop)
    return _eval(_list(loop, args), env, loop)
 end
 
--- Library Exports --
-
-local function _read_all (str)
-   local v, extra = _read(str)
-   if extra then
-      extra = _strip(extra)
-      if extra ~= "" then
-         return _error("extra input found: " .. extra)
-      end
+local function import (args, env, loop)
+   if _len(args) ~= 2 then
+      return _error("import requires 2 arguments. " ..
+		       _len(args) .. " provided.")
    end
-   return v
+   local file_list = args.car
+   local body = args.cdr.car
+   if not _is_list(file_list) then
+      return _error("import requires a first list argument. " ..
+		       _type(file_list) .. " provided.")
+   end
+   local import_env = env
+   repeat
+      local filename = _list_to_string(file_list.car)
+      import_env = _import_file(filename, env)
+      if _is_error(import_env) then return import_env end
+      file_list = file_list.cdr
+   until _is_nil(file_list)
+   return _eval(body, import_env, loop)
 end
+
+-- Library Exports --
 
 local function _eval_std (str)
    local v = _read_all(str)
@@ -512,6 +581,7 @@ local function _eval_std (str)
    env = _bind(_symbol("lambda"), _fn(lambda), env)
    env = _bind(_symbol("macro"), _fn(macro), env)
    env = _bind(_symbol("recur"), _fn(recur), env)
+   env = _bind(_symbol("import"), _fn(import), env)
    return _eval(v, env, _nil())
 end
 

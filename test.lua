@@ -294,6 +294,24 @@ check_eval_error("macro with no body",
 check_eval_error("macro with non-symbol args",
                  "(macro (1) 2)")
 
+local function check_import ()
+   local name = "check import"
+   local expect = "2"
+   local t = callow.eval("(import (\"tst/import_test.clw\") (b))")
+   local actual = callow.write(t)
+   if actual ~= expect then
+      if not actual then
+         actual = "<nil>"
+      end
+      print("FAIL " .. name)
+      print("Expected " .. expect .. " but got " .. actual)
+      fail = fail + 1
+   end
+end
+
+check_import()
+
 if fail == 0 then
    print("ALL TEST PASSED!")
 end
+
