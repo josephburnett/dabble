@@ -1,5 +1,11 @@
 local callow = require "libcallow"
 
+local callow_root = os.getenv("CALLOW_ROOT")
+if not callow_root then
+   print("Please set CALLOW_ROOT to point to the repo.")
+   os.exit(1)
+end
+
 fail = 0
 
 local function check_read (name, test, expect)
@@ -57,7 +63,7 @@ check_read_error("number with two decimals", "1.2.3")
 check_read_error("invalid characters", "[]")
 
 local function check_eval (name, test, expect)
-   local t = callow.eval(test)
+   local t = callow.eval(callow.read(test))
    local actual = callow.write(t)
    if actual ~= expect then
       if not actual then
@@ -219,7 +225,7 @@ check_eval("recur in lambda with recursive macro",
            "(((1) (2) (3)) ((4) (5) (6)) ((7) (8) (9)))")
 
 local function check_eval_error (name, test)
-   local t = callow.eval(test)
+   local t = callow.eval(callow.read(test))
    local actual = callow.write(t)
    local expect = "<error"
    if string.sub(actual, 1, string.len(expect)) ~= expect then
@@ -295,20 +301,55 @@ check_eval_error("macro with non-symbol args",
                  "(macro (1) 2)")
 
 local function test (name)
-   local expect = "t"
-   local t = callow.eval("(import (\"tst/" .. name .. "\") (test))")
-   local actual = callow.write(t)
-   if actual ~= expect then
-      if not actual then
-         actual = "<nil>"
-      end
-      print("FAIL test " .. name)
-      print("Expected " .. expect .. " but got " .. actual)
+   local test_file, err = io.open(callow_root ..
+				  "/tst/" .. name .. ".clw", "r")
+   if not test_file then
+      print("FAIL test file " .. name)
+      print(err)
       fail = fail + 1
    end
+   local tests = callow.read(test_file:read("a"))
+   if not callow.is_list(tests) then
+      print("FAIL test file " .. name)
+      print("test requires top level list. " ..
+	       callow.write(tests) .. " provided.")
+      fail = fail + 1
+      return
+   end
+   local i = 1
+   repeat
+      local t = tests.car
+      if not callow.is_list(t) then
+	 print("FAIL test " .. i .. " in file " .. name)
+	 print("test requires list test cases. " ..
+		  callow.write(t) .. " provided.")
+	 fail = fail + 1
+      elseif callow.list_len(t) ~= 3 then
+	 print("FAIL test " .. i .. " in file " .. name)
+	 print("test requires triplet test cases. " ..
+		  callow.write(t) .. " provided.")
+	 fail = fail + 1
+      else
+	 local t_name, err = callow.list_to_string(t.car)
+	 if err then
+	    print("FAIL test " .. i .. " in file " .. name)
+	    print(err)
+	    fail = fail + 1
+	 end
+	 local t_test, t_expect = t.cdr.car, t.cdr.cdr.car
+	 local t_actual = callow.eval(t_test)
+	 if not callow.equals(t_actual, t_expect) then
+	    print("FAIL test " .. t_name)
+	    print("Expected " .. callow.write(t_expect) ..
+		     " but got " .. callow.write(t_actual))
+	    fail = fail + 1
+	 end
+      end
+      i = i + 1
+      tests = tests.cdr
+   until callow.is_nil(tests)
 end
 
-test("import_simple_binding")
 test("core/and")
 
 if fail == 0 then
