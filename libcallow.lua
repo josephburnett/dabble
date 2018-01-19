@@ -1,4 +1,18 @@
+
 local string = require "string"
+
+-- Environment --
+
+local callow_root = os.getenv("CALLOW_ROOT")
+if not callow_root then
+   print("Please set CALLOW_ROOT to point to the repo.")
+   os.exit(1)
+end
+
+local callow_path = os.getenv("CALLOW_PATH")
+if not callow_path then
+   callow_path = callow_root
+end
 
 -- Types --
 
@@ -267,7 +281,9 @@ _eval = function (v, env, loop)
       return v
    end
    if _is_symbol(v) then
-      return _eval(_lookup(v, env), env, loop)
+      local value= _lookup(v, env)
+      if _is_symbol(value) then return value end
+      return _eval(value, env, loop)
    end
    if _is_list(v) then
       local first = _eval(v.car, env, loop)
@@ -355,9 +371,10 @@ local function _list_to_string (l)
 end
 
 local function _import_file (filename, env)
-   local file, err = io.open(filename, "r")
+   local file, err = io.open(callow_root .. "/src/" ..
+		             filename .. ".clw", "r")
    if not file then
-      return _error("import could not read " .. filename ..
+      return _error("could not import " .. filename ..
 		    ": " .. err)
    end
    local data = _read_all(file:read("a"))
@@ -383,7 +400,7 @@ local function _import_file (filename, env)
 	 return _error("import expects first symbol in pair. " ..
 			  _type(sym) .. " provided.")
       end
-      import_env = _bind(sym, value, env)
+      import_env = _bind(sym, value, import_env)
       data = data.cdr
    until _is_nil(data)
    return import_env
