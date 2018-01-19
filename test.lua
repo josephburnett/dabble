@@ -91,7 +91,7 @@ check_eval("cdr evals args",
 
 check_eval("list of nil", "(list ())", "()")
 check_eval("list of number", "(list 1)", "()")
-check_eval("list of symbol", "(list t)", "()")
+check_eval("list of symbol", "(list (quote t))", "()")
 check_eval("list of single element list",
            "(list (1))", "t")
 check_eval("list evals args",
@@ -231,9 +231,9 @@ check_eval("try catchs an error can return error",
 	   "    (quote t) (car (cdr a))))",
 	   "<error: pass>")
 check_eval("try catchs an error can return something else",
-	   "(label a (try (throw \"fail\"))" ..
+	   "(label a (try (throw \"fail1\"))" ..
            "  (cond" ..
-           "    (car a) (throw \"fail\")" ..
+           "    (car a) (throw \"fail2\")" ..
 	   "    (quote t) (quote \"pass\")))",
 	   "(p a s s)")
 check_eval("try passes through successful value",
@@ -376,6 +376,7 @@ local function test (name)
 end
 
 test("core/and")
+test("core/not")
 
 if fail == 0 then
    print("ALL TEST PASSED!")

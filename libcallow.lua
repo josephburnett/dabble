@@ -281,12 +281,11 @@ _eval = function (v, env, loop)
       return v
    end
    if is_symbol(v) then
-      local value= _lookup(v, env)
-      if is_symbol(value) then return value end
-      return _eval(value, env, loop)
+      return _lookup(v, env)
    end
    if is_list(v) then
       local first = _eval(v.car, env, loop)
+      if is_error(first) then return first end
       if is_fn(first) then
          return first.fn(v.cdr, env, loop)
       end
@@ -300,7 +299,9 @@ _eval = function (v, env, loop)
          if is_error(body) then return body end
          return _eval(body, env, loop)
       end
-      return _list(first, _eval(v.cdr, env, loop))
+      local rest = _eval(v.cdr, env, loop)
+      if is_error(rest) then return rest end
+      return _list(first, rest)
    end
    return v
 end
@@ -414,7 +415,8 @@ end
 -- Lisp Functions --
 
 local function car (args, env, loop)
-   args = _eval(args, env, loop)
+   local args = _eval(args, env, loop)
+   if is_error(args) then return args end
    if list_len(args) ~= 1 then
       return _error("car requires 1 argument. " ..
 		       list_len(args) .. " provided.")
@@ -427,7 +429,8 @@ local function car (args, env, loop)
 end
 
 local function cdr (args, env, loop)
-   args = _eval(args, env, loop)
+   local args = _eval(args, env, loop)
+   if is_error(args) then return args end
    if list_len(args) ~= 1 then
       return _error("cdr requires 1 argument. " ..
 		       list_len(args) .. " provided.")
@@ -440,7 +443,8 @@ local function cdr (args, env, loop)
 end
 
 local function list (args, env, loop)
-   args = _eval(args, env, loop)
+   local args = _eval(args, env, loop)
+   if is_error(args) then return args end
    if list_len(args) ~= 1 then
       return _error("list requires 1 argument. " ..
 		       list_len(args) .. " provided.")
@@ -453,7 +457,8 @@ local function list (args, env, loop)
 end
 
 local function cons (args, env, loop)
-   args = _eval(args, env, loop)
+   local args = _eval(args, env, loop)
+   if is_error(args) then return args end
    if list_len(args) ~= 2 then 
       return _error("cons requires 2 arguments. " ..
 		       list_len(args) .. " provided.")
@@ -469,7 +474,8 @@ local function cons (args, env, loop)
 end
 
 local function eq (args, env)
-   args = _eval(args, env, loop)
+   local args = _eval(args, env, loop)
+   if is_error(args) then return args end
    if list_len(args) ~= 2 then
       return _error("eq requires 2 arguments. " ..
 		       list_len(args) .. " provided.")
@@ -491,7 +497,9 @@ local function cond (args, env, loop)
    end
    local test = args.car
    local value = args.cdr.car
-   if not equals(_nil(), _eval(test, env, loop)) then
+   local result = _eval(test, env, loop)
+   if is_error(result) then return result end
+   if not equals(_nil(), result) then
       return _eval(value, env, loop)
    else
       return cond(args.cdr.cdr, env, loop)
