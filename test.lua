@@ -224,6 +224,25 @@ check_eval("recur in lambda with recursive macro",
 	   "     ((1 2 3) (4 5 6) (7 8 9))))",
            "(((1) (2) (3)) ((4) (5) (6)) ((7) (8) (9)))")
 
+check_eval("try catchs an error can return error",
+	   "(label a (try (throw \"pass\"))" ..
+           "  (cond" ..
+           "    (car a) (throw \"fail\")" ..
+	   "    (quote t) (car (cdr a))))",
+	   "<error: pass>")
+check_eval("try catchs an error can return something else",
+	   "(label a (try (throw \"fail\"))" ..
+           "  (cond" ..
+           "    (car a) (throw \"fail\")" ..
+	   "    (quote t) (quote \"pass\")))",
+	   "(p a s s)")
+check_eval("try passes through successful value",
+	   "(label a (try 1)" ..
+	   "  (cond" ..
+	   "    (car a) (car (cdr a))" ..
+	   "    (quote t) a))",
+	   "1")
+
 local function check_eval_error (name, test)
    local t = callow.eval(callow.read(test))
    local actual = callow.write(t)
@@ -299,6 +318,12 @@ check_eval_error("macro with no body",
                  "(macro (x xs))")
 check_eval_error("macro with non-symbol args",
                  "(macro (1) 2)")
+
+check_eval_error("try with no args", "(try)")
+check_eval_error("try with many args", "(try 1 2)")
+
+check_eval_error("throw always returns an error",
+		 "(throw \"error\")")
 
 local function test (name)
    local test_file, err = io.open(callow_root ..

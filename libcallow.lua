@@ -359,13 +359,15 @@ end
 
 local function list_to_string (l)
    if not is_list(l) then
-      return nil, "requires callow list"
+      return nil, "list_to_string requires callow list. " ..
+	 _type(l) .. " provided."
    end
    local str = ""
    while not is_nil(l) do
       local sym = l.car
       if not is_symbol(sym) then
-	 return nil, "all elements of list must be symbols"
+	 return nil, "list_to_string requres all symbols. " ..
+	    _type(sym) .. " found."
       end
       str = str .. _write(sym)
       l = l.cdr
@@ -564,6 +566,35 @@ local function recur (args, env, loop)
    return _eval(_list(loop, args), env, loop)
 end
 
+local function try (args, env, loop)
+   if list_len(args) ~= 1 then
+      return _error("try requires one argument. " ..
+		       list_len(args) .. " provided.")
+   end
+   local result = _eval(args.car, env, loop)
+   if is_error(result) then
+      return _list(_nil(), _list(result))
+   else
+      return _list(_symbol("t"), _list(result))
+   end
+end
+
+local function throw (args, env, loop)
+   if list_len(args) ~= 1 then
+      return _error("throw requires one argumnent. " ..
+		       list_len(args) .. " provided.")
+   end
+   if not is_list(args.car) then
+      return _error("throw requires a list argument. " ..
+		       _type(args.car) .. " provided.")
+   end
+   local str, err = list_to_string(args.car)
+   if err then
+      return _error(err)
+   end
+   return _error(str)
+end
+
 local function import (args, env, loop)
    if list_len(args) ~= 2 then
       return _error("import requires 2 arguments. " ..
@@ -577,7 +608,10 @@ local function import (args, env, loop)
    end
    local import_env = env
    repeat
-      local filename = list_to_string(file_list.car)
+      local filename, err = list_to_string(file_list.car)
+      if err then
+	 return _error(err)
+      end
       import_env = _import_file(filename, env)
       if is_error(import_env) then return import_env end
       file_list = file_list.cdr
@@ -600,6 +634,8 @@ local function _eval_std (v)
    env = _bind(_symbol("lambda"), _fn(lambda), env)
    env = _bind(_symbol("macro"), _fn(macro), env)
    env = _bind(_symbol("recur"), _fn(recur), env)
+   env = _bind(_symbol("try"), _fn(try), env)
+   env = _bind(_symbol("throw"), _fn(throw), env)
    env = _bind(_symbol("import"), _fn(import), env)
    return _eval(v, env, _nil())
 end
