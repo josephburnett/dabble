@@ -376,6 +376,7 @@ local function test (name)
 end
 
 test("core/and")
+test("core/or")
 test("core/not")
 
 if fail == 0 then

@@ -1,5 +1,12 @@
 (
   (
+    "and t is t (does not work)"
+    (car (try
+    (import ("core/and")
+      (and (quote t)))))
+    ()
+  )
+  (
     "and single true"
     (import ("core/and")
       (and 1))
