@@ -1,4 +1,4 @@
-#include "libcallow.c"
+#include "libdabble.c"
 #include <stdio.h>
 #include <string.h>
 
@@ -344,13 +344,13 @@ int check_import(value_t env)
     return check_result("Check import", actual, "2");
 }
 
-char *callow_test_files[] = {
+char *dabble_test_files[] = {
     "tst/core/and.clw",
     /* "tst/core/let.clw", */
     "tst/core/list.clw"
 };
 
-int check_callow_test(char *filename, value_t env)
+int check_dabble_test(char *filename, value_t env)
 {
     value_t test = read_file(filename);
     value_t actual_value = eval(test, env);
@@ -364,7 +364,7 @@ int check_callow_test(char *filename, value_t env)
 
 int main(int argc, char *argv[])
 {
-    value_t core_env = callow_core();
+    value_t core_env = dabble_core();
 
     int fail = 0;
     int i;
@@ -391,9 +391,9 @@ int main(int argc, char *argv[])
 	fail += check_eval(args[0], core_env, args[1], args[2]);
     }
     fail += check_import(core_env);
-    for (i = 0; i < sizeof(callow_test_files) / sizeof(char *); i++) {
-	char *filename = callow_test_files[i];
-	fail += check_callow_test(filename, core_env);
+    for (i = 0; i < sizeof(dabble_test_files) / sizeof(char *); i++) {
+	char *filename = dabble_test_files[i];
+	fail += check_dabble_test(filename, core_env);
     }
 
     if (fail == 0) {

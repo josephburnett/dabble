@@ -925,7 +925,7 @@ value_t error(value_t args, value_t env)
     ERROR, (chunk_t) first.value};
 }
 
-value_t callow_core()
+value_t dabble_core()
 {
     value_t env = nil;
     // The magnificent seven.

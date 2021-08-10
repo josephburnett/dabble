@@ -33,7 +33,7 @@
 *.su
 
 # Output binaries
-callow
+dabble
 test
 
 # Temporary files

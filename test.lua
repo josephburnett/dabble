@@ -1,7 +1,7 @@
-local callow = require "libcallow"
+local dabble = require "libdabble"
 
-local callow_root = os.getenv("CALLOW_ROOT")
-if not callow_root then
+local dabble_root = os.getenv("CALLOW_ROOT")
+if not dabble_root then
    print("Please set CALLOW_ROOT to point to the repo.")
    os.exit(1)
 end
@@ -9,8 +9,8 @@ end
 fail = 0
 
 local function check_read (name, test, expect)
-   local t = callow.read(test)
-   local actual = callow.write(t)
+   local t = dabble.read(test)
+   local actual = dabble.write(t)
    if actual ~= expect then
       if not actual then
          actual = "<nil>"
@@ -42,8 +42,8 @@ check_read("read two strings", "(\"ab\" \"cd\")",
 check_read("read empty string as nil", "\"\"", "()")
 
 local function check_read_error (name, test)
-   local t = callow.read(test)
-   local actual = callow.write(t)
+   local t = dabble.read(test)
+   local actual = dabble.write(t)
    local expect = "<error"
    if string.sub(actual, 1, string.len(expect)) ~= expect then
       if not actual then
@@ -63,8 +63,8 @@ check_read_error("number with two decimals", "1.2.3")
 check_read_error("invalid characters", "[]")
 
 local function check_eval (name, test, expect)
-   local t = callow.eval(callow.read(test))
-   local actual = callow.write(t)
+   local t = dabble.eval(dabble.read(test))
+   local actual = dabble.write(t)
    if actual ~= expect then
       if not actual then
          actual = "<nil>"
@@ -244,8 +244,8 @@ check_eval("try passes through successful value",
 	   "1")
 
 local function check_eval_error (name, test)
-   local t = callow.eval(callow.read(test))
-   local actual = callow.write(t)
+   local t = dabble.eval(dabble.read(test))
+   local actual = dabble.write(t)
    local expect = "<error"
    if string.sub(actual, 1, string.len(expect)) ~= expect then
       if not actual then
@@ -326,53 +326,53 @@ check_eval_error("throw always returns an error",
 		 "(throw \"error\")")
 
 local function test (name)
-   local test_file, err = io.open(callow_root ..
+   local test_file, err = io.open(dabble_root ..
 				  "/tst/" .. name .. ".clw", "r")
    if not test_file then
       print("FAIL test file " .. name)
       print(err)
       fail = fail + 1
    end
-   local tests = callow.read(test_file:read("a"))
-   if not callow.is_list(tests) then
+   local tests = dabble.read(test_file:read("a"))
+   if not dabble.is_list(tests) then
       print("FAIL test file " .. name)
       print("test requires top level list. " ..
-	       callow.write(tests) .. " provided.")
+	       dabble.write(tests) .. " provided.")
       fail = fail + 1
       return
    end
    local i = 1
    repeat
       local t = tests.car
-      if not callow.is_list(t) then
+      if not dabble.is_list(t) then
 	 print("FAIL test " .. i .. " in file " .. name)
 	 print("test requires list test cases. " ..
-		  callow.write(t) .. " provided.")
+		  dabble.write(t) .. " provided.")
 	 fail = fail + 1
-      elseif callow.list_len(t) ~= 3 then
+      elseif dabble.list_len(t) ~= 3 then
 	 print("FAIL test " .. i .. " in file " .. name)
 	 print("test requires triplet test cases. " ..
-		  callow.write(t) .. " provided.")
+		  dabble.write(t) .. " provided.")
 	 fail = fail + 1
       else
-	 local t_name, err = callow.list_to_string(t.car)
+	 local t_name, err = dabble.list_to_string(t.car)
 	 if err then
 	    print("FAIL test " .. i .. " in file " .. name)
 	    print(err)
 	    fail = fail + 1
 	 end
 	 local t_test, t_expect = t.cdr.car, t.cdr.cdr.car
-	 local t_actual = callow.eval(t_test)
-	 if not callow.equals(t_actual, t_expect) then
+	 local t_actual = dabble.eval(t_test)
+	 if not dabble.equals(t_actual, t_expect) then
 	    print("FAIL test " .. t_name)
-	    print("Expected " .. callow.write(t_expect) ..
-		     " but got " .. callow.write(t_actual))
+	    print("Expected " .. dabble.write(t_expect) ..
+		     " but got " .. dabble.write(t_actual))
 	    fail = fail + 1
 	 end
       end
       i = i + 1
       tests = tests.cdr
-   until callow.is_nil(tests)
+   until dabble.is_nil(tests)
 end
 
 test("core/and")

@@ -3,15 +3,15 @@ local string = require "string"
 
 -- Environment --
 
-local callow_root = os.getenv("CALLOW_ROOT")
-if not callow_root then
+local dabble_root = os.getenv("CALLOW_ROOT")
+if not dabble_root then
    print("Please set CALLOW_ROOT to point to the repo.")
    os.exit(1)
 end
 
-local callow_path = os.getenv("CALLOW_PATH")
-if not callow_path then
-   callow_path = callow_root
+local dabble_path = os.getenv("CALLOW_PATH")
+if not dabble_path then
+   dabble_path = dabble_root
 end
 
 -- Types --
@@ -360,7 +360,7 @@ end
 
 local function list_to_string (l)
    if not is_list(l) then
-      return nil, "list_to_string requires callow list. " ..
+      return nil, "list_to_string requires dabble list. " ..
 	 _type(l) .. " provided."
    end
    local str = ""
@@ -377,7 +377,7 @@ local function list_to_string (l)
 end
 
 local function _import_file (filename, env)
-   local file, err = io.open(callow_root .. "/src/" ..
+   local file, err = io.open(dabble_root .. "/src/" ..
 		             filename .. ".clw", "r")
    if not file then
       return _error("could not import " .. filename ..
