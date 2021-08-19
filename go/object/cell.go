@@ -13,5 +13,12 @@ func (c Cell) Rest() Value {
 }
 
 func (c Cell) Inspect() string {
-	return fmt.Sprintf("(%v %v)", c[0].Inspect(), c[1].Inspect())
+	first, rest := c[0], c[1]
+	if first == nil {
+		first = Null
+	}
+	if rest == nil {
+		rest = Null
+	}
+	return fmt.Sprintf("(%v %v)", first.Inspect(), rest.Inspect())
 }
