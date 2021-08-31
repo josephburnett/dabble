@@ -14,10 +14,10 @@ foo
 123
 (foo)
 (foo bar)
-'foo'
-'foo bar'
-('foo bar' 'baz bam')
-('foo''bar')
+"foo"
+"foo bar"
+("foo bar" "baz bam")
+("foo""bar")
 ((foo))
 (())
 `
