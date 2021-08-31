@@ -31,8 +31,9 @@ func (l *Lexer) NextToken() token.Token {
 		tok = newToken(token.LPAREN, l.ch)
 	case ')':
 		tok = newToken(token.RPAREN, l.ch)
-	case '"':
+	case '\'':
 		tok.Type = token.SYMBOL
+		l.readChar()
 		tok.Literal = l.readQuotedSymbol()
 	case 0:
 		tok.Type = token.EOF
@@ -113,7 +114,9 @@ func isParenChar(ch byte) bool {
 }
 
 func isQuotedSymbolChar(ch byte) bool {
-
+	if ch == '\'' {
+		return false
+	}
 	r, _ := utf8.DecodeRune([]byte{ch})
 	return unicode.IsPrint(r)
 }

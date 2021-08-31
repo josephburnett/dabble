@@ -13,6 +13,13 @@ func TestNextToken(t *testing.T) {
 foo
 123
 (foo)
+(foo bar)
+'foo'
+'foo bar'
+('foo bar' 'baz bam')
+('foo''bar')
+((foo))
+(())
 `
 
 	tests := []struct {
@@ -25,6 +32,29 @@ foo
 		{token.NUMBER, "123"},
 		{token.LPAREN, "("},
 		{token.SYMBOL, "foo"},
+		{token.RPAREN, ")"},
+		{token.LPAREN, "("},
+		{token.SYMBOL, "foo"},
+		{token.SYMBOL, "bar"},
+		{token.RPAREN, ")"},
+		{token.SYMBOL, "foo"},
+		{token.SYMBOL, "foo bar"},
+		{token.LPAREN, "("},
+		{token.SYMBOL, "foo bar"},
+		{token.SYMBOL, "baz bam"},
+		{token.RPAREN, ")"},
+		{token.LPAREN, "("},
+		{token.SYMBOL, "foo"},
+		{token.SYMBOL, "bar"},
+		{token.RPAREN, ")"},
+		{token.LPAREN, "("},
+		{token.LPAREN, "("},
+		{token.SYMBOL, "foo"},
+		{token.RPAREN, ")"},
+		{token.RPAREN, ")"},
+		{token.LPAREN, "("},
+		{token.LPAREN, "("},
+		{token.RPAREN, ")"},
 		{token.RPAREN, ")"},
 		{token.EOF, ""},
 	}
