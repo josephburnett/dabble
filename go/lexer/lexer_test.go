@@ -20,6 +20,9 @@ foo
 ("foo""bar")
 ((foo))
 (())
+"+"
+"("
+" "
 `
 
 	tests := []struct {
@@ -56,6 +59,9 @@ foo
 		{token.LPAREN, "("},
 		{token.RPAREN, ")"},
 		{token.RPAREN, ")"},
+		{token.SYMBOL, "+"},
+		{token.SYMBOL, "("},
+		{token.SYMBOL, " "},
 		{token.EOF, ""},
 	}
 
