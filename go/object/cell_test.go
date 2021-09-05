@@ -4,29 +4,29 @@ import "testing"
 
 func TestCell(t *testing.T) {
 	tests := []struct {
-		cell    Cell
+		cell    Value
 		first   string
 		rest    string
 		inspect string
 	}{{
-		cell:    Cell{Null, Null},
+		cell:    Cell(Null, Null),
 		first:   "()",
 		rest:    "()",
 		inspect: "(() ())",
 	}, {
-		cell:    Cell{Symbol("a"), Symbol("b")},
+		cell:    Cell(Symbol("a"), Symbol("b")),
 		first:   "a",
 		rest:    "b",
 		inspect: "(a b)",
 	}, {
-		cell:    Cell{Number(1), Number(2)},
+		cell:    Cell(Number(1), Number(2)),
 		first:   "1",
 		rest:    "2",
 		inspect: "(1 2)",
 	}, {
-		cell: Cell{
-			Cell{Null, Number(1)},
-			Cell{Symbol("a"), Null}},
+		cell: Cell(
+			Cell(Null, Number(1)),
+			Cell(Symbol("a"), Null)),
 		first:   "(() 1)",
 		rest:    "(a ())",
 		inspect: "((() 1) (a ()))",

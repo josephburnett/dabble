@@ -16,6 +16,10 @@ func (s Symbol) Rest() Value {
 	return s[1:]
 }
 
+func (s Symbol) Type() Type {
+	return SYMBOL
+}
+
 func (s Symbol) Inspect() string {
 	if s == "" {
 		return Null.Inspect()

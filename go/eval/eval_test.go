@@ -13,48 +13,49 @@ func TestEval(t *testing.T) {
 		wantErr bool
 	}{{
 		value: object.Number(1),
-		env:   object.Cell{},
+		env:   object.Null,
 		want:  "1",
 	}, {
 		value:   object.Symbol("a"),
-		env:     object.Cell{},
+		env:     object.Null,
 		wantErr: true,
 	}, {
-		value: object.Cell{},
-		env:   object.Cell{},
+		value: object.Cell(object.Null, object.Null),
+		env:   object.Cell(nil, nil),
 		want:  "(() ())",
 	}, {
-		value: object.Cell{
-			object.Cell{object.Number(1), object.Number(2)},
-			object.Null},
-		env:  object.Cell{},
+		value: object.Cell(
+			object.Cell(object.Number(1), object.Number(2)),
+			object.Null),
+		env:  object.Cell(nil, nil),
 		want: "((1 2) ())",
 	}, {
-		value: object.Cell{object.Symbol("foo"), object.Symbol("bar")},
-		env: object.Cell{
-			object.Cell{object.Symbol("foo"), object.Number(1)},
-			object.Cell{
-				object.Cell{object.Symbol("bar"), object.Number(2)}}},
+		value: object.Cell(object.Symbol("foo"), object.Symbol("bar")),
+		env: object.Cell(
+			object.Cell(object.Symbol("foo"), object.Number(1)),
+			object.Cell(
+				object.Cell(object.Symbol("bar"), object.Number(2)),
+				object.Null)),
 		want: "(1 2)",
 	}, {
-		value:   object.Cell{object.Symbol("foo")},
-		env:     object.Cell{},
+		value:   object.Cell(object.Symbol("foo"), nil),
+		env:     object.Cell(nil, nil),
 		wantErr: true,
 	}, {
 		value: object.Null,
-		env:   object.Cell{},
+		env:   object.Cell(nil, nil),
 		want:  "()",
 	}}
 
-	for _, tt := range tests {
+	for i, tt := range tests {
 		got := Eval(tt.env, tt.value)
 		if tt.wantErr {
 			if _, ok := got.(object.Error); !ok {
-				t.Errorf("given value %v env %v. want err. got %v", tt.value, tt.env, got)
+				t.Errorf("[%v] given value %v env %v. want err. got %v", i, tt.value, tt.env, got)
 			}
 		} else {
 			if got.Inspect() != tt.want {
-				t.Errorf("given value %v env %v. want %v. got %v", tt.value, tt.env, tt.want, got.Inspect())
+				t.Errorf("[%v] given value %v env %v. want %v. got %v", i, tt.value, tt.env, tt.want, got.Inspect())
 			}
 		}
 	}

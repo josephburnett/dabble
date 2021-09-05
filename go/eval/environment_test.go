@@ -16,30 +16,35 @@ func TestResolve(t *testing.T) {
 		symbol:  "foo",
 		wantErr: true,
 	}, {
-		env:     object.Cell{object.Null, object.Null},
+		env:     object.Cell(object.Null, object.Null),
 		symbol:  "foo",
 		wantErr: true,
 	}, {
-		env:     object.Cell{},
+		env: object.Cell(
+			object.Cell(object.Null, object.Null),
+			object.Null),
 		symbol:  "foo",
 		wantErr: true,
 	}, {
-		env: object.Cell{
-			object.Cell{object.Symbol("foo"), object.Number(1)}},
+		env: object.Cell(
+			object.Cell(object.Symbol("foo"), object.Number(1)),
+			object.Null),
 		symbol: "foo",
 		want:   "1",
 	}, {
-		env: object.Cell{
-			object.Cell{object.Symbol("bar"), object.Number(2)},
-			object.Cell{
-				object.Cell{object.Symbol("foo"), object.Number(1)}}},
+		env: object.Cell(
+			object.Cell(object.Symbol("bar"), object.Number(2)),
+			object.Cell(
+				object.Cell(object.Symbol("foo"), object.Number(1)),
+				object.Null)),
 		symbol: "foo",
 		want:   "1",
 	}, {
-		env: object.Cell{
-			object.Cell{object.Symbol("foo"), object.Number(1)},
-			object.Cell{
-				object.Cell{object.Symbol("foo"), object.Number(2)}}},
+		env: object.Cell(
+			object.Cell(object.Symbol("foo"), object.Number(1)),
+			object.Cell(
+				object.Cell(object.Symbol("foo"), object.Number(2)),
+				object.Null)),
 		symbol: "foo",
 		want:   "1",
 	}}

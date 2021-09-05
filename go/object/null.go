@@ -12,6 +12,10 @@ func (n null) Rest() Value {
 	return Null
 }
 
+func (n null) Type() Type {
+	return NULL
+}
+
 func (n null) Inspect() string {
 	return "()"
 }
