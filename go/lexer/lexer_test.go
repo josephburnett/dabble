@@ -23,6 +23,7 @@ foo
 "+"
 "("
 " "
+(let (a 1) (+ 1 a))
 `
 
 	tests := []struct {
@@ -62,6 +63,18 @@ foo
 		{token.SYMBOL, "+"},
 		{token.SYMBOL, "("},
 		{token.SYMBOL, " "},
+		{token.LPAREN, "("},
+		{token.SYMBOL, "let"},
+		{token.LPAREN, "("},
+		{token.SYMBOL, "a"},
+		{token.NUMBER, "1"},
+		{token.RPAREN, ")"},
+		{token.LPAREN, "("},
+		{token.SYMBOL, "+"},
+		{token.NUMBER, "1"},
+		{token.SYMBOL, "a"},
+		{token.RPAREN, ")"},
+		{token.RPAREN, ")"},
 		{token.EOF, ""},
 	}
 
