@@ -49,8 +49,10 @@ func (p *Parser) parseValue() object.Value {
 		return object.Null
 	case token.LPAREN:
 		p.nextToken()
+		first := p.parseValue()
+		p.nextToken()
 		return object.Cell(
-			p.parseValue(),
+			first,
 			p.parseValue())
 	case token.RPAREN:
 		return object.Null
