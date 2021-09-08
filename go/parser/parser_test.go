@@ -3,7 +3,7 @@ package parser
 import (
 	"dabble/lexer"
 	"dabble/object"
-	"fmt"
+	"strconv"
 	"testing"
 )
 
@@ -19,14 +19,18 @@ func TestParser(t *testing.T) {
 		object: object.Number(1234),
 	}, {
 		input:  "()",
-		object: object.Cell(nil, nil),
+		object: object.Null,
 	}, {
 		input:  "(foo)",
 		object: object.Cell(object.Symbol("foo"), nil),
+	}, {
+		input: "(foo bar)",
+		object: object.Cell(object.Symbol("foo"),
+			object.Cell(object.Symbol("bar"), nil)),
 	}}
 
 	for i, tt := range tests {
-		t.Run(fmt.Sprintf("[%v]", i), func(t *testing.T) {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			l := lexer.New(tt.input)
 			p := New(l)
 			v := p.ParseProgram()

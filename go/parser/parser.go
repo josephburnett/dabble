@@ -32,12 +32,15 @@ func (p *Parser) ParseProgram() object.Value {
 
 func (p *Parser) parseValue() object.Value {
 	switch p.curToken.Type {
+	case token.RPAREN:
+		p.error("unexpected: %v", p.curToken.Literal)
+		return object.Null
 	case token.SYMBOL:
 		return object.Symbol(p.curToken.Literal)
 	case token.NUMBER:
 		i, err := strconv.ParseUint(p.curToken.Literal, 10, 64)
 		if err != nil {
-			p.error(err.Error())
+			p.error("invalid number: %v", err.Error())
 			return object.Null
 		}
 		return object.Number(i)
@@ -49,16 +52,28 @@ func (p *Parser) parseValue() object.Value {
 		return object.Null
 	case token.LPAREN:
 		p.nextToken()
-		first := p.parseValue()
-		p.nextToken()
-		return object.Cell(
-			first,
-			p.parseValue())
-	case token.RPAREN:
-		return object.Null
+		return p.parseList()
 	default:
 		p.error("unknown token type: %v", p.curToken.Type)
 		return object.Null
+	}
+}
+
+func (p *Parser) parseList() object.Value {
+	switch p.curToken.Type {
+	case token.RPAREN:
+		return object.Null
+	case token.EOF:
+		p.error("end of file")
+		return object.Null
+	case token.ILLEGAL:
+		p.error("illegal: %v", p.curToken.Literal)
+		return object.Null
+	default:
+		first := p.parseValue()
+		p.nextToken()
+		rest := p.parseList()
+		return object.Cell(first, rest)
 	}
 }
 
