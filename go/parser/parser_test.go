@@ -27,13 +27,21 @@ func TestParser(t *testing.T) {
 		input: "(foo bar)",
 		object: object.Cell(object.Symbol("foo"),
 			object.Cell(object.Symbol("bar"), nil)),
+	}, {
+		input: "(foo (bar) baz))",
+		object: object.Cell(object.Symbol("foo"),
+			object.Cell(object.Cell(object.Symbol("bar"), nil),
+				object.Cell(object.Symbol("baz"), nil))),
 	}}
 
 	for i, tt := range tests {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			l := lexer.New(tt.input)
 			p := New(l)
-			v := p.ParseProgram()
+			v, err := p.ParseProgram()
+			if err != nil {
+				t.Errorf("unwanted: %v", err)
+			}
 			if v != tt.object {
 				t.Errorf("want %v. got %v", tt.object, v)
 			}

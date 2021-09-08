@@ -8,6 +8,7 @@ import (
 	"dabble/token"
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 type Parser struct {
@@ -26,8 +27,13 @@ func New(l *lexer.Lexer) *Parser {
 	return p
 }
 
-func (p *Parser) ParseProgram() object.Value {
-	return p.parseValue()
+func (p *Parser) ParseProgram() (object.Value, error) {
+	v := p.parseValue()
+	if len(p.errors) != 0 {
+		errString := strings.Join(p.errors, "\n")
+		return nil, fmt.Errorf("error parsing:\n%v", errString)
+	}
+	return v, nil
 }
 
 func (p *Parser) parseValue() object.Value {
