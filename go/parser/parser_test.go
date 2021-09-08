@@ -42,6 +42,10 @@ func TestParser(t *testing.T) {
 		object: object.Cell(object.Symbol("foo"),
 			object.Cell(object.Cell(object.Symbol("bar"), nil),
 				object.Cell(object.Symbol("baz"), nil))),
+	}, {
+		input: `("""")`,
+		object: object.Cell(object.Symbol(""),
+			object.Cell(object.Symbol(""), nil)),
 	}}
 
 	for i, tt := range tests {

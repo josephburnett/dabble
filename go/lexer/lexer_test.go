@@ -24,6 +24,7 @@ foo
 "("
 " "
 (let (a 1) (+ 1 a))
+""
 `
 
 	tests := []struct {
@@ -75,6 +76,7 @@ foo
 		{token.SYMBOL, "a"},
 		{token.RPAREN, ")"},
 		{token.RPAREN, ")"},
+		{token.SYMBOL, ""},
 		{token.EOF, ""},
 	}
 
