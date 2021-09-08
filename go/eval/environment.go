@@ -5,19 +5,25 @@ import (
 	"fmt"
 )
 
-func resolve(env object.Value, symbol string) object.Value {
-	if env == nil || env == object.Null {
+func resolve(env object.Value, symbol object.Value) object.Value {
+	if env == object.Null {
 		return object.Error(fmt.Sprintf("symbol not bound: %q", symbol))
+	}
+	if env.Type() != object.CELL {
+		return object.Error(fmt.Sprintf("invalid environment: %v", env))
+	}
+	if symbol.Type() != object.SYMBOL {
+		return object.Error(fmt.Sprintf("invalid symbol: %v", symbol))
 	}
 	binding := env.First()
 	if binding.Type() != object.CELL {
-		return object.Error(fmt.Sprintf("invalid environment. want cell. got %T (env: %q)", env.First(), env.Inspect()))
+		return object.Error(fmt.Sprintf("invalid environment binding: %v", binding))
 	}
-	s, ok := binding.First().(object.Symbol)
-	if !ok {
-		return object.Error(fmt.Sprintf("invalid environment. want symbol binding. got %T (%q)", s, s.Inspect()))
+	s := binding.First()
+	if s.Type() != object.SYMBOL {
+		return object.Error(fmt.Sprintf("invalid environment binding symbol: %v", s))
 	}
-	if string(s) == symbol {
+	if s == symbol {
 		return binding.Rest()
 	}
 	return resolve(env.Rest(), symbol)

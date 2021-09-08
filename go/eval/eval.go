@@ -13,7 +13,7 @@ func Eval(env, value object.Value) object.Value {
 	case object.NUMBER:
 		return value
 	case object.SYMBOL:
-		r := resolve(env, string(value.(object.Symbol)))
+		r := resolve(env, value)
 		return Eval(env, r)
 	case object.CELL:
 		first := Eval(env, value.First())

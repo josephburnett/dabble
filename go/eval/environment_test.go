@@ -8,28 +8,28 @@ import (
 func TestResolve(t *testing.T) {
 	tests := []struct {
 		env     object.Value
-		symbol  string
+		symbol  object.Value
 		want    string
 		wantErr bool
 	}{{
 		env:     object.Null,
-		symbol:  "foo",
+		symbol:  object.Symbol("foo"),
 		wantErr: true,
 	}, {
 		env:     object.Cell(object.Null, object.Null),
-		symbol:  "foo",
+		symbol:  object.Symbol("foo"),
 		wantErr: true,
 	}, {
 		env: object.Cell(
 			object.Cell(object.Null, object.Null),
 			object.Null),
-		symbol:  "foo",
+		symbol:  object.Symbol("foo"),
 		wantErr: true,
 	}, {
 		env: object.Cell(
 			object.Cell(object.Symbol("foo"), object.Number(1)),
 			object.Null),
-		symbol: "foo",
+		symbol: object.Symbol("foo"),
 		want:   "1",
 	}, {
 		env: object.Cell(
@@ -37,7 +37,7 @@ func TestResolve(t *testing.T) {
 			object.Cell(
 				object.Cell(object.Symbol("foo"), object.Number(1)),
 				object.Null)),
-		symbol: "foo",
+		symbol: object.Symbol("foo"),
 		want:   "1",
 	}, {
 		env: object.Cell(
@@ -45,7 +45,7 @@ func TestResolve(t *testing.T) {
 			object.Cell(
 				object.Cell(object.Symbol("foo"), object.Number(2)),
 				object.Null)),
-		symbol: "foo",
+		symbol: object.Symbol("foo"),
 		want:   "1",
 	}}
 
