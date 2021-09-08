@@ -29,6 +29,10 @@ func New(l *lexer.Lexer) *Parser {
 
 func (p *Parser) ParseProgram() (object.Value, error) {
 	v := p.parseValue()
+	p.nextToken()
+	if p.curToken.Type != token.EOF {
+		p.error("unexpected: %v", p.curToken.Literal)
+	}
 	if len(p.errors) != 0 {
 		errString := strings.Join(p.errors, "\n")
 		return nil, fmt.Errorf("error parsing:\n%v", errString)
