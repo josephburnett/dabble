@@ -1,15 +1,23 @@
 package core
 
-import "dabble/object"
+import (
+	"dabble/eval"
+	"dabble/object"
+)
 
 var _ object.Function = Atom
 
-func Atom(_ object.Value, args ...object.Value) object.Value {
+func Atom(env object.Value, args ...object.Value) object.Value {
 	if err := argsLenError("atom", args, 1); err != nil {
 		return err
 	}
-	if args[0].Type() == object.CELL {
+	value := eval.Eval(env, args[0])
+	switch value.Type() {
+	case object.ERROR:
+		return value
+	case object.CELL:
 		return object.Null
+	default:
+		return object.Cell(value, nil)
 	}
-	return object.Symbol("t")
 }
