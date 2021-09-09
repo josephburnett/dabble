@@ -1,6 +1,6 @@
 package object
 
-type Function func(env Value, args ...Value) Value
+type Function func(env Environment, args ...Value) Value
 
 func (f Function) First() Value {
 	return Null

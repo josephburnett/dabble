@@ -7,7 +7,7 @@ import (
 
 var _ object.Function = Cdr
 
-func Cdr(env object.Value, args ...object.Value) object.Value {
+func Cdr(env object.Environment, args ...object.Value) object.Value {
 	if err := argsLenError("cdr", args, 1); err != nil {
 		return err
 	}

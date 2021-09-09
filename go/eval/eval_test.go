@@ -8,42 +8,41 @@ import (
 func TestEval(t *testing.T) {
 	tests := []struct {
 		value   object.Value
-		env     object.Value
+		env     object.Environment
 		want    string
 		wantErr bool
 	}{{
 		value: object.Number(1),
-		env:   object.Null,
+		env:   nil,
 		want:  "1",
 	}, {
 		value:   object.Symbol("a"),
-		env:     object.Null,
+		env:     nil,
 		wantErr: true,
 	}, {
 		value: object.Cell(object.Null, object.Null),
-		env:   object.Cell(nil, nil),
+		env:   nil,
 		want:  "(() ())",
 	}, {
 		value: object.Cell(
 			object.Cell(object.Number(1), object.Number(2)),
 			object.Null),
-		env:  object.Cell(nil, nil),
+		env:  nil,
 		want: "((1 2) ())",
 	}, {
 		value: object.Cell(object.Symbol("foo"), object.Symbol("bar")),
-		env: object.Cell(
-			object.Cell(object.Symbol("foo"), object.Number(1)),
-			object.Cell(
-				object.Cell(object.Symbol("bar"), object.Number(2)),
-				object.Null)),
+		env: []object.Binding{
+			{"foo", object.Number(1)},
+			{"bar", object.Number(2)},
+		},
 		want: "(1 2)",
 	}, {
 		value:   object.Cell(object.Symbol("foo"), nil),
-		env:     object.Cell(nil, nil),
+		env:     nil,
 		wantErr: true,
 	}, {
 		value: object.Null,
-		env:   object.Cell(nil, nil),
+		env:   nil,
 		want:  "()",
 	}}
 
