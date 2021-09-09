@@ -6,7 +6,7 @@ import (
 
 func TestResolve(t *testing.T) {
 	tests := []struct {
-		env     Environment
+		env     *Binding
 		symbol  Symbol
 		want    string
 		wantErr bool
@@ -15,33 +15,23 @@ func TestResolve(t *testing.T) {
 		symbol:  Symbol("foo"),
 		wantErr: true,
 	}, {
-		env:     []Binding{},
-		symbol:  Symbol("foo"),
-		wantErr: true,
-	}, {
-		env: []Binding{
-			{"foo", Number(1)},
-		},
+		env:    &Binding{"foo", Number(1), nil},
 		symbol: Symbol("foo"),
 		want:   "1",
 	}, {
-		env: []Binding{
-			{"bar", Number(2)},
-			{"foo", Number(1)},
-		},
+		env: &Binding{"bar", Number(2),
+			&Binding{"foo", Number(1), nil}},
 		symbol: Symbol("foo"),
 		want:   "1",
 	}, {
-		env: []Binding{
-			{"foo", Number(1)},
-			{"foo", Number(2)},
-		},
+		env: &Binding{"foo", Number(1),
+			&Binding{"foo", Number(2), nil}},
 		symbol: Symbol("foo"),
 		want:   "1",
 	}}
 
 	for _, tt := range tests {
-		got := tt.env.Resolve(tt.env, tt.symbol)
+		got := tt.env.Resolve(tt.symbol)
 		if tt.wantErr {
 			if _, ok := got.(Error); !ok {
 				t.Errorf("wanted error. got %T (%q)", got, got.Inspect())

@@ -8,7 +8,7 @@ import (
 func TestEval(t *testing.T) {
 	tests := []struct {
 		value   object.Value
-		env     object.Environment
+		env     *object.Binding
 		want    string
 		wantErr bool
 	}{{
@@ -31,10 +31,8 @@ func TestEval(t *testing.T) {
 		want: "((1 2) ())",
 	}, {
 		value: object.Cell(object.Symbol("foo"), object.Symbol("bar")),
-		env: []object.Binding{
-			{"foo", object.Number(1)},
-			{"bar", object.Number(2)},
-		},
+		env: &object.Binding{"foo", object.Number(1),
+			&object.Binding{"bar", object.Number(2), nil}},
 		want: "(1 2)",
 	}, {
 		value:   object.Cell(object.Symbol("foo"), nil),

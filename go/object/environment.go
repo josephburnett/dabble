@@ -7,15 +7,15 @@ import (
 type Binding struct {
 	Symbol Symbol
 	Value  Value
+	Next   *Binding
 }
 
-type Environment []Binding
-
-func (e Environment) Resolve(env []Binding, symbol Symbol) Value {
-	for _, binding := range e {
-		if binding.Symbol == symbol {
-			return binding.Value
-		}
+func (b *Binding) Resolve(symbol Symbol) Value {
+	if b == nil {
+		return Error(fmt.Sprintf("symbol not bound: %q", symbol))
 	}
-	return Error(fmt.Sprintf("symbol not bound: %q", symbol))
+	if b.Symbol == symbol {
+		return b.Value
+	}
+	return b.Next.Resolve(symbol)
 }

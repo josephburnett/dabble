@@ -7,7 +7,7 @@ import (
 
 var _ object.Function = Eq
 
-func Eq(env object.Environment, args ...object.Value) object.Value {
+func Eq(env *object.Binding, args ...object.Value) object.Value {
 	if err := argsLenError("eq", args, 2); err != nil {
 		return err
 	}

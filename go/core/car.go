@@ -7,7 +7,7 @@ import (
 
 var _ object.Function = Car
 
-func Car(env object.Environment, args ...object.Value) object.Value {
+func Car(env *object.Binding, args ...object.Value) object.Value {
 	if err := argsLenError("car", args, 1); err != nil {
 		return err
 	}

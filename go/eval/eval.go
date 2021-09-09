@@ -5,12 +5,12 @@ import (
 	"fmt"
 )
 
-func Eval(env object.Environment, value object.Value) object.Value {
+func Eval(env *object.Binding, value object.Value) object.Value {
 	switch value.Type() {
 	case object.NUMBER, object.NULL, object.ERROR:
 		return value
 	case object.SYMBOL:
-		r := env.Resolve(env, value.(object.Symbol))
+		r := env.Resolve(value.(object.Symbol))
 		return Eval(env, r)
 	case object.CELL:
 		first := Eval(env, value.First())

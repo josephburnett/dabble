@@ -7,7 +7,7 @@ import (
 
 var _ object.Function = Atom
 
-func Atom(env object.Environment, args ...object.Value) object.Value {
+func Atom(env *object.Binding, args ...object.Value) object.Value {
 	if err := argsLenError("atom", args, 1); err != nil {
 		return err
 	}

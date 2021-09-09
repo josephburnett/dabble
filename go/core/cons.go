@@ -7,7 +7,7 @@ import (
 
 var _ object.Function = Cons
 
-func Cons(env object.Environment, args ...object.Value) object.Value {
+func Cons(env *object.Binding, args ...object.Value) object.Value {
 	if err := argsLenError("cons", args, 2); err != nil {
 		return err
 	}
