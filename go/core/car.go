@@ -2,7 +2,9 @@ package core
 
 import "dabble/object"
 
-func Car(args ...object.Value) object.Value {
+var _ object.Function = Car
+
+func Car(env object.Value, args ...object.Value) object.Value {
 	if err := argsLenError("car", args, 1); err != nil {
 		return err
 	}
