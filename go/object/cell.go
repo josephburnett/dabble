@@ -1,6 +1,9 @@
 package object
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type cell [2]Value
 
@@ -34,5 +37,15 @@ func (c cell) Inspect() string {
 	if rest == nil {
 		rest = Null
 	}
-	return fmt.Sprintf("(%v %v)", first.Inspect(), rest.Inspect())
+	var b strings.Builder
+	fmt.Fprintf(&b, "(%v", first.Inspect())
+	for rest.Type() == CELL {
+		fmt.Fprintf(&b, " %v", rest.First().Inspect())
+		rest = rest.Rest()
+	}
+	if rest.Type() != NULL {
+		fmt.Fprintf(&b, " %v", rest.Inspect())
+	}
+	fmt.Fprintf(&b, ")")
+	return b.String()
 }

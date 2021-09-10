@@ -1,6 +1,9 @@
 package object
 
-import "testing"
+import (
+	"strconv"
+	"testing"
+)
 
 func TestCell(t *testing.T) {
 	tests := []struct {
@@ -12,7 +15,7 @@ func TestCell(t *testing.T) {
 		cell:    Cell(Null, Null),
 		first:   "()",
 		rest:    "()",
-		inspect: "(() ())",
+		inspect: "(())",
 	}, {
 		cell:    Cell(Symbol("a"), Symbol("b")),
 		first:   "a",
@@ -28,22 +31,31 @@ func TestCell(t *testing.T) {
 			Cell(Null, Number(1)),
 			Cell(Symbol("a"), Null)),
 		first:   "(() 1)",
-		rest:    "(a ())",
-		inspect: "((() 1) (a ()))",
+		rest:    "(a)",
+		inspect: "((() 1) a)",
+	}, {
+		cell: Cell(Number(1),
+			Cell(Number(2),
+				Cell(Number(3), Null))),
+		first:   "1",
+		rest:    "(2 3)",
+		inspect: "(1 2 3)",
 	}}
 
-	for _, tt := range tests {
-		first := tt.cell.First().Inspect()
-		if first != tt.first {
-			t.Errorf("given %v. want first %q. got %q", tt.cell, tt.first, first)
-		}
-		rest := tt.cell.Rest().Inspect()
-		if rest != tt.rest {
-			t.Errorf("given %v. want rest %q. got %q", tt.cell, tt.rest, rest)
-		}
-		inspect := tt.cell.Inspect()
-		if inspect != tt.inspect {
-			t.Errorf("given %v. want inspect %q. got %q", tt.cell, tt.inspect, inspect)
-		}
+	for i, tt := range tests {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			first := tt.cell.First().Inspect()
+			if first != tt.first {
+				t.Errorf("given %v. want first %q. got %q", tt.cell, tt.first, first)
+			}
+			rest := tt.cell.Rest().Inspect()
+			if rest != tt.rest {
+				t.Errorf("given %v. want rest %q. got %q", tt.cell, tt.rest, rest)
+			}
+			inspect := tt.cell.Inspect()
+			if inspect != tt.inspect {
+				t.Errorf("given %v. want inspect %q. got %q", tt.cell, tt.inspect, inspect)
+			}
+		})
 	}
 }

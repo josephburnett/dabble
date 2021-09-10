@@ -30,11 +30,7 @@ func call(env *object.Binding, cell object.Value) object.Value {
 	rest := cell.Rest()
 	args := []object.Value{}
 	for rest.Type() == object.CELL {
-		arg := Eval(env, rest.First())
-		if arg.Type() == object.ERROR {
-			return arg
-		}
-		args = append(args, arg)
+		args = append(args, rest.First())
 		rest = rest.Rest()
 	}
 
