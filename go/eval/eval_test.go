@@ -4,6 +4,7 @@ import (
 	"dabble/lexer"
 	"dabble/object"
 	"dabble/parser"
+	"fmt"
 	"strconv"
 	"testing"
 )
@@ -12,6 +13,13 @@ func TestEval(t *testing.T) {
 
 	passFunction := object.Function(func(env *object.Binding, args ...object.Value) object.Value {
 		return object.Symbol("pass")
+	})
+
+	identityFunction := object.Function(func(env *object.Binding, args ...object.Value) object.Value {
+		if len(args) != 1 {
+			return object.Error(fmt.Sprintf("wrong args: %v", args))
+		}
+		return args[0]
 	})
 
 	tests := []struct {
@@ -39,6 +47,10 @@ func TestEval(t *testing.T) {
 		input: "(bar)",
 		env:   &object.Binding{"bar", passFunction, nil},
 		want:  "pass",
+	}, {
+		input: "(baz 123)",
+		env:   &object.Binding{"baz", identityFunction, nil},
+		want:  "123",
 	}}
 
 	for i, tt := range tests {

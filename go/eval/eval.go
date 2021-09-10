@@ -13,13 +13,13 @@ func Eval(env *object.Binding, value object.Value) object.Value {
 		r := env.Resolve(value.(object.Symbol))
 		return Eval(env, r)
 	case object.CELL:
-		return evalCell(env, value)
+		return call(env, value)
 	default:
 		return object.Error(fmt.Sprintf("eval: unknown type: %T", value))
 	}
 }
 
-func evalCell(env *object.Binding, cell object.Value) object.Value {
+func call(env *object.Binding, cell object.Value) object.Value {
 	first := Eval(env, cell.First())
 	if first.Type() == object.ERROR {
 		return first
@@ -27,15 +27,17 @@ func evalCell(env *object.Binding, cell object.Value) object.Value {
 	if first.Type() != object.FUNCTION {
 		return object.Error(fmt.Sprintf("calling non-function: %v", first))
 	}
-	rest := Eval(env, cell.Rest())
-	if rest.Type() == object.ERROR {
-		return rest
-	}
+	rest := cell.Rest()
 	args := []object.Value{}
 	for rest.Type() == object.CELL {
-		args = append(args, rest.First())
+		arg := Eval(env, rest.First())
+		if arg.Type() == object.ERROR {
+			return arg
+		}
+		args = append(args, arg)
 		rest = rest.Rest()
 	}
+
 	function := first.(object.Function)
 	return function(env, args...)
 }
