@@ -29,11 +29,11 @@ func testCore(t *testing.T, tests []coreTest) {
 			got := eval.Eval(tt.env, value)
 			if tt.wantErr {
 				if _, ok := got.(object.Error); !ok {
-					t.Errorf("given value %v env %v. want err. got %v", value, tt.env, got)
+					t.Errorf("given value %v env %+v. want err. got %v", value.Inspect(), tt.env, got.Inspect())
 				}
 			} else {
 				if got.Inspect() != tt.want {
-					t.Errorf("given value %v env %v. want %v. got %v", value, tt.env, tt.want, got.Inspect())
+					t.Errorf("given value %v env %+v. want %v. got %v", value.Inspect(), tt.env, tt.want, got.Inspect())
 				}
 			}
 		})

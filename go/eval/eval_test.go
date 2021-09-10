@@ -22,6 +22,20 @@ func TestEval(t *testing.T) {
 		return args[0]
 	})
 
+	addingFunction := object.Function(func(env *object.Binding, args ...object.Value) object.Value {
+		if len(args) != 1 {
+			return object.Error(fmt.Sprintf("wrong args: %v", args))
+		}
+		value := Eval(env, args[0])
+		if value.Type() == object.ERROR {
+			return value
+		}
+		if value.Type() != object.NUMBER {
+			return object.Error(fmt.Sprintf("wrong type: %v", value))
+		}
+		return object.Number(value.(object.Number) + 1)
+	})
+
 	tests := []struct {
 		input   string
 		env     *object.Binding
@@ -51,6 +65,10 @@ func TestEval(t *testing.T) {
 		input: "(baz 123)",
 		env:   &object.Binding{"baz", identityFunction, nil},
 		want:  "123",
+	}, {
+		input: "(+ (+ 1))",
+		env:   &object.Binding{"+", addingFunction, nil},
+		want:  "3",
 	}}
 
 	for i, tt := range tests {
