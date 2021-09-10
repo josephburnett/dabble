@@ -1,45 +1,62 @@
 package eval
 
 import (
+	"dabble/lexer"
 	"dabble/object"
+	"dabble/parser"
 	"strconv"
 	"testing"
 )
 
 func TestEval(t *testing.T) {
+
+	passFunction := object.Function(func(env *object.Binding, args ...object.Value) object.Value {
+		return object.Symbol("pass")
+	})
+
 	tests := []struct {
-		value   object.Value
+		input   string
 		env     *object.Binding
 		want    string
 		wantErr bool
 	}{{
-		value: object.Number(1),
+		input: "1",
 		env:   nil,
 		want:  "1",
 	}, {
-		value:   object.Symbol("a"),
+		input:   "a",
 		env:     nil,
 		wantErr: true,
 	}, {
-		value:   object.Cell(object.Symbol("foo"), nil),
+		input:   "(foo)",
 		env:     nil,
 		wantErr: true,
 	}, {
-		value: object.Null,
+		input: "()",
 		env:   nil,
 		want:  "()",
+	}, {
+		input: "(bar)",
+		env:   &object.Binding{"bar", passFunction, nil},
+		want:  "pass",
 	}}
 
 	for i, tt := range tests {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			got := Eval(tt.env, tt.value)
+			l := lexer.New(tt.input)
+			p := parser.New(l)
+			value, err := p.ParseProgram()
+			if err != nil {
+				t.Fatalf(err.Error())
+			}
+			got := Eval(tt.env, value)
 			if tt.wantErr {
 				if _, ok := got.(object.Error); !ok {
-					t.Errorf("given value %v env %v. want err. got %v", tt.value, tt.env, got)
+					t.Errorf("given value %v env %v. want err. got %v", value, tt.env, got)
 				}
 			} else {
 				if got.Inspect() != tt.want {
-					t.Errorf("given value %v env %v. want %v. got %v", tt.value, tt.env, tt.want, got.Inspect())
+					t.Errorf("given value %v env %v. want %v. got %v", value, tt.env, tt.want, got.Inspect())
 				}
 			}
 		})
