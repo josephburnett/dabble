@@ -15,7 +15,7 @@ func Eq(env *object.Binding, args ...object.Value) object.Value {
 	if a.Type() == object.ERROR {
 		return a
 	}
-	b := eval.Eval(env, args[0])
+	b := eval.Eval(env, args[1])
 	if b.Type() == object.ERROR {
 		return b
 	}
