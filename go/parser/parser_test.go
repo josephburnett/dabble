@@ -49,6 +49,20 @@ func TestParser(t *testing.T) {
 	}, {
 		input:  "(1 . 2)",
 		object: object.Cell(object.Number(1), object.Number(2)),
+	}, {
+		input: "((1 . 2) . (3 . 4))",
+		object: object.Cell(
+			object.Cell(object.Number(1), object.Number(2)),
+			object.Cell(object.Number(3), object.Number(4))),
+	}, {
+		input:   "(1 . 2 . 3)",
+		wantErr: true,
+	}, {
+		input:   "(. 2)",
+		wantErr: true,
+	}, {
+		input:   "(1 .)",
+		wantErr: true,
 	}}
 
 	for i, tt := range tests {
