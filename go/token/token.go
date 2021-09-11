@@ -13,6 +13,7 @@ const (
 
 	LPAREN = "("
 	RPAREN = ")"
+	DOT    = "."
 )
 
 type Token struct {

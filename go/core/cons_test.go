@@ -29,14 +29,12 @@ func TestCons(t *testing.T) {
 	}, {
 		input: "(cons 1 2)",
 		env:   env,
+		want:  "(1 2)", // Should be "(1 . 2)".
+	}, {
+		input: "(cons 1 (quote (2)))",
+		env:   env,
 		want:  "(1 2)",
-	},
-		// One of these two ^ v is wrong.
-		{
-			input: "(cons 1 (quote (2)))",
-			env:   env,
-			want:  "(1 2)",
-		}}
+	}}
 
 	testCore(t, tests)
 }

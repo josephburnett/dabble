@@ -62,11 +62,55 @@ func (p *Parser) parseValue() object.Value {
 		return object.Null
 	case token.LPAREN:
 		p.nextToken()
-		return p.parseList()
+		return p.parseCell()
 	default:
 		p.error("unknown token type: %v", p.curToken.Type)
 		return object.Null
 	}
+}
+
+func (p *Parser) parseCell() object.Value {
+	switch p.curToken.Type {
+	case token.RPAREN:
+		return object.Null
+	case token.EOF:
+		p.error("end of file")
+		return object.Null
+	case token.ILLEGAL:
+		p.error("illegal: %v", p.curToken.Literal)
+		return object.Null
+	case token.DOT:
+		p.error("expected value before dot")
+		return object.Null
+	default:
+		first := p.parseValue()
+		if first.Type() == object.ERROR {
+			return first
+		}
+		p.nextToken()
+		if p.curToken.Type == token.DOT {
+			p.nextToken()
+			return p.parseDottedList(first)
+		}
+		rest := p.parseList()
+		if rest.Type() == object.ERROR {
+			return rest
+		}
+		return object.Cell(first, rest)
+	}
+}
+
+func (p *Parser) parseDottedList(first object.Value) object.Value {
+	rest := p.parseValue()
+	if rest.Type() == object.ERROR {
+		return rest
+	}
+	p.nextToken()
+	if p.curToken.Type != token.RPAREN {
+		p.error("expecting ) after dot construction")
+		return object.Null
+	}
+	return object.Cell(first, rest)
 }
 
 func (p *Parser) parseList() object.Value {
