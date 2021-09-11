@@ -15,5 +15,5 @@ func Cdr(env *object.Binding, args ...object.Value) object.Value {
 	if value.Type() == object.ERROR {
 		return value
 	}
-	return args[0].Rest()
+	return value.Rest()
 }
