@@ -24,7 +24,7 @@ func Eq(env *object.Binding, args ...object.Value) object.Value {
 	}
 	if a.Type() != object.CELL {
 		if a == b {
-			return object.Cell(a, b)
+			return object.Symbol("t")
 		} else {
 			return object.Null
 		}
@@ -35,5 +35,5 @@ func Eq(env *object.Binding, args ...object.Value) object.Value {
 	if Eq(env, a.Rest(), b.Rest()).Type() == object.NULL {
 		return object.Null
 	}
-	return object.Cell(a, b)
+	return object.Symbol("t")
 }
