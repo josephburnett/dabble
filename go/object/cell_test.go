@@ -12,7 +12,7 @@ func TestCell(t *testing.T) {
 		rest    string
 		inspect string
 	}{{
-		cell:    Cell(Null, Null),
+		cell:    Cell(Nil, Nil),
 		first:   "()",
 		rest:    "()",
 		inspect: "(())",
@@ -28,15 +28,15 @@ func TestCell(t *testing.T) {
 		inspect: "(1 2)",
 	}, {
 		cell: Cell(
-			Cell(Null, Number(1)),
-			Cell(Symbol("a"), Null)),
+			Cell(Nil, Number(1)),
+			Cell(Symbol("a"), Nil)),
 		first:   "(() 1)",
 		rest:    "(a)",
 		inspect: "((() 1) a)",
 	}, {
 		cell: Cell(Number(1),
 			Cell(Number(2),
-				Cell(Number(3), Null))),
+				Cell(Number(3), Nil))),
 		first:   "1",
 		rest:    "(2 3)",
 		inspect: "(1 2 3)",

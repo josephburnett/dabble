@@ -7,7 +7,7 @@ import (
 
 func Eval(env *object.Binding, value object.Value) object.Value {
 	switch value.Type() {
-	case object.NUMBER, object.FUNCTION, object.NULL, object.ERROR:
+	case object.NUMBER, object.FUNCTION, object.NIL, object.ERROR:
 		return value
 	case object.SYMBOL:
 		r := env.Resolve(value.(object.Symbol))

@@ -3,11 +3,11 @@ package object
 type Function func(env *Binding, args ...Value) Value
 
 func (f Function) First() Value {
-	return Null
+	return Nil
 }
 
 func (f Function) Rest() Value {
-	return Null
+	return Nil
 }
 
 func (f Function) Type() Type {

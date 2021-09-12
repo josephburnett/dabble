@@ -44,44 +44,44 @@ func (p *Parser) parseValue() object.Value {
 	switch p.curToken.Type {
 	case token.RPAREN:
 		p.error("unexpected: %v", p.curToken.Literal)
-		return object.Null
+		return object.Nil
 	case token.SYMBOL:
 		return object.Symbol(p.curToken.Literal)
 	case token.NUMBER:
 		i, err := strconv.ParseUint(p.curToken.Literal, 10, 64)
 		if err != nil {
 			p.error("invalid number: %v", err.Error())
-			return object.Null
+			return object.Nil
 		}
 		return object.Number(i)
 	case token.EOF:
 		p.error("end of file")
-		return object.Null
+		return object.Nil
 	case token.ILLEGAL:
 		p.error("illegal: %v", p.curToken.Literal)
-		return object.Null
+		return object.Nil
 	case token.LPAREN:
 		p.nextToken()
 		return p.parseCell()
 	default:
 		p.error("unknown token type: %v", p.curToken.Type)
-		return object.Null
+		return object.Nil
 	}
 }
 
 func (p *Parser) parseCell() object.Value {
 	switch p.curToken.Type {
 	case token.RPAREN:
-		return object.Null
+		return object.Nil
 	case token.EOF:
 		p.error("end of file")
-		return object.Null
+		return object.Nil
 	case token.ILLEGAL:
 		p.error("illegal: %v", p.curToken.Literal)
-		return object.Null
+		return object.Nil
 	case token.DOT:
 		p.error("expected value before dot")
-		return object.Null
+		return object.Nil
 	default:
 		first := p.parseValue()
 		if first.Type() == object.ERROR {
@@ -108,7 +108,7 @@ func (p *Parser) parseDottedList(first object.Value) object.Value {
 	p.nextToken()
 	if p.curToken.Type != token.RPAREN {
 		p.error("expecting ) after dot construction")
-		return object.Null
+		return object.Nil
 	}
 	return object.Cell(first, rest)
 }
@@ -116,13 +116,13 @@ func (p *Parser) parseDottedList(first object.Value) object.Value {
 func (p *Parser) parseList() object.Value {
 	switch p.curToken.Type {
 	case token.RPAREN:
-		return object.Null
+		return object.Nil
 	case token.EOF:
 		p.error("end of file")
-		return object.Null
+		return object.Nil
 	case token.ILLEGAL:
 		p.error("illegal: %v", p.curToken.Literal)
-		return object.Null
+		return object.Nil
 	default:
 		first := p.parseValue()
 		p.nextToken()

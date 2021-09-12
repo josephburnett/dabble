@@ -20,7 +20,7 @@ func TestParser(t *testing.T) {
 		object: object.Number(1234),
 	}, {
 		input:  "()",
-		object: object.Null,
+		object: object.Nil,
 	}, {
 		input:   "(",
 		wantErr: true,

@@ -20,20 +20,20 @@ func Eq(env *object.Binding, args ...object.Value) object.Value {
 		return b
 	}
 	if a.Type() != b.Type() {
-		return object.Null
+		return object.Nil
 	}
 	if a.Type() != object.CELL {
 		if a == b {
 			return object.Symbol("t")
 		} else {
-			return object.Null
+			return object.Nil
 		}
 	}
-	if Eq(env, a.First(), b.First()).Type() == object.NULL {
-		return object.Null
+	if Eq(env, a.First(), b.First()).Type() == object.NIL {
+		return object.Nil
 	}
-	if Eq(env, a.Rest(), b.Rest()).Type() == object.NULL {
-		return object.Null
+	if Eq(env, a.Rest(), b.Rest()).Type() == object.NIL {
+		return object.Nil
 	}
 	return object.Symbol("t")
 }

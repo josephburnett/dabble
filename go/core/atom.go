@@ -16,7 +16,7 @@ func Atom(env *object.Binding, args ...object.Value) object.Value {
 	case object.ERROR:
 		return value
 	case object.CELL:
-		return object.Null
+		return object.Nil
 	default:
 		return object.Cell(value, nil)
 	}

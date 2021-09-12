@@ -9,10 +9,10 @@ type cell [2]Value
 
 func Cell(v1, v2 Value) Value {
 	if v1 == nil {
-		v1 = Null
+		v1 = Nil
 	}
 	if v2 == nil {
-		v2 = Null
+		v2 = Nil
 	}
 	return cell{v1, v2}
 }
@@ -32,10 +32,10 @@ func (c cell) Type() Type {
 func (c cell) Inspect() string {
 	first, rest := c[0], c[1]
 	if first == nil {
-		first = Null
+		first = Nil
 	}
 	if rest == nil {
-		rest = Null
+		rest = Nil
 	}
 	var b strings.Builder
 	fmt.Fprintf(&b, "(%v", first.Inspect())
@@ -43,7 +43,7 @@ func (c cell) Inspect() string {
 		fmt.Fprintf(&b, " %v", rest.First().Inspect())
 		rest = rest.Rest()
 	}
-	if rest.Type() != NULL {
+	if rest.Type() != NIL {
 		fmt.Fprintf(&b, " %v", rest.Inspect())
 	}
 	fmt.Fprintf(&b, ")")
