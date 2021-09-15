@@ -84,7 +84,7 @@ func (p *Parser) parseCell() object.Value {
 		return object.Nil
 	default:
 		first := p.parseValue()
-		if first.Type() == object.ERROR {
+		if _, ok := first.(object.Error); ok {
 			return first
 		}
 		p.nextToken()
@@ -93,16 +93,16 @@ func (p *Parser) parseCell() object.Value {
 			return p.parseDottedList(first)
 		}
 		rest := p.parseList()
-		if rest.Type() == object.ERROR {
+		if _, ok := rest.(object.Error); ok {
 			return rest
 		}
-		return object.Cell(first, rest)
+		return object.Cell{first, rest}
 	}
 }
 
 func (p *Parser) parseDottedList(first object.Value) object.Value {
 	rest := p.parseValue()
-	if rest.Type() == object.ERROR {
+	if _, ok := rest.(object.Error); ok {
 		return rest
 	}
 	p.nextToken()
@@ -110,7 +110,7 @@ func (p *Parser) parseDottedList(first object.Value) object.Value {
 		p.error("expecting ) after dot construction")
 		return object.Nil
 	}
-	return object.Cell(first, rest)
+	return object.Cell{first, rest}
 }
 
 func (p *Parser) parseList() object.Value {
@@ -127,7 +127,7 @@ func (p *Parser) parseList() object.Value {
 		first := p.parseValue()
 		p.nextToken()
 		rest := p.parseList()
-		return object.Cell(first, rest)
+		return object.Cell{first, rest}
 	}
 }
 

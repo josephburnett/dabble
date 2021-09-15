@@ -6,13 +6,16 @@ import (
 )
 
 func Eval(env *object.Binding, value object.Value) object.Value {
-	switch value.Type() {
-	case object.NUMBER, object.FUNCTION, object.NIL, object.ERROR:
+	if value == object.Nil {
 		return value
-	case object.SYMBOL:
+	}
+	switch value.(type) {
+	case object.Number, object.Function, object.Error:
+		return value
+	case object.Symbol:
 		r := env.Resolve(value.(object.Symbol))
 		return Eval(env, r)
-	case object.CELL:
+	case object.Cell:
 		return call(env, value)
 	default:
 		return object.Error(fmt.Sprintf("eval: unknown type: %T", value))
@@ -20,18 +23,18 @@ func Eval(env *object.Binding, value object.Value) object.Value {
 }
 
 func call(env *object.Binding, cell object.Value) object.Value {
-	first := Eval(env, cell.First())
-	if first.Type() == object.ERROR {
+	first := Eval(env, cell.(object.Cell).Car())
+	if _, ok := first.(object.Error); ok {
 		return first
 	}
-	if first.Type() != object.FUNCTION {
+	if _, ok := first.(object.Function); !ok {
 		return object.Error(fmt.Sprintf("calling non-function: %v", first))
 	}
-	rest := cell.Rest()
+	rest := cell.(object.Cell).Cdr()
 	args := []object.Value{}
-	for rest.Type() == object.CELL {
-		args = append(args, rest.First())
-		rest = rest.Rest()
+	if _, ok := rest.(object.Cell); ok {
+		args = append(args, rest.(object.Cell).Car())
+		rest = rest.(object.Cell).Cdr()
 	}
 
 	function := first.(object.Function)

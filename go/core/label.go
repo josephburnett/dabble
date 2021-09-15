@@ -13,7 +13,7 @@ func Label(env *object.Binding, args ...object.Value) object.Value {
 		return err
 	}
 	symbol := args[0]
-	if symbol.Type() != object.SYMBOL {
+	if _, ok := symbol.(object.Symbol); !ok {
 		return object.Error(fmt.Sprintf("label non-symbol binding: %v", symbol))
 	}
 	env = &object.Binding{

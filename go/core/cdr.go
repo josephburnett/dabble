@@ -12,8 +12,15 @@ func Cdr(env *object.Binding, args ...object.Value) object.Value {
 		return err
 	}
 	value := eval.Eval(env, args[0])
-	if value.Type() == object.ERROR {
-		return value
+	switch v := value.(type) {
+	case object.Cell:
+		return v.Cdr()
+	case object.Symbol:
+		if len(v) < 2 {
+			return object.Nil
+		}
+		return v[1:]
+	default:
+		return v
 	}
-	return value.Rest()
 }

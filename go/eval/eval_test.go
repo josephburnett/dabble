@@ -27,13 +27,14 @@ func TestEval(t *testing.T) {
 			return object.Error(fmt.Sprintf("wrong args: %v", args))
 		}
 		value := Eval(env, args[0])
-		if value.Type() == object.ERROR {
+		if _, ok := value.(object.Error); ok {
 			return value
 		}
-		if value.Type() != object.NUMBER {
+		number, ok := value.(object.Number)
+		if !ok {
 			return object.Error(fmt.Sprintf("wrong type: %v", value))
 		}
-		return object.Number(value.(object.Number) + 1)
+		return number + 1
 	})
 
 	tests := []struct {

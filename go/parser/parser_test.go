@@ -32,28 +32,28 @@ func TestParser(t *testing.T) {
 		wantErr: true,
 	}, {
 		input:  "(foo)",
-		object: object.Cell(object.Symbol("foo"), nil),
+		object: object.Cell{object.Symbol("foo"), object.Nil},
 	}, {
 		input: "(foo bar)",
-		object: object.Cell(object.Symbol("foo"),
-			object.Cell(object.Symbol("bar"), nil)),
+		object: object.Cell{object.Symbol("foo"),
+			object.Cell{object.Symbol("bar"), object.Nil}},
 	}, {
 		input: "(foo (bar) baz)",
-		object: object.Cell(object.Symbol("foo"),
-			object.Cell(object.Cell(object.Symbol("bar"), nil),
-				object.Cell(object.Symbol("baz"), nil))),
+		object: object.Cell{object.Symbol("foo"),
+			object.Cell{object.Cell{object.Symbol("bar"), object.Nil},
+				object.Cell{object.Symbol("baz"), object.Nil}}},
 	}, {
 		input: `("""")`,
-		object: object.Cell(object.Symbol(""),
-			object.Cell(object.Symbol(""), nil)),
+		object: object.Cell{object.Symbol(""),
+			object.Cell{object.Symbol(""), object.Nil}},
 	}, {
 		input:  "(1 . 2)",
-		object: object.Cell(object.Number(1), object.Number(2)),
+		object: object.Cell{object.Number(1), object.Number(2)},
 	}, {
 		input: "((1 . 2) . (3 . 4))",
-		object: object.Cell(
-			object.Cell(object.Number(1), object.Number(2)),
-			object.Cell(object.Number(3), object.Number(4))),
+		object: object.Cell{
+			object.Cell{object.Number(1), object.Number(2)},
+			object.Cell{object.Number(3), object.Number(4)}},
 	}, {
 		input:   "(1 . 2 . 3)",
 		wantErr: true,

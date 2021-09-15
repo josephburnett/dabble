@@ -1,21 +1,11 @@
 package object
 
-type n struct{}
+type nilT struct{}
 
-var Nil n = struct{}{}
+var Nil nilT = struct{}{}
 
-func (n n) First() Value {
-	return Nil
-}
+func (n nilT) isValue() {}
 
-func (n n) Rest() Value {
-	return Nil
-}
-
-func (n n) Type() Type {
-	return NIL
-}
-
-func (n n) Inspect() string {
+func (n nilT) Inspect() string {
 	return "()"
 }

@@ -12,12 +12,12 @@ func Atom(env *object.Binding, args ...object.Value) object.Value {
 		return err
 	}
 	value := eval.Eval(env, args[0])
-	switch value.Type() {
-	case object.ERROR:
+	switch value.(type) {
+	case object.Error:
 		return value
-	case object.CELL:
+	case object.Cell:
 		return object.Nil
 	default:
-		return object.Cell(value, nil)
+		return object.Symbol("t")
 	}
 }

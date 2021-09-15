@@ -12,12 +12,12 @@ func Cons(env *object.Binding, args ...object.Value) object.Value {
 		return err
 	}
 	car := eval.Eval(env, args[0])
-	if car.Type() == object.ERROR {
+	if _, ok := car.(object.Error); ok {
 		return car
 	}
 	cdr := eval.Eval(env, args[1])
-	if cdr.Type() == object.ERROR {
+	if _, ok := cdr.(object.Error); ok {
 		return cdr
 	}
-	return object.Cell(car, cdr)
+	return object.Cell{car, cdr}
 }

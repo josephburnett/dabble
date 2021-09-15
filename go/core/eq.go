@@ -1,6 +1,7 @@
 package core
 
 import (
+	"reflect"
 	"dabble/eval"
 	"dabble/object"
 )
@@ -12,27 +13,27 @@ func Eq(env *object.Binding, args ...object.Value) object.Value {
 		return err
 	}
 	a := eval.Eval(env, args[0])
-	if a.Type() == object.ERROR {
+	if _, ok := a.(object.Error); ok {
 		return a
 	}
 	b := eval.Eval(env, args[1])
-	if b.Type() == object.ERROR {
+	if _, ok := b.(object.Error); ok {
 		return b
 	}
-	if a.Type() != b.Type() {
+	if reflect.TypeOf(a) != reflect.TypeOf(b) {
 		return object.Nil
 	}
-	if a.Type() != object.CELL {
+	if _, ok := a.(object.Cell); !ok {
 		if a == b {
 			return object.Symbol("t")
 		} else {
 			return object.Nil
 		}
 	}
-	if Eq(env, a.First(), b.First()).Type() == object.NIL {
+	if Eq(env, a.(object.Cell).Car(), b.(object.Cell).Car()) == object.Nil {
 		return object.Nil
 	}
-	if Eq(env, a.Rest(), b.Rest()).Type() == object.NIL {
+	if Eq(env, a.(object.Cell).Cdr(), b.(object.Cell).Cdr()) == object.Nil { 
 		return object.Nil
 	}
 	return object.Symbol("t")
