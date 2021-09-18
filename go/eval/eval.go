@@ -24,8 +24,8 @@ func call(env *object.Binding, cell object.Value) object.Value {
 	if first.Type() == object.ERROR {
 		return first
 	}
-	if first.Type() != object.FUNCTION {
-		return object.Error(fmt.Sprintf("calling non-function: %v", first))
+	if first.Type() != object.FUNCTION && first.Type() != object.CLOSURE {
+		return object.Error(fmt.Sprintf("calling non-function: %v", first.Inspect()))
 	}
 	rest := cell.Rest()
 	args := []object.Value{}
@@ -34,6 +34,11 @@ func call(env *object.Binding, cell object.Value) object.Value {
 		rest = rest.Rest()
 	}
 
-	function := first.(object.Function)
-	return function(env, args...)
+	if first.Type() == object.FUNCTION {
+		function := first.(object.Function)
+		return function(env, args...)
+	} else {
+		closure := first.(object.Closure)
+		return closure(args...)
+	}
 }

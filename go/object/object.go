@@ -7,6 +7,7 @@ const (
 	NUMBER        = "NUMBER"
 	CELL          = "CELL"
 	FUNCTION      = "FUNCTION"
+	CLOSURE       = "CLOSURE"
 	NIL           = "NIL"
 	ERROR         = "ERROR"
 )
