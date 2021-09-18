@@ -14,6 +14,10 @@ func TestLambda(t *testing.T) {
 		input: "((lambda () 1))",
 		env:   env,
 		want:  "1",
+	}, {
+		input: "((lambda (a) a) 1)",
+		env:   env,
+		want:  "1",
 	}}
 
 	testCore(t, tests)

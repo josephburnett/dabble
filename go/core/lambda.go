@@ -18,10 +18,11 @@ func Lambda(env *object.Binding, args ...object.Value) object.Value {
 		return object.Error(fmt.Sprintf("lambda non-list params: %v", f))
 	}
 	for f.Type() != object.NIL {
-		if f.Type() != object.SYMBOL {
+		symbol := f.First()
+		if symbol.Type() != object.SYMBOL {
 			return object.Error(fmt.Sprintf("lambda non-symbol param: %v", f))
 		}
-		free = append(free, f.(object.Symbol))
+		free = append(free, symbol.(object.Symbol))
 		f = f.Rest()
 	}
 	form := args[1]
