@@ -40,6 +40,22 @@ func TestLambda(t *testing.T) {
 		input: "((lambda (a b) (+ a b)) 1 2)",
 		env:   env,
 		want:  "3",
+	}, {
+		input: "((lambda (a) (+ 4 a)) 1)",
+		env:   env,
+		want:  "5",
+	}, {
+		input:   "((lambda () 1) 2)",
+		env:     env,
+		wantErr: true,
+	}, {
+		input:   "((lambda (a) a))",
+		env:     env,
+		wantErr: true,
+	}, {
+		input:   "((lambda (a) a) 1 2 )",
+		env:     env,
+		wantErr: true,
 	}}
 
 	testCore(t, tests)
