@@ -15,5 +15,5 @@ func (e Error) Type() Type {
 }
 
 func (e Error) Inspect() string {
-	return string(e)
+	return string("<error: " + e + ">")
 }
