@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"dabble/core"
 	"dabble/eval"
 	"dabble/lexer"
 	"dabble/parser"
@@ -47,7 +48,7 @@ func Start(in io.Reader, out io.Writer) {
 			continue
 		}
 
-		evaluated := eval.Eval(nil, program)
+		evaluated := eval.Eval(core.Env, program)
 		if evaluated != nil {
 			io.WriteString(out, evaluated.Inspect())
 			io.WriteString(out, "\n")
