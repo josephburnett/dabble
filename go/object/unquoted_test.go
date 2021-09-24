@@ -14,19 +14,19 @@ func TestUnquoted(t *testing.T) {
 	}{{
 		unquoted: Unquoted(Number(1)),
 		first:    "1",
-		rest:     "0",
+		rest:     "()",
 		inspect:  "`1",
 	}, {
 		unquoted: Unquoted(Symbol("abc")),
-		first:    "a",
-		rest:     "bc",
+		first:    "abc",
+		rest:     "()",
 		inspect:  "`abc",
 	}, {
 		unquoted: Unquoted(Cell(Number(1),
 			Cell(Number(2),
 				Cell(Number(3), Nil)))),
-		first:   "1",
-		rest:    "(2 3)",
+		first:   "(1 2 3)",
+		rest:    "()",
 		inspect: "`(1 2 3)",
 	}}
 

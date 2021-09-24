@@ -69,10 +69,10 @@ func TestEval(t *testing.T) {
 		input: "(+ (+ 1))",
 		env:   &object.Binding{"+", addingFunction, nil},
 		want:  "3",
-		// }, {
-		// 	input: "'a",
-		// 	env:   &object.Binding{"a", object.Number(1), nil},
-		// 	want:  "a",
+	}, {
+		input: "'a",
+		env:   &object.Binding{"a", object.Number(1), nil},
+		want:  "a",
 	}}
 
 	for i, tt := range tests {

@@ -12,11 +12,11 @@ func Unquoted(value Value) Value {
 }
 
 func (u unquoted) First() Value {
-	return u.value.First()
+	return u.value
 }
 
 func (u unquoted) Rest() Value {
-	return u.value.Rest()
+	return Nil
 }
 
 func (u unquoted) Type() Type {

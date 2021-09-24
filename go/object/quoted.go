@@ -13,11 +13,11 @@ func Quoted(value Value) Value {
 }
 
 func (q quoted) First() Value {
-	return q.value.First()
+	return q.value
 }
 
 func (q quoted) Rest() Value {
-	return q.value.Rest()
+	return Nil
 }
 
 func (q quoted) Type() Type {

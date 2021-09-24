@@ -35,9 +35,9 @@ func eval(env *object.Binding, quoted bool, value object.Value) object.Value {
 			return call(env, value)
 		}
 	case object.QUOTED:
-		return eval(env, true, value)
+		return eval(env, true, value.First())
 	case object.UNQUOTED:
-		return eval(env, false, value)
+		return eval(env, false, value.First())
 	default:
 		return object.Error(fmt.Sprintf("eval: unknown type: %T", value))
 	}
