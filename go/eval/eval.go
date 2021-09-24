@@ -6,14 +6,38 @@ import (
 )
 
 func Eval(env *object.Binding, value object.Value) object.Value {
+	return eval(env, false, value)
+}
+
+func eval(env *object.Binding, quoted bool, value object.Value) object.Value {
 	switch value.Type() {
 	case object.NUMBER, object.FUNCTION, object.NIL, object.ERROR:
 		return value
 	case object.SYMBOL:
-		r := env.Resolve(value.(object.Symbol))
-		return Eval(env, r)
+		if quoted {
+			return value
+		} else {
+			r := env.Resolve(value.(object.Symbol))
+			return eval(env, quoted, r)
+		}
 	case object.CELL:
-		return call(env, value)
+		if quoted {
+			first := eval(env, quoted, value.First())
+			if first.Type() == object.ERROR {
+				return first
+			}
+			rest := eval(env, quoted, value.Rest())
+			if rest.Type() == object.ERROR {
+				return rest
+			}
+			return object.Cell(first, rest)
+		} else {
+			return call(env, value)
+		}
+	case object.QUOTED:
+		return eval(env, true, value)
+	case object.UNQUOTED:
+		return eval(env, false, value)
 	default:
 		return object.Error(fmt.Sprintf("eval: unknown type: %T", value))
 	}
