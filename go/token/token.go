@@ -11,9 +11,11 @@ const (
 	SYMBOL = "SYMBOL"
 	NUMBER = "NUMBER"
 
-	LPAREN = "("
-	RPAREN = ")"
-	DOT    = "."
+	LPAREN  = "("
+	RPAREN  = ")"
+	DOT     = "."
+	QUOTE   = "'"
+	UNQUOTE = "`"
 )
 
 type Token struct {

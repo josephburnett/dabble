@@ -63,6 +63,30 @@ func TestParser(t *testing.T) {
 	}, {
 		input:   "(1 .)",
 		wantErr: true,
+	}, {
+		input:  "'a",
+		object: object.Quoted(object.Symbol("a")),
+	}, {
+		input:  "`a",
+		object: object.Unquoted(object.Symbol("a")),
+	}, {
+		input: "'(1 2)",
+		object: object.Quoted(object.Cell(
+			object.Number(1), object.Cell(
+				object.Number(2), object.Nil))),
+	}, {
+		input: "`(1 2)",
+		object: object.Unquoted(object.Cell(
+			object.Number(1), object.Cell(
+				object.Number(2), object.Nil))),
+	}, {
+		input: "'(1 `(2 3))",
+		object: object.Quoted(object.Cell(
+			object.Number(1), object.Cell(
+				object.Unquoted(object.Cell(
+					object.Number(2),
+					object.Cell(object.Number(3), object.Nil))),
+				object.Nil))),
 	}}
 
 	for i, tt := range tests {

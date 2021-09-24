@@ -6,6 +6,8 @@ const (
 	SYMBOL   Type = "SYMBOL"
 	NUMBER        = "NUMBER"
 	CELL          = "CELL"
+	QUOTED        = "QUOTED"
+	UNQUOTED      = "UNQUOTED"
 	FUNCTION      = "FUNCTION"
 	CLOSURE       = "CLOSURE"
 	NIL           = "NIL"

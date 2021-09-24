@@ -33,6 +33,10 @@ func (l *Lexer) NextToken() token.Token {
 		tok = newToken(token.RPAREN, l.ch)
 	case '.':
 		tok = newToken(token.DOT, l.ch)
+	case '\'':
+		tok = newToken(token.QUOTE, l.ch)
+	case '`':
+		tok = newToken(token.UNQUOTE, l.ch)
 	case '"':
 		tok.Type = token.SYMBOL
 		l.readChar()

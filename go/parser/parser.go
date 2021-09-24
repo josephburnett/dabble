@@ -42,6 +42,12 @@ func (p *Parser) ParseProgram() (object.Value, error) {
 
 func (p *Parser) parseValue() object.Value {
 	switch p.curToken.Type {
+	case token.QUOTE:
+		p.nextToken()
+		return object.Quoted(p.parseValue())
+	case token.UNQUOTE:
+		p.nextToken()
+		return object.Unquoted(p.parseValue())
 	case token.RPAREN:
 		p.error("unexpected: %v", p.curToken.Literal)
 		return object.Nil
