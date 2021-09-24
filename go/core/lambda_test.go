@@ -25,8 +25,7 @@ func TestLambda(t *testing.T) {
 	}
 
 	env := &object.Binding{"lambda", object.Function(Lambda),
-		&object.Binding{"quote", object.Function(Quote),
-			&object.Binding{"+", object.Function(adder), nil}}}
+		&object.Binding{"+", object.Function(adder), nil}}
 
 	tests := []coreTest{{
 		input: "((lambda () 1))",

@@ -7,8 +7,7 @@ import (
 
 func TestEq(t *testing.T) {
 
-	env := &object.Binding{"eq", object.Function(Eq),
-		&object.Binding{"quote", object.Function(Quote), nil}}
+	env := &object.Binding{"eq", object.Function(Eq), nil}
 
 	tests := []coreTest{{
 		input: "(eq 1 1)",
@@ -23,9 +22,17 @@ func TestEq(t *testing.T) {
 		env:   env,
 		want:  "t",
 	}, {
-		input: "(eq (quote (1 2)) (quote (1 2)))",
+		input: "(eq '(1 2) '(1 2))",
 		env:   env,
 		want:  "t",
+	}, {
+		input: "(eq 'abc 'abc)",
+		env:   env,
+		want:  "t",
+	}, {
+		input: "(eq 'abc 'cba)",
+		env:   env,
+		want:  "()",
 	}}
 
 	testCore(t, tests)

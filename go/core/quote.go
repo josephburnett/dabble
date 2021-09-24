@@ -8,5 +8,5 @@ func Quote(env *object.Binding, args ...object.Value) object.Value {
 	if err := argsLenError("quote", args, 1); err != nil {
 		return err
 	}
-	return args[0]
+	return object.Quoted(args[0])
 }
