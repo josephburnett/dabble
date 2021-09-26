@@ -73,6 +73,10 @@ func TestEval(t *testing.T) {
 		input: "'a",
 		env:   &object.Binding{"a", object.Number(1), nil},
 		want:  "a",
+	}, {
+		input: "'(1 `b 3)",
+		env:   &object.Binding{"b", object.Number(2), nil},
+		want:  "(1 2 3)",
 	}}
 
 	for i, tt := range tests {
