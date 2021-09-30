@@ -20,9 +20,9 @@ func (s Symbol) Type() Type {
 	return SYMBOL
 }
 
-func (s Symbol) Inspect() string {
+func (s Symbol) String() string {
 	if s == "" {
-		return Nil.Inspect()
+		return Nil.String()
 	}
 	return string(s)
 }

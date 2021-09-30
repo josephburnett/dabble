@@ -34,11 +34,11 @@ func TestResolve(t *testing.T) {
 		got := tt.env.Resolve(tt.symbol)
 		if tt.wantErr {
 			if _, ok := got.(Error); !ok {
-				t.Errorf("wanted error. got %T (%q)", got, got.Inspect())
+				t.Errorf("wanted error. got %T (%q)", got, got.String())
 			}
 		} else {
-			if got.Inspect() != tt.want {
-				t.Errorf("wanted %q. got %q", tt.want, got.Inspect())
+			if got.String() != tt.want {
+				t.Errorf("wanted %q. got %q", tt.want, got.String())
 			}
 		}
 	}

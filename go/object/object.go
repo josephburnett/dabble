@@ -20,5 +20,5 @@ type Value interface {
 	First() Value
 	Rest() Value
 	Type() Type
-	Inspect() string
+	String() string
 }

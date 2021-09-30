@@ -14,6 +14,6 @@ func (e Error) Type() Type {
 	return ERROR
 }
 
-func (e Error) Inspect() string {
+func (e Error) String() string {
 	return string("<error: " + e + ">")
 }

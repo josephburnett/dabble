@@ -14,6 +14,6 @@ func (c Closure) Type() Type {
 	return CLOSURE
 }
 
-func (c Closure) Inspect() string {
+func (c Closure) String() string {
 	return "<closure>"
 }

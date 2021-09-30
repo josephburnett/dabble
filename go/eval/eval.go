@@ -52,7 +52,7 @@ func call(env *object.Binding, quoted bool, trace *Trace, cell object.Value) obj
 		return first
 	}
 	if first.Type() != object.FUNCTION && first.Type() != object.CLOSURE {
-		return object.Error(fmt.Sprintf("calling non-function: %v", first.Inspect()))
+		return object.Error(fmt.Sprintf("calling non-function: %v", first.String()))
 	}
 	rest := cell.Rest()
 	args := []object.Value{}

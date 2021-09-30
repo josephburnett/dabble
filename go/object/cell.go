@@ -29,7 +29,7 @@ func (c cell) Type() Type {
 	return CELL
 }
 
-func (c cell) Inspect() string {
+func (c cell) String() string {
 	first, rest := c[0], c[1]
 	if first == nil {
 		first = Nil
@@ -38,13 +38,13 @@ func (c cell) Inspect() string {
 		rest = Nil
 	}
 	var b strings.Builder
-	fmt.Fprintf(&b, "(%v", first.Inspect())
+	fmt.Fprintf(&b, "(%v", first.String())
 	for rest.Type() == CELL {
-		fmt.Fprintf(&b, " %v", rest.First().Inspect())
+		fmt.Fprintf(&b, " %v", rest.First().String())
 		rest = rest.Rest()
 	}
 	if rest.Type() != NIL {
-		fmt.Fprintf(&b, " %v", rest.Inspect())
+		fmt.Fprintf(&b, " %v", rest.String())
 	}
 	fmt.Fprintf(&b, ")")
 	return b.String()

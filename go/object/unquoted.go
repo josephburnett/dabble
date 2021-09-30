@@ -23,6 +23,6 @@ func (u unquoted) Type() Type {
 	return UNQUOTED
 }
 
-func (u unquoted) Inspect() string {
-	return "`" + u.value.Inspect()
+func (u unquoted) String() string {
+	return "`" + u.value.String()
 }

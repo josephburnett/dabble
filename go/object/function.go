@@ -14,6 +14,6 @@ func (f Function) Type() Type {
 	return FUNCTION
 }
 
-func (f Function) Inspect() string {
+func (f Function) String() string {
 	return "<function>"
 }

@@ -16,6 +16,6 @@ func (n Number) Type() Type {
 	return NUMBER
 }
 
-func (n Number) Inspect() string {
-	return fmt.Sprintf("%v", n)
+func (n Number) String() string {
+	return fmt.Sprintf("%v", int64(n))
 }

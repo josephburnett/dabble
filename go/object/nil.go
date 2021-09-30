@@ -16,6 +16,6 @@ func (n n) Type() Type {
 	return NIL
 }
 
-func (n n) Inspect() string {
+func (n n) String() string {
 	return "()"
 }

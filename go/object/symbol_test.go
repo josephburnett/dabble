@@ -4,44 +4,44 @@ import "testing"
 
 func TestSymbol(t *testing.T) {
 	tests := []struct {
-		symbol  Symbol
-		first   string
-		rest    string
-		inspect string
+		symbol Symbol
+		first  string
+		rest   string
+		string string
 	}{{
-		symbol:  "",
-		first:   "()",
-		rest:    "()",
-		inspect: "()",
+		symbol: "",
+		first:  "()",
+		rest:   "()",
+		string: "()",
 	}, {
-		symbol:  "a",
-		first:   "a",
-		rest:    "()",
-		inspect: "a",
+		symbol: "a",
+		first:  "a",
+		rest:   "()",
+		string: "a",
 	}, {
-		symbol:  "ab",
-		first:   "a",
-		rest:    "b",
-		inspect: "ab",
+		symbol: "ab",
+		first:  "a",
+		rest:   "b",
+		string: "ab",
 	}, {
-		symbol:  "abc",
-		first:   "a",
-		rest:    "bc",
-		inspect: "abc",
+		symbol: "abc",
+		first:  "a",
+		rest:   "bc",
+		string: "abc",
 	}}
 
 	for _, tt := range tests {
-		first := tt.symbol.First().Inspect()
+		first := tt.symbol.First().String()
 		if first != tt.first {
 			t.Errorf("given %q. want first %q. got %q", tt.symbol, tt.first, first)
 		}
-		rest := tt.symbol.Rest().Inspect()
+		rest := tt.symbol.Rest().String()
 		if rest != tt.rest {
 			t.Errorf("given %q. want rest %q. got %q", tt.symbol, tt.rest, rest)
 		}
-		inspect := tt.symbol.Inspect()
-		if inspect != tt.inspect {
-			t.Errorf("given %q. want inspect %q. got %q", tt.symbol, tt.inspect, inspect)
+		got := tt.symbol.String()
+		if got != tt.string {
+			t.Errorf("given %q. want string %q. got %q", tt.symbol, tt.string, got)
 		}
 	}
 }

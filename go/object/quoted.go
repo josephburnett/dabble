@@ -24,6 +24,6 @@ func (q quoted) Type() Type {
 	return QUOTED
 }
 
-func (q quoted) Inspect() string {
-	return "'" + q.value.Inspect()
+func (q quoted) String() string {
+	return "'" + q.value.String()
 }

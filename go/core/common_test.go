@@ -31,12 +31,12 @@ func testCore(t *testing.T, tests []coreTest) {
 			var printTrace bool
 			if tt.wantErr {
 				if _, ok := got.(object.Error); !ok {
-					t.Errorf("given value %v env %+v. want err. got %v", value.Inspect(), tt.env, got.Inspect())
+					t.Errorf("given value %v env %+v. want err. got %v", value.String(), tt.env, got.String())
 					printTrace = true
 				}
 			} else {
-				if got.Inspect() != tt.want {
-					t.Errorf("given value %v env %+v. want %v. got %v", value.Inspect(), tt.env, tt.want, got.Inspect())
+				if got.String() != tt.want {
+					t.Errorf("given value %v env %+v. want %v. got %v", value.String(), tt.env, tt.want, got.String())
 					printTrace = true
 				}
 			}
