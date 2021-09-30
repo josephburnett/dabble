@@ -26,8 +26,9 @@ func testCore(t *testing.T, tests []coreTest) {
 			if err != nil {
 				t.Fatalf(err.Error())
 			}
-			trace := eval.NewTrace()
-			got := trace.Eval(tt.env, value)
+			eval.BeginTrace()
+			got := eval.Eval(tt.env, value)
+			trace := eval.EndTrace()
 			var printTrace bool
 			if tt.wantErr {
 				if _, ok := got.(object.Error); !ok {
@@ -41,7 +42,7 @@ func testCore(t *testing.T, tests []coreTest) {
 				}
 			}
 			if printTrace {
-				t.Log("TRACE:\n" + trace.String())
+				t.Log("TRACE:\n" + trace)
 			}
 		})
 	}

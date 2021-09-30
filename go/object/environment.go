@@ -2,6 +2,7 @@ package object
 
 import (
 	"fmt"
+	"strings"
 )
 
 type Binding struct {
@@ -18,4 +19,24 @@ func (b *Binding) Resolve(symbol Symbol) Value {
 		return b.Value
 	}
 	return b.Next.Resolve(symbol)
+}
+
+func (b *Binding) String() string {
+	var rest bool
+	var sb strings.Builder
+	sb.WriteString("(")
+	for b != nil {
+		if rest {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("(")
+		sb.WriteString(b.Symbol.String())
+		sb.WriteString(" ")
+		sb.WriteString(b.Value.String())
+		sb.WriteString(")")
+		b = b.Next
+		rest = true
+	}
+	sb.WriteString(")")
+	return sb.String()
 }

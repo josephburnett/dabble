@@ -39,20 +39,20 @@ func makeMacro(macroEnv *object.Binding, free []object.Symbol, form object.Value
 		}
 		var i int
 		for i = 0; i < len(free)-1; i++ {
-			env = &object.Binding{
+			macroEnv = &object.Binding{
 				Symbol: free[i],
 				Value:  args[i],
-				Next:   env,
+				Next:   macroEnv,
 			}
 		}
 		var rest object.Value = object.Nil
 		for j := i; j < len(args); j++ {
 			rest = object.Cell(args[j], rest)
 		}
-		env = &object.Binding{
+		macroEnv = &object.Binding{
 			Symbol: free[i],
 			Value:  rest,
-			Next:   env,
+			Next:   macroEnv,
 		}
 		expandedForm := eval.Eval(macroEnv, form)
 		if expandedForm.Type() == object.ERROR {
