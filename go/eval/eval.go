@@ -6,45 +6,48 @@ import (
 )
 
 func Eval(env *object.Binding, value object.Value) object.Value {
-	return eval(env, false, value)
+	return eval(env, false, nil, value)
 }
 
-func eval(env *object.Binding, quoted bool, value object.Value) object.Value {
+func eval(env *object.Binding, quoted bool, trace *Trace, value object.Value) object.Value {
 	switch value.Type() {
 	case object.NUMBER, object.FUNCTION, object.NIL, object.ERROR:
+		trace.T("self evaluation of %v", value)
 		return value
 	case object.SYMBOL:
 		if quoted {
+			trace.T("quoted symbol %v", value)
 			return value
 		} else {
 			r := env.Resolve(value.(object.Symbol))
-			return eval(env, quoted, r)
+			trace.T("resolved symbol %v to %v", value, r)
+			return eval(env, quoted, trace, r)
 		}
 	case object.CELL:
 		if quoted {
-			first := eval(env, quoted, value.First())
+			first := eval(env, quoted, trace, value.First())
 			if first.Type() == object.ERROR {
 				return first
 			}
-			rest := eval(env, quoted, value.Rest())
+			rest := eval(env, quoted, trace, value.Rest())
 			if rest.Type() == object.ERROR {
 				return rest
 			}
 			return object.Cell(first, rest)
 		} else {
-			return call(env, value)
+			return call(env, quoted, trace, value)
 		}
 	case object.QUOTED:
-		return eval(env, true, value.First())
+		return eval(env, true, trace, value.First())
 	case object.UNQUOTED:
-		return eval(env, false, value.First())
+		return eval(env, false, trace, value.First())
 	default:
 		return object.Error(fmt.Sprintf("eval: unknown type: %T", value))
 	}
 }
 
-func call(env *object.Binding, cell object.Value) object.Value {
-	first := Eval(env, cell.First())
+func call(env *object.Binding, quoted bool, trace *Trace, cell object.Value) object.Value {
+	first := eval(env, quoted, trace, cell.First())
 	if first.Type() == object.ERROR {
 		return first
 	}

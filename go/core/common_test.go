@@ -26,15 +26,22 @@ func testCore(t *testing.T, tests []coreTest) {
 			if err != nil {
 				t.Fatalf(err.Error())
 			}
-			got := eval.Eval(tt.env, value)
+			trace := eval.NewTrace()
+			got := trace.Eval(tt.env, value)
+			var printTrace bool
 			if tt.wantErr {
 				if _, ok := got.(object.Error); !ok {
 					t.Errorf("given value %v env %+v. want err. got %v", value.Inspect(), tt.env, got.Inspect())
+					printTrace = true
 				}
 			} else {
 				if got.Inspect() != tt.want {
 					t.Errorf("given value %v env %+v. want %v. got %v", value.Inspect(), tt.env, tt.want, got.Inspect())
+					printTrace = true
 				}
+			}
+			if printTrace {
+				t.Log("TRACE:\n" + trace.String())
 			}
 		})
 	}
