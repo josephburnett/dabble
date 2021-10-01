@@ -11,21 +11,17 @@ func TestCar(t *testing.T) {
 
 	tests := []coreTest{{
 		input:   "(car)",
-		env:     env,
 		wantErr: true,
 	}, {
 		input: "(car 1)",
-		env:   env,
 		want:  "1",
 	}, {
 		input: "(car '(1 2 3 4))",
-		env:   env,
 		want:  "1",
 	}, {
 		input: "(car ())",
-		env:   env,
 		want:  "()",
 	}}
 
-	testCore(t, tests)
+	testCore(t, env, tests)
 }

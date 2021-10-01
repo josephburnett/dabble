@@ -11,13 +11,11 @@ func TestQuote(t *testing.T) {
 
 	tests := []coreTest{{
 		input: "(quote ())",
-		env:   env,
 		want:  "'()",
 	}, {
 		input: "(quote (1 2 3 4))",
-		env:   env,
 		want:  "'(1 2 3 4)",
 	}}
 
-	testCore(t, tests)
+	testCore(t, env, tests)
 }

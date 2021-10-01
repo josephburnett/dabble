@@ -14,6 +14,7 @@ func init() {
 		"if":      If,
 		"label":   Label,
 		"lambda":  Lambda,
+		"macro":   Macro,
 		"quote":   Quote,
 		"unquote": Unquote,
 	} {

@@ -11,13 +11,11 @@ func TestUnquote(t *testing.T) {
 
 	tests := []coreTest{{
 		input: "(unquote ())",
-		env:   env,
 		want:  "`()",
 	}, {
 		input: "(unquote (1 2 3 4))",
-		env:   env,
 		want:  "`(1 2 3 4)",
 	}}
 
-	testCore(t, tests)
+	testCore(t, env, tests)
 }
