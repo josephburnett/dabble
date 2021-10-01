@@ -30,7 +30,7 @@ func eval(env *object.Binding, quoted bool, value object.Value) (ret object.Valu
 				return r
 			}
 			T("resolved symbol %v to %v", value, r)
-			return eval(env, quoted, r)
+			return r
 		}
 	case object.CELL:
 		if quoted {
@@ -62,7 +62,7 @@ func eval(env *object.Binding, quoted bool, value object.Value) (ret object.Valu
 			return eval(env, true, value.First())
 		}
 	case object.UNQUOTED:
-		T("unwrapping unquoted %v", value)
+		T("evaluating within unquoted %v", value)
 		return eval(env, false, value.First())
 	default:
 		return object.Error(fmt.Sprintf("eval: unknown type: %T", value))

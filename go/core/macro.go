@@ -57,7 +57,7 @@ func makeMacro(macroEnv *object.Binding, free []object.Symbol, haveRest bool, fo
 		var rest object.Value
 		if haveRest {
 			rest = object.Nil
-			for j := i; j < len(args); j++ {
+			for j := len(args) - 1; j >= i; j-- {
 				rest = object.Cell(args[j], rest)
 			}
 			macroEnv = &object.Binding{
