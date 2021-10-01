@@ -22,11 +22,15 @@ func EndTrace() string {
 	return out
 }
 
+func T(msg string, args ...interface{}) string {
+	return t.T(msg, args...)
+}
+
 func (t *trace) T(msg string, args ...interface{}) string {
 	if t == nil {
 		return msg
 	}
-	indent := strings.Repeat("    ", t.indent)
+	indent := strings.Repeat(".   ", t.indent)
 	out := fmt.Sprintf(indent+msg, args...)
 	t.lines = append(t.lines, out)
 	return out

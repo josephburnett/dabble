@@ -13,47 +13,56 @@ func eval(env *object.Binding, quoted bool, value object.Value) (ret object.Valu
 	t.In()
 	defer t.Out()
 	defer func() {
-		t.T("returning %v", ret)
+		T("returning %v", ret)
 	}()
 	switch value.Type() {
 	case object.NUMBER, object.FUNCTION, object.NIL, object.ERROR:
-		t.T("self evaluation of %v", value)
+		T("self evaluation of %v", value)
 		return value
 	case object.SYMBOL:
 		if quoted {
-			t.T("quoted symbol %v", value)
+			T("quoted symbol %v", value)
 			return value
 		} else {
 			r := env.Resolve(value.(object.Symbol))
 			if r.Type() == object.ERROR {
-				t.T("error resolving symbol %v in environment %v", value, env)
+				T("error resolving symbol %v in environment %v", value, env)
 				return r
 			}
-			t.T("resolved symbol %v to %v", value, r)
+			T("resolved symbol %v to %v", value, r)
 			return eval(env, quoted, r)
 		}
 	case object.CELL:
 		if quoted {
-			t.T("eval first %v", value.First())
+			T("eval first %v", value.First())
 			first := eval(env, quoted, value.First())
 			if first.Type() == object.ERROR {
 				return first
 			}
-			t.T("eval rest %v", value.Rest())
+			T("eval rest %v", value.Rest())
 			rest := eval(env, quoted, value.Rest())
 			if rest.Type() == object.ERROR {
 				return rest
 			}
 			return object.Cell(first, rest)
 		} else {
-			t.T("calling cell %v", value)
+			T("calling cell %v", value)
 			return call(env, quoted, value)
 		}
 	case object.QUOTED:
-		t.T("unwrapping quoted %v", value)
-		return eval(env, true, value.First())
+		if quoted {
+			T("looking for unquotes in quoted value")
+			q := eval(env, true, value.First())
+			if q.Type() == object.ERROR {
+				return q
+			}
+			return object.Quoted(q)
+		} else {
+			T("unwrapping quoted %v", value)
+			return eval(env, true, value.First())
+		}
 	case object.UNQUOTED:
-		t.T("unwrapping unquoted %v", value)
+		T("unwrapping unquoted %v", value)
 		return eval(env, false, value.First())
 	default:
 		return object.Error(fmt.Sprintf("eval: unknown type: %T", value))
@@ -64,9 +73,9 @@ func call(env *object.Binding, quoted bool, cell object.Value) (ret object.Value
 	t.In()
 	defer t.Out()
 	defer func() {
-		t.T("returning %v", ret)
+		T("returning %v", ret)
 	}()
-	t.T("evaluting %v", cell.First())
+	T("evaluting %v", cell.First())
 	first := eval(env, quoted, cell.First())
 	if first.Type() == object.ERROR {
 		return first
@@ -81,7 +90,7 @@ func call(env *object.Binding, quoted bool, cell object.Value) (ret object.Value
 		rest = rest.Rest()
 	}
 
-	t.T("calling %v with args %v", first, cell.Rest())
+	T("calling %v with args %v", first, cell.Rest())
 	if first.Type() == object.FUNCTION {
 		function := first.(object.Function)
 		return function(env, args...)
