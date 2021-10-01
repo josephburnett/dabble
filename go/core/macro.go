@@ -72,7 +72,7 @@ func makeMacro(macroEnv *object.Binding, free []object.Symbol, haveRest bool, fo
 				Next:   macroEnv,
 			}
 		}
-		expandedForm := eval.Eval(macroEnv, form)
+		expandedForm := object.Quoted(eval.Eval(macroEnv, form))
 		eval.T("expanded macro form: %v", expandedForm)
 		if expandedForm.Type() == object.ERROR {
 			return expandedForm

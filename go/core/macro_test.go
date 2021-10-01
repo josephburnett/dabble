@@ -16,11 +16,11 @@ func TestMacro(t *testing.T) {
 		env:   env,
 		want:  "1",
 	}, {
-		input: "((macro (x y) ''(`x `y)) 1 2)",
+		input: "((macro (x y) '(`x `y)) 1 2)",
 		env:   env,
 		want:  "(1 2)",
 	}, {
-		input: "((macro ((xs)) '(cdr '`xs)) 1 2 3)",
+		input: "((macro ((xs)) (cdr '`xs)) 1 2 3)",
 		env:   env,
 		want:  "(2 3)",
 	}}
