@@ -1,13 +1,13 @@
 package core
 
 import (
-	"dabble/object"
+	"dabble/eval"
 	"testing"
 )
 
 func TestEq(t *testing.T) {
 
-	env := &object.Binding{"eq", object.Function(Eq), nil}
+	env := (*eval.Frame)(nil).Bind("eq", eval.Function(Eq))
 
 	tests := []coreTest{{
 		input: "(eq 1 1)",

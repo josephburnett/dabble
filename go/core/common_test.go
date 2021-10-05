@@ -15,7 +15,7 @@ type coreTest struct {
 	wantErr bool
 }
 
-func testCore(t *testing.T, env *object.Binding, tests []coreTest) {
+func testCore(t *testing.T, env *eval.Frame, tests []coreTest) {
 	t.Helper()
 	for i, tt := range tests {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {

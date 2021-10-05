@@ -1,13 +1,13 @@
 package core
 
 import (
-	"dabble/object"
+	"dabble/eval"
 	"testing"
 )
 
 func TestUnquote(t *testing.T) {
 
-	env := &object.Binding{"unquote", object.Function(Unquote), nil}
+	env := (*eval.Frame)(nil).Bind("unquote", eval.Function(Unquote))
 
 	tests := []coreTest{{
 		input: "(unquote ())",

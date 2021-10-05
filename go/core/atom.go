@@ -5,9 +5,9 @@ import (
 	"dabble/object"
 )
 
-var _ object.Function = Atom
+var _ eval.Function = Atom
 
-func Atom(env *object.Binding, args ...object.Value) object.Value {
+func Atom(env *eval.Frame, args ...object.Value) object.Value {
 	if err := argsLenError("atom", args, 1); err != nil {
 		return err
 	}

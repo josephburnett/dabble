@@ -1,0 +1,74 @@
+package eval
+
+import (
+	"dabble/object"
+	"fmt"
+	"strings"
+)
+
+type Frame struct {
+	caller Function
+	symbol object.Symbol
+	value  object.Value
+	next   *Frame
+}
+
+func (f *Frame) Bind(symbol object.Symbol, value object.Value) *Frame {
+	return &Frame{
+		symbol: symbol,
+		value:  value,
+		next:   f,
+	}
+}
+
+func (f *Frame) Resolve(symbol object.Symbol) object.Value {
+	if f == nil {
+		return object.Error(fmt.Sprintf("symbol not bound: %q", symbol))
+	}
+	if f.symbol == symbol {
+		return f.value
+	}
+	return f.next.Resolve(symbol)
+}
+
+func (f *Frame) Call(caller Function) *Frame {
+	return &Frame{
+		caller: caller,
+		next:   f,
+	}
+}
+
+func (f *Frame) LastCaller() Function {
+	if f == nil {
+		return func(_ *Frame, _ ...object.Value) object.Value {
+			return object.Error(fmt.Sprintf("no caller"))
+		}
+	}
+	if f.caller != nil {
+		return f.caller
+	}
+	return f.next.LastCaller()
+}
+
+func (f *Frame) String() string {
+	var rest bool
+	var sb strings.Builder
+	sb.WriteString("(")
+	for f != nil {
+		if f.caller != nil {
+			continue
+		}
+		if rest {
+			sb.WriteString(" ")
+		}
+		sb.WriteString("(")
+		sb.WriteString(f.symbol.String())
+		sb.WriteString(" ")
+		sb.WriteString(f.value.String())
+		sb.WriteString(")")
+		f = f.next
+		rest = true
+	}
+	sb.WriteString(")")
+	return sb.String()
+}

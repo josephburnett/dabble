@@ -1,13 +1,13 @@
 package core
 
 import (
-	"dabble/object"
+	"dabble/eval"
 	"testing"
 )
 
 func TestCar(t *testing.T) {
 
-	env := &object.Binding{"car", object.Function(Car), nil}
+	env := (*eval.Frame)(nil).Bind("car", eval.Function(Car))
 
 	tests := []coreTest{{
 		input:   "(car)",

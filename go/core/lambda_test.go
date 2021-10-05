@@ -9,7 +9,7 @@ import (
 
 func TestLambda(t *testing.T) {
 
-	adder := func(env *object.Binding, args ...object.Value) object.Value {
+	adder := func(env *eval.Frame, args ...object.Value) object.Value {
 		if err := argsLenError("adder", args, 2); err != nil {
 			return err
 		}
@@ -24,8 +24,8 @@ func TestLambda(t *testing.T) {
 		return first.(object.Number) + second.(object.Number)
 	}
 
-	env := &object.Binding{"lambda", object.Function(Lambda),
-		&object.Binding{"+", object.Function(adder), nil}}
+	env := (*eval.Frame)(nil).Bind("lambda", eval.Function(Lambda)).
+		Bind("+", eval.Function(adder))
 
 	tests := []coreTest{{
 		input: "((lambda () 1))",

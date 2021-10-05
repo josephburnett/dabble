@@ -5,9 +5,9 @@ import (
 	"dabble/object"
 )
 
-var _ object.Function = Eq
+var _ eval.Function = Eq
 
-func Eq(env *object.Binding, args ...object.Value) object.Value {
+func Eq(env *eval.Frame, args ...object.Value) object.Value {
 	if err := argsLenError("eq", args, 2); err != nil {
 		return err
 	}

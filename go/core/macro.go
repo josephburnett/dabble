@@ -6,9 +6,9 @@ import (
 	"fmt"
 )
 
-var _ object.Function = Macro
+var _ eval.Function = Macro
 
-func Macro(env *object.Binding, args ...object.Value) object.Value {
+func Macro(env *eval.Frame, args ...object.Value) object.Value {
 	if err := argsLenError("macro", args, 2); err != nil {
 		return err
 	}
@@ -37,8 +37,8 @@ func Macro(env *object.Binding, args ...object.Value) object.Value {
 	return makeMacro(env, free, rest, form)
 }
 
-func makeMacro(macroEnv *object.Binding, free []object.Symbol, haveRest bool, form object.Value) object.Function {
-	return func(env *object.Binding, args ...object.Value) object.Value {
+func makeMacro(macroEnv *eval.Frame, free []object.Symbol, haveRest bool, form object.Value) eval.Function {
+	return func(env *eval.Frame, args ...object.Value) object.Value {
 		if len(args) < len(free) {
 			return object.Error("not enough arguments to macro")
 		}
@@ -47,12 +47,7 @@ func makeMacro(macroEnv *object.Binding, free []object.Symbol, haveRest bool, fo
 		}
 		var i int
 		for i = 0; i < len(free)-1; i++ {
-			macroEnv = &object.Binding{
-				Symbol: free[i],
-				Value:  args[i],
-				Next:   macroEnv,
-			}
-
+			macroEnv = macroEnv.Bind(free[i], args[i])
 		}
 		var rest object.Value
 		if haveRest {
@@ -60,17 +55,9 @@ func makeMacro(macroEnv *object.Binding, free []object.Symbol, haveRest bool, fo
 			for j := len(args) - 1; j >= i; j-- {
 				rest = object.Cell(args[j], rest)
 			}
-			macroEnv = &object.Binding{
-				Symbol: free[i],
-				Value:  rest,
-				Next:   macroEnv,
-			}
+			macroEnv = macroEnv.Bind(free[i], rest)
 		} else {
-			macroEnv = &object.Binding{
-				Symbol: free[i],
-				Value:  args[i],
-				Next:   macroEnv,
-			}
+			macroEnv = macroEnv.Bind(free[i], args[i])
 		}
 		expandedForm := object.Quoted(eval.Eval(macroEnv, form))
 		eval.T("expanded macro form: %v", expandedForm)

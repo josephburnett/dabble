@@ -1,13 +1,13 @@
 package core
 
 import (
-	"dabble/object"
+	"dabble/eval"
 	"testing"
 )
 
 func TestCdr(t *testing.T) {
 
-	env := &object.Binding{"cdr", object.Function(Cdr), nil}
+	env := (*eval.Frame)(nil).Bind("cdr", eval.Function(Cdr))
 
 	tests := []coreTest{{
 		input: "(cdr 2)",

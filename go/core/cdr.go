@@ -5,9 +5,9 @@ import (
 	"dabble/object"
 )
 
-var _ object.Function = Cdr
+var _ eval.Function = Cdr
 
-func Cdr(env *object.Binding, args ...object.Value) object.Value {
+func Cdr(env *eval.Frame, args ...object.Value) object.Value {
 	if err := argsLenError("cdr", args, 1); err != nil {
 		return err
 	}

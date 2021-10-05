@@ -6,9 +6,9 @@ import (
 	"fmt"
 )
 
-var _ object.Function = Label
+var _ eval.Function = Label
 
-func Label(env *object.Binding, args ...object.Value) object.Value {
+func Label(env *eval.Frame, args ...object.Value) object.Value {
 	if err := argsLenError("car", args, 3); err != nil {
 		return err
 	}
@@ -16,10 +16,6 @@ func Label(env *object.Binding, args ...object.Value) object.Value {
 	if symbol.Type() != object.SYMBOL {
 		return object.Error(fmt.Sprintf("label non-symbol binding: %v", symbol))
 	}
-	env = &object.Binding{
-		Symbol: symbol.(object.Symbol),
-		Value:  args[1],
-		Next:   env,
-	}
+	env = env.Bind(symbol.(object.Symbol), args[1])
 	return eval.Eval(env, args[2])
 }

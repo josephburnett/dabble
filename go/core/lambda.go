@@ -6,9 +6,9 @@ import (
 	"fmt"
 )
 
-var _ object.Function = Lambda
+var _ eval.Function = Lambda
 
-func Lambda(env *object.Binding, args ...object.Value) object.Value {
+func Lambda(env *eval.Frame, args ...object.Value) object.Value {
 	if err := argsLenError("lambda", args, 2); err != nil {
 		return err
 	}
@@ -29,8 +29,8 @@ func Lambda(env *object.Binding, args ...object.Value) object.Value {
 	return makeClosure(env, free, form)
 }
 
-func makeClosure(env *object.Binding, free []object.Symbol, form object.Value) object.Closure {
-	return func(args ...object.Value) object.Value {
+func makeClosure(env *eval.Frame, free []object.Symbol, form object.Value) eval.Function {
+	return func(_ *eval.Frame, args ...object.Value) object.Value {
 		if err := argsLenError("lambda args", args, len(free)); err != nil {
 			return err
 		}
@@ -39,11 +39,7 @@ func makeClosure(env *object.Binding, free []object.Symbol, form object.Value) o
 			if value.Type() == object.ERROR {
 				return value
 			}
-			env = &object.Binding{
-				Symbol: f,
-				Value:  value,
-				Next:   env,
-			}
+			env = env.Bind(f, value)
 		}
 		return eval.Eval(env, form)
 	}

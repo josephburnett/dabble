@@ -1,13 +1,13 @@
 package core
 
 import (
-	"dabble/object"
+	"dabble/eval"
 	"testing"
 )
 
 func TestQuote(t *testing.T) {
 
-	env := &object.Binding{"quote", object.Function(Quote), nil}
+	env := (*eval.Frame)(nil).Bind("quote", eval.Function(Quote))
 
 	tests := []coreTest{{
 		input: "(quote ())",

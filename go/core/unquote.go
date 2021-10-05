@@ -1,10 +1,13 @@
 package core
 
-import "dabble/object"
+import (
+	"dabble/eval"
+	"dabble/object"
+)
 
-var _ object.Function = Unquote
+var _ eval.Function = Unquote
 
-func Unquote(env *object.Binding, args ...object.Value) object.Value {
+func Unquote(env *eval.Frame, args ...object.Value) object.Value {
 	if err := argsLenError("unquote", args, 1); err != nil {
 		return err
 	}

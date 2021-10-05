@@ -1,10 +1,13 @@
 package core
 
-import "dabble/object"
+import (
+	"dabble/eval"
+	"dabble/object"
+)
 
-var _ object.Function = Quote
+var _ eval.Function = Quote
 
-func Quote(env *object.Binding, args ...object.Value) object.Value {
+func Quote(env *eval.Frame, args ...object.Value) object.Value {
 	if err := argsLenError("quote", args, 1); err != nil {
 		return err
 	}

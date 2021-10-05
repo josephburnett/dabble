@@ -1,13 +1,13 @@
 package core
 
 import (
-	"dabble/object"
+	"dabble/eval"
 	"testing"
 )
 
 func TestCons(t *testing.T) {
 
-	env := &object.Binding{"cons", object.Function(Cons), nil}
+	env := (*eval.Frame)(nil).Bind("cons", eval.Function(Cons))
 
 	tests := []coreTest{{
 		input: "(cons 1 '(2 3 4))",

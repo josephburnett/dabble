@@ -1,11 +1,14 @@
 package core
 
-import "dabble/object"
+import (
+	"dabble/eval"
+	"dabble/object"
+)
 
-var Env *object.Binding
+var Env *eval.Frame
 
 func init() {
-	for name, fn := range map[string]object.Function{
+	for name, fn := range map[string]eval.Function{
 		"atom":    Atom,
 		"car":     Car,
 		"cdr":     Cdr,
@@ -18,10 +21,6 @@ func init() {
 		"quote":   Quote,
 		"unquote": Unquote,
 	} {
-		Env = &object.Binding{
-			Symbol: object.Symbol(name),
-			Value:  fn,
-			Next:   Env,
-		}
+		Env = Env.Bind(object.Symbol(name), fn)
 	}
 }

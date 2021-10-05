@@ -5,9 +5,9 @@ import (
 	"dabble/object"
 )
 
-var _ object.Function = Cons
+var _ eval.Function = Cons
 
-func Cons(env *object.Binding, args ...object.Value) object.Value {
+func Cons(env *eval.Frame, args ...object.Value) object.Value {
 	if err := argsLenError("cons", args, 2); err != nil {
 		return err
 	}

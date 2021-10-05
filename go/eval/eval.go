@@ -5,11 +5,11 @@ import (
 	"fmt"
 )
 
-func Eval(env *object.Binding, value object.Value) object.Value {
+func Eval(env *Frame, value object.Value) object.Value {
 	return eval(env, false, value)
 }
 
-func eval(env *object.Binding, quoted bool, value object.Value) (ret object.Value) {
+func eval(env *Frame, quoted bool, value object.Value) (ret object.Value) {
 	t.In()
 	defer t.Out()
 	defer func() {
@@ -69,7 +69,7 @@ func eval(env *object.Binding, quoted bool, value object.Value) (ret object.Valu
 	}
 }
 
-func call(env *object.Binding, quoted bool, cell object.Value) (ret object.Value) {
+func call(env *Frame, quoted bool, cell object.Value) (ret object.Value) {
 	t.In()
 	defer t.Out()
 	defer func() {
@@ -91,11 +91,6 @@ func call(env *object.Binding, quoted bool, cell object.Value) (ret object.Value
 	}
 
 	T("calling %v with args %v", first, cell.Rest())
-	if first.Type() == object.FUNCTION {
-		function := first.(object.Function)
-		return function(env, args...)
-	} else {
-		closure := first.(object.Closure)
-		return closure(args...)
-	}
+	function := first.(Function)
+	return function(env, args...)
 }

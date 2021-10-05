@@ -11,18 +11,18 @@ import (
 
 func TestEval(t *testing.T) {
 
-	passFunction := object.Function(func(env *object.Binding, args ...object.Value) object.Value {
+	passFunction := Function(func(env *Frame, args ...object.Value) object.Value {
 		return object.Symbol("pass")
 	})
 
-	identityFunction := object.Function(func(env *object.Binding, args ...object.Value) object.Value {
+	identityFunction := Function(func(env *Frame, args ...object.Value) object.Value {
 		if len(args) != 1 {
 			return object.Error(fmt.Sprintf("wrong args: %v", args))
 		}
 		return args[0]
 	})
 
-	addingFunction := object.Function(func(env *object.Binding, args ...object.Value) object.Value {
+	addingFunction := Function(func(env *Frame, args ...object.Value) object.Value {
 		if len(args) != 1 {
 			return object.Error(fmt.Sprintf("wrong args: %v", args))
 		}
@@ -38,7 +38,7 @@ func TestEval(t *testing.T) {
 
 	tests := []struct {
 		input   string
-		env     *object.Binding
+		env     *Frame
 		want    string
 		wantErr bool
 	}{{
@@ -59,23 +59,23 @@ func TestEval(t *testing.T) {
 		want:  "()",
 	}, {
 		input: "(bar)",
-		env:   &object.Binding{"bar", passFunction, nil},
+		env:   (*Frame)(nil).Bind("bar", passFunction),
 		want:  "pass",
 	}, {
 		input: "(baz 123)",
-		env:   &object.Binding{"baz", identityFunction, nil},
+		env:   (*Frame)(nil).Bind("baz", identityFunction),
 		want:  "123",
 	}, {
 		input: "(+ (+ 1))",
-		env:   &object.Binding{"+", addingFunction, nil},
+		env:   (*Frame)(nil).Bind("+", addingFunction),
 		want:  "3",
 	}, {
 		input: "'a",
-		env:   &object.Binding{"a", object.Number(1), nil},
+		env:   (*Frame)(nil).Bind("a", object.Number(1)),
 		want:  "a",
 	}, {
 		input: "'(1 `b 3)",
-		env:   &object.Binding{"b", object.Number(2), nil},
+		env:   (*Frame)(nil).Bind("b", object.Number(2)),
 		want:  "(1 2 3)",
 	}}
 

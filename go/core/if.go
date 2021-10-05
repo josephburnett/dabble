@@ -1,10 +1,13 @@
 package core
 
-import "dabble/object"
+import (
+	"dabble/eval"
+	"dabble/object"
+)
 
-var _ object.Function = If
+var _ eval.Function = If
 
-func If(env *object.Binding, args ...object.Value) object.Value {
+func If(env *eval.Frame, args ...object.Value) object.Value {
 	if err := argsLenError("if", args, 3); err != nil {
 		return err
 	}
