@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+var NilFrame *Frame = nil
+
 type Frame struct {
 	caller Function
 	symbol object.Symbol

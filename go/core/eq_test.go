@@ -7,7 +7,7 @@ import (
 
 func TestEq(t *testing.T) {
 
-	env := (*eval.Frame)(nil).Bind("eq", eval.Function(Eq))
+	env := eval.NilFrame.Bind("eq", eval.Function(Eq))
 
 	tests := []coreTest{{
 		input: "(eq 1 1)",

@@ -59,23 +59,23 @@ func TestEval(t *testing.T) {
 		want:  "()",
 	}, {
 		input: "(bar)",
-		env:   (*Frame)(nil).Bind("bar", passFunction),
+		env:   NilFrame.Bind("bar", passFunction),
 		want:  "pass",
 	}, {
 		input: "(baz 123)",
-		env:   (*Frame)(nil).Bind("baz", identityFunction),
+		env:   NilFrame.Bind("baz", identityFunction),
 		want:  "123",
 	}, {
 		input: "(+ (+ 1))",
-		env:   (*Frame)(nil).Bind("+", addingFunction),
+		env:   NilFrame.Bind("+", addingFunction),
 		want:  "3",
 	}, {
 		input: "'a",
-		env:   (*Frame)(nil).Bind("a", object.Number(1)),
+		env:   NilFrame.Bind("a", object.Number(1)),
 		want:  "a",
 	}, {
 		input: "'(1 `b 3)",
-		env:   (*Frame)(nil).Bind("b", object.Number(2)),
+		env:   NilFrame.Bind("b", object.Number(2)),
 		want:  "(1 2 3)",
 	}}
 

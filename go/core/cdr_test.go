@@ -7,7 +7,7 @@ import (
 
 func TestCdr(t *testing.T) {
 
-	env := (*eval.Frame)(nil).Bind("cdr", eval.Function(Cdr))
+	env := eval.NilFrame.Bind("cdr", eval.Function(Cdr))
 
 	tests := []coreTest{{
 		input: "(cdr 2)",

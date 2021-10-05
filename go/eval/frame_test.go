@@ -17,16 +17,16 @@ func TestResolve(t *testing.T) {
 		symbol:  object.Symbol("foo"),
 		wantErr: true,
 	}, {
-		env:    (*Frame)(nil).Bind("foo", object.Number(1)),
+		env:    NilFrame.Bind("foo", object.Number(1)),
 		symbol: object.Symbol("foo"),
 		want:   "1",
 	}, {
-		env: (*Frame)(nil).Bind("bar", object.Number(2)).
-			Bind("foo", object.Number(1)),
+		env: NilFrame.Bind("foo", object.Number(1)).
+			Bind("bar", object.Number(2)),
 		symbol: object.Symbol("foo"),
 		want:   "1",
 	}, {
-		env: (*Frame)(nil).Bind("foo", object.Number(2)).
+		env: NilFrame.Bind("foo", object.Number(2)).
 			Bind("foo", object.Number(1)),
 		symbol: object.Symbol("foo"),
 		want:   "1",

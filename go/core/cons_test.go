@@ -7,7 +7,7 @@ import (
 
 func TestCons(t *testing.T) {
 
-	env := (*eval.Frame)(nil).Bind("cons", eval.Function(Cons))
+	env := eval.NilFrame.Bind("cons", eval.Function(Cons))
 
 	tests := []coreTest{{
 		input: "(cons 1 '(2 3 4))",

@@ -7,7 +7,7 @@ import (
 
 func TestQuote(t *testing.T) {
 
-	env := (*eval.Frame)(nil).Bind("quote", eval.Function(Quote))
+	env := eval.NilFrame.Bind("quote", eval.Function(Quote))
 
 	tests := []coreTest{{
 		input: "(quote ())",

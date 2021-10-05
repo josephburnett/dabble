@@ -7,7 +7,7 @@ import (
 
 func TestUnquote(t *testing.T) {
 
-	env := (*eval.Frame)(nil).Bind("unquote", eval.Function(Unquote))
+	env := eval.NilFrame.Bind("unquote", eval.Function(Unquote))
 
 	tests := []coreTest{{
 		input: "(unquote ())",

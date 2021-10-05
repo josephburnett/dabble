@@ -7,7 +7,7 @@ import (
 
 func TestCar(t *testing.T) {
 
-	env := (*eval.Frame)(nil).Bind("car", eval.Function(Car))
+	env := eval.NilFrame.Bind("car", eval.Function(Car))
 
 	tests := []coreTest{{
 		input:   "(car)",
