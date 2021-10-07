@@ -20,6 +20,7 @@ func init() {
 		"macro":   Macro,
 		"quote":   Quote,
 		"unquote": Unquote,
+		"recur":   Recur,
 	} {
 		Env = Env.Bind(object.Symbol(name), fn)
 	}

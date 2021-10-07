@@ -30,7 +30,8 @@ func Lambda(env *eval.Frame, args ...object.Value) object.Value {
 }
 
 func makeClosure(env *eval.Frame, free []object.Symbol, form object.Value) eval.Function {
-	return func(_ *eval.Frame, args ...object.Value) object.Value {
+	var function eval.Function
+	function = func(_ *eval.Frame, args ...object.Value) object.Value {
 		if err := argsLenError("lambda args", args, len(free)); err != nil {
 			return err
 		}
@@ -41,6 +42,8 @@ func makeClosure(env *eval.Frame, free []object.Symbol, form object.Value) eval.
 			}
 			env = env.Bind(f, value)
 		}
+		env = env.Call(function)
 		return eval.Eval(env, form)
 	}
+	return function
 }

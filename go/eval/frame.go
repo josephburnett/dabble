@@ -58,6 +58,7 @@ func (f *Frame) String() string {
 	sb.WriteString("(")
 	for f != nil {
 		if f.caller != nil {
+			f = f.next
 			continue
 		}
 		if rest {

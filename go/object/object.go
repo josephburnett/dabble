@@ -12,7 +12,6 @@ const (
 	UNQUOTED = "UNQUOTED"
 
 	FUNCTION = "FUNCTION"
-	CLOSURE  = "CLOSURE"
 	ERROR    = "ERROR"
 )
 

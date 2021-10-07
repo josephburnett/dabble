@@ -46,7 +46,7 @@ func eval(env *Frame, quoted bool, value object.Value) (ret object.Value) {
 			}
 			return object.Cell(first, rest)
 		} else {
-			T("calling cell %v", value)
+			T("calling %v", value)
 			return call(env, quoted, value)
 		}
 	case object.QUOTED:
@@ -80,7 +80,7 @@ func call(env *Frame, quoted bool, cell object.Value) (ret object.Value) {
 	if first.Type() == object.ERROR {
 		return first
 	}
-	if first.Type() != object.FUNCTION && first.Type() != object.CLOSURE {
+	if first.Type() != object.FUNCTION {
 		return object.Error(fmt.Sprintf("calling non-function: %v", first.String()))
 	}
 	rest := cell.Rest()
