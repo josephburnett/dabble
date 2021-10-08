@@ -39,7 +39,11 @@ func makeMacro(macroEnv *eval.Frame, free []object.Symbol, haveRest bool, form o
 	return &eval.Function{
 		Name: "macro",
 		Fn: func(env *eval.Frame, args ...object.Value) object.Value {
-			if len(args) < len(free) {
+			requiredLen := len(free)
+			if haveRest {
+				requiredLen--
+			}
+			if len(args) < requiredLen {
 				return object.Error("not enough arguments to macro")
 			}
 			if !haveRest && len(args) != len(free) {

@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-func XTestLib(t *testing.T) {
+func TestLib(t *testing.T) {
 	err := filepath.Walk("../../tst", func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() {
 			return nil

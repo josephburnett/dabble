@@ -16,6 +16,8 @@ var Env *eval.Frame
 
 func init() {
 
+	Env = Env.Bind("t", object.Symbol("t"))
+
 	var builtins *eval.Frame
 	for name, fn := range map[string]func(*eval.Frame, ...object.Value) object.Value{
 		"atom":    Atom,
@@ -30,6 +32,7 @@ func init() {
 		"quote":   Quote,
 		"unquote": Unquote,
 		"recur":   Recur,
+		"error":   Error,
 	} {
 		function := &eval.Function{
 			Name: name,
