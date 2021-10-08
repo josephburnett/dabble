@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 var Env *eval.Frame
@@ -43,6 +44,10 @@ func init() {
 		if info.IsDir() {
 			return nil
 		}
+		if !strings.HasSuffix(info.Name(), ".lisp") {
+			return nil
+		}
+		symbol := info.Name()[:len(info.Name())-len(".lisp")]
 		bytes, err := ioutil.ReadFile(path)
 		if err != nil {
 			return err
@@ -57,14 +62,11 @@ func init() {
 		if value.Type() == object.ERROR {
 			panic(fmt.Sprintf("%q %v", info.Name(), string(value.(object.Error))))
 		}
-		lib = lib.Bind(object.Symbol(info.Name()), value)
+		lib = lib.Bind(object.Symbol(symbol), value)
 		return nil
 	})
 	if err != nil {
 		panic(err)
 	}
 	Env = Env.BindAll(lib)
-
-	// lib_test.go will walk dabble/tst/*
-	// and eval each .lisp file, asserting t.
 }
