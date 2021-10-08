@@ -47,9 +47,22 @@ func (f *Frame) LastCaller() Function {
 		}
 	}
 	if f.caller != nil {
+
 		return f.caller
 	}
 	return f.next.LastCaller()
+}
+
+func (f *Frame) BindAll(f2 *Frame) *Frame {
+	for f2 != nil {
+		if f2.caller != nil {
+			f = f.Call(f2.caller)
+		} else {
+			f = f.Bind(f2.symbol, f2.value)
+		}
+		f2 = f2.next
+	}
+	return f
 }
 
 func (f *Frame) String() string {
