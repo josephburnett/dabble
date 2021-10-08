@@ -8,11 +8,11 @@ import (
 
 func TestRecur(t *testing.T) {
 
-	env := Env.Bind("-", eval.Function(func(env *eval.Frame, args ...object.Value) object.Value {
+	env := Env.Bind("-", &eval.Function{Fn: func(env *eval.Frame, args ...object.Value) object.Value {
 		a := eval.Eval(env, args[0])
 		b := eval.Eval(env, args[1])
 		return object.Number(a.(object.Number) - b.(object.Number))
-	}))
+	}})
 
 	tests := []coreTest{{
 		input: `

@@ -5,8 +5,6 @@ import (
 	"dabble/object"
 )
 
-var _ eval.Function = Car
-
 func Car(env *eval.Frame, args ...object.Value) object.Value {
 	if err := argsLenError("car", args, 1); err != nil {
 		return err

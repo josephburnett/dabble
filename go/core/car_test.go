@@ -1,13 +1,10 @@
 package core
 
 import (
-	"dabble/eval"
 	"testing"
 )
 
 func TestCar(t *testing.T) {
-
-	env := eval.NilFrame.Bind("car", eval.Function(Car))
 
 	tests := []coreTest{{
 		input:   "(car)",
@@ -23,5 +20,5 @@ func TestCar(t *testing.T) {
 		want:  "()",
 	}}
 
-	testCore(t, env, tests)
+	testCore(t, Env, tests)
 }

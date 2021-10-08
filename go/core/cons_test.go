@@ -1,13 +1,10 @@
 package core
 
 import (
-	"dabble/eval"
 	"testing"
 )
 
 func TestCons(t *testing.T) {
-
-	env := eval.NilFrame.Bind("cons", eval.Function(Cons))
 
 	tests := []coreTest{{
 		input: "(cons 1 '(2 3 4))",
@@ -29,5 +26,5 @@ func TestCons(t *testing.T) {
 		want:  "(1 2)",
 	}}
 
-	testCore(t, env, tests)
+	testCore(t, Env, tests)
 }

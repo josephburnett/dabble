@@ -91,6 +91,6 @@ func call(env *Frame, quoted bool, cell object.Value) (ret object.Value) {
 	}
 
 	T("calling %v with args %v", first, cell.Rest())
-	function := first.(Function)
-	return function(env, args...)
+	function := first.(*Function)
+	return function.Fn(env, args...)
 }

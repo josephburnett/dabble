@@ -17,7 +17,7 @@ var Env *eval.Frame
 func init() {
 
 	var builtins *eval.Frame
-	for name, fn := range map[string]eval.Function{
+	for name, fn := range map[string]func(*eval.Frame, ...object.Value) object.Value{
 		"atom":    Atom,
 		"car":     Car,
 		"cdr":     Cdr,
@@ -31,7 +31,11 @@ func init() {
 		"unquote": Unquote,
 		"recur":   Recur,
 	} {
-		builtins = builtins.Bind(object.Symbol(name), fn)
+		function := &eval.Function{
+			Name: name,
+			Fn:   fn,
+		}
+		builtins = builtins.Bind(object.Symbol(name), function)
 	}
 	Env = Env.BindAll(builtins)
 

@@ -1,13 +1,10 @@
 package core
 
 import (
-	"dabble/eval"
 	"testing"
 )
 
 func TestEq(t *testing.T) {
-
-	env := eval.NilFrame.Bind("eq", eval.Function(Eq))
 
 	tests := []coreTest{{
 		input: "(eq 1 1)",
@@ -29,5 +26,5 @@ func TestEq(t *testing.T) {
 		want:  "()",
 	}}
 
-	testCore(t, env, tests)
+	testCore(t, Env, tests)
 }

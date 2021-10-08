@@ -6,8 +6,6 @@ import (
 	"fmt"
 )
 
-var _ eval.Function = Macro
-
 func Macro(env *eval.Frame, args ...object.Value) object.Value {
 	if err := argsLenError("macro", args, 2); err != nil {
 		return err
@@ -37,33 +35,36 @@ func Macro(env *eval.Frame, args ...object.Value) object.Value {
 	return makeMacro(env, free, rest, form)
 }
 
-func makeMacro(macroEnv *eval.Frame, free []object.Symbol, haveRest bool, form object.Value) eval.Function {
-	return func(env *eval.Frame, args ...object.Value) object.Value {
-		if len(args) < len(free) {
-			return object.Error("not enough arguments to macro")
-		}
-		if !haveRest && len(args) != len(free) {
-			return object.Error("wrong number of arguments to macro")
-		}
-		var i int
-		for i = 0; i < len(free)-1; i++ {
-			macroEnv = macroEnv.Bind(free[i], args[i])
-		}
-		var rest object.Value
-		if haveRest {
-			rest = object.Nil
-			for j := len(args) - 1; j >= i; j-- {
-				rest = object.Cell(args[j], rest)
+func makeMacro(macroEnv *eval.Frame, free []object.Symbol, haveRest bool, form object.Value) *eval.Function {
+	return &eval.Function{
+		Name: "macro",
+		Fn: func(env *eval.Frame, args ...object.Value) object.Value {
+			if len(args) < len(free) {
+				return object.Error("not enough arguments to macro")
 			}
-			macroEnv = macroEnv.Bind(free[i], rest)
-		} else {
-			macroEnv = macroEnv.Bind(free[i], args[i])
-		}
-		expandedForm := object.Quoted(eval.Eval(macroEnv, form))
-		eval.T("expanded macro form: %v", expandedForm)
-		if expandedForm.Type() == object.ERROR {
-			return expandedForm
-		}
-		return eval.Eval(env, expandedForm)
+			if !haveRest && len(args) != len(free) {
+				return object.Error("wrong number of arguments to macro")
+			}
+			var i int
+			for i = 0; i < len(free)-1; i++ {
+				macroEnv = macroEnv.Bind(free[i], args[i])
+			}
+			var rest object.Value
+			if haveRest {
+				rest = object.Nil
+				for j := len(args) - 1; j >= i; j-- {
+					rest = object.Cell(args[j], rest)
+				}
+				macroEnv = macroEnv.Bind(free[i], rest)
+			} else {
+				macroEnv = macroEnv.Bind(free[i], args[i])
+			}
+			expandedForm := object.Quoted(eval.Eval(macroEnv, form))
+			eval.T("expanded macro form: %v", expandedForm)
+			if expandedForm.Type() == object.ERROR {
+				return expandedForm
+			}
+			return eval.Eval(env, expandedForm)
+		},
 	}
 }

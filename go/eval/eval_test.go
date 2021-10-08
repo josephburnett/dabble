@@ -11,18 +11,18 @@ import (
 
 func TestEval(t *testing.T) {
 
-	passFunction := Function(func(env *Frame, args ...object.Value) object.Value {
+	passFunction := &Function{Fn: func(env *Frame, args ...object.Value) object.Value {
 		return object.Symbol("pass")
-	})
+	}}
 
-	identityFunction := Function(func(env *Frame, args ...object.Value) object.Value {
+	identityFunction := &Function{Fn: func(env *Frame, args ...object.Value) object.Value {
 		if len(args) != 1 {
 			return object.Error(fmt.Sprintf("wrong args: %v", args))
 		}
 		return args[0]
-	})
+	}}
 
-	addingFunction := Function(func(env *Frame, args ...object.Value) object.Value {
+	addingFunction := &Function{Fn: func(env *Frame, args ...object.Value) object.Value {
 		if len(args) != 1 {
 			return object.Error(fmt.Sprintf("wrong args: %v", args))
 		}
@@ -34,7 +34,7 @@ func TestEval(t *testing.T) {
 			return object.Error(fmt.Sprintf("wrong type: %v", value))
 		}
 		return object.Number(value.(object.Number) + 1)
-	})
+	}}
 
 	tests := []struct {
 		input   string

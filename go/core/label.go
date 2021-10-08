@@ -6,8 +6,6 @@ import (
 	"fmt"
 )
 
-var _ eval.Function = Label
-
 func Label(env *eval.Frame, args ...object.Value) object.Value {
 	if err := argsLenError("car", args, 3); err != nil {
 		return err

@@ -5,8 +5,6 @@ import (
 	"dabble/object"
 )
 
-var _ eval.Function = Eq
-
 func Eq(env *eval.Frame, args ...object.Value) object.Value {
 	if err := argsLenError("eq", args, 2); err != nil {
 		return err

@@ -1,13 +1,10 @@
 package core
 
 import (
-	"dabble/eval"
 	"testing"
 )
 
 func TestCdr(t *testing.T) {
-
-	env := eval.NilFrame.Bind("cdr", eval.Function(Cdr))
 
 	tests := []coreTest{{
 		input: "(cdr 2)",
@@ -17,5 +14,5 @@ func TestCdr(t *testing.T) {
 		want:  "(2 3 4)",
 	}}
 
-	testCore(t, env, tests)
+	testCore(t, Env, tests)
 }

@@ -1,13 +1,10 @@
 package core
 
 import (
-	"dabble/eval"
 	"testing"
 )
 
 func TestUnquote(t *testing.T) {
-
-	env := eval.NilFrame.Bind("unquote", eval.Function(Unquote))
 
 	tests := []coreTest{{
 		input: "(unquote ())",
@@ -17,5 +14,5 @@ func TestUnquote(t *testing.T) {
 		want:  "`(1 2 3 4)",
 	}}
 
-	testCore(t, env, tests)
+	testCore(t, Env, tests)
 }

@@ -24,8 +24,7 @@ func TestLambda(t *testing.T) {
 		return first.(object.Number) + second.(object.Number)
 	}
 
-	env := eval.NilFrame.Bind("lambda", eval.Function(Lambda)).
-		Bind("+", eval.Function(adder))
+	env := Env.Bind("+", &eval.Function{Fn: adder})
 
 	tests := []coreTest{{
 		input: "((lambda () 1))",

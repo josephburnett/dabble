@@ -1,13 +1,10 @@
 package core
 
 import (
-	"dabble/eval"
 	"testing"
 )
 
 func TestQuote(t *testing.T) {
-
-	env := eval.NilFrame.Bind("quote", eval.Function(Quote))
 
 	tests := []coreTest{{
 		input: "(quote ())",
@@ -17,5 +14,5 @@ func TestQuote(t *testing.T) {
 		want:  "'(1 2 3 4)",
 	}}
 
-	testCore(t, env, tests)
+	testCore(t, Env, tests)
 }

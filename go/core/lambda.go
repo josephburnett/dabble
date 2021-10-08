@@ -6,8 +6,6 @@ import (
 	"fmt"
 )
 
-var _ eval.Function = Lambda
-
 func Lambda(env *eval.Frame, args ...object.Value) object.Value {
 	if err := argsLenError("lambda", args, 2); err != nil {
 		return err
@@ -29,21 +27,24 @@ func Lambda(env *eval.Frame, args ...object.Value) object.Value {
 	return makeClosure(env, free, form)
 }
 
-func makeClosure(env *eval.Frame, free []object.Symbol, form object.Value) eval.Function {
-	var function eval.Function
-	function = func(_ *eval.Frame, args ...object.Value) object.Value {
-		if err := argsLenError("lambda args", args, len(free)); err != nil {
-			return err
-		}
-		for i, f := range free {
-			value := eval.Eval(env, args[i])
-			if value.Type() == object.ERROR {
-				return value
+func makeClosure(env *eval.Frame, free []object.Symbol, form object.Value) *eval.Function {
+	var function *eval.Function
+	function = &eval.Function{
+		Name: "closure",
+		Fn: func(_ *eval.Frame, args ...object.Value) object.Value {
+			if err := argsLenError("lambda args", args, len(free)); err != nil {
+				return err
 			}
-			env = env.Bind(f, value)
-		}
-		env = env.Call(function)
-		return eval.Eval(env, form)
+			for i, f := range free {
+				value := eval.Eval(env, args[i])
+				if value.Type() == object.ERROR {
+					return value
+				}
+				env = env.Bind(f, value)
+			}
+			env = env.Call(function)
+			return eval.Eval(env, form)
+		},
 	}
 	return function
 }

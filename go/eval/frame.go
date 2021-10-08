@@ -9,7 +9,7 @@ import (
 var NilFrame *Frame = nil
 
 type Frame struct {
-	caller Function
+	caller *Function
 	symbol object.Symbol
 	value  object.Value
 	next   *Frame
@@ -33,18 +33,18 @@ func (f *Frame) Resolve(symbol object.Symbol) object.Value {
 	return f.next.Resolve(symbol)
 }
 
-func (f *Frame) Call(caller Function) *Frame {
+func (f *Frame) Call(caller *Function) *Frame {
 	return &Frame{
 		caller: caller,
 		next:   f,
 	}
 }
 
-func (f *Frame) LastCaller() Function {
+func (f *Frame) LastCaller() *Function {
 	if f == nil {
-		return func(_ *Frame, _ ...object.Value) object.Value {
+		return &Function{Fn: func(_ *Frame, _ ...object.Value) object.Value {
 			return object.Error(fmt.Sprintf("no caller"))
-		}
+		}}
 	}
 	if f.caller != nil {
 
