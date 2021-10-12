@@ -47,7 +47,6 @@ func (f *Frame) LastCaller() *Function {
 		}}
 	}
 	if f.caller != nil {
-
 		return f.caller
 	}
 	return f.next.LastCaller()

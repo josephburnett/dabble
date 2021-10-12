@@ -7,7 +7,7 @@ import (
 )
 
 func Label(env *eval.Frame, args ...object.Value) object.Value {
-	if err := argsLenError("car", args, 3); err != nil {
+	if err := argsLenError("label", args, 3); err != nil {
 		return err
 	}
 	symbol := args[0]

@@ -41,7 +41,7 @@ func TestLib(t *testing.T) {
 			eval.BeginTrace()
 			value := eval.Eval(Env, program)
 			trace := eval.EndTrace()
-			if value.Type() == object.ERROR {
+			if value.Type() != object.SYMBOL || value.(object.Symbol) != "t" {
 				t.Errorf("%v", value)
 				t.Errorf("TRACE:\n%v", trace)
 				return

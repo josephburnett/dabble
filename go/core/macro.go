@@ -36,7 +36,8 @@ func Macro(env *eval.Frame, args ...object.Value) object.Value {
 }
 
 func makeMacro(macroEnv *eval.Frame, free []object.Symbol, haveRest bool, form object.Value) *eval.Function {
-	return &eval.Function{
+	var function *eval.Function
+	function = &eval.Function{
 		Name: "macro",
 		Fn: func(env *eval.Frame, args ...object.Value) object.Value {
 			requiredLen := len(free)
@@ -49,6 +50,7 @@ func makeMacro(macroEnv *eval.Frame, free []object.Symbol, haveRest bool, form o
 			if !haveRest && len(args) != len(free) {
 				return object.Error("wrong number of arguments to macro")
 			}
+			macroEnv = macroEnv.Call(function)
 			var i int
 			for i = 0; i < len(free)-1; i++ {
 				macroEnv = macroEnv.Bind(free[i], args[i])
@@ -71,4 +73,5 @@ func makeMacro(macroEnv *eval.Frame, free []object.Symbol, haveRest bool, form o
 			return eval.Eval(env, expandedForm)
 		},
 	}
+	return function
 }
