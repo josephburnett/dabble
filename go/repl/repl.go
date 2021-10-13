@@ -48,8 +48,12 @@ func Start(in io.Reader, out io.Writer) {
 			continue
 		}
 
+		eval.BeginTrace()
 		evaluated := eval.Eval(core.Env, program)
+		trace := eval.EndTrace()
 		if evaluated != nil {
+			io.WriteString(out, trace)
+			io.WriteString(out, "\n")
 			io.WriteString(out, evaluated.String())
 			io.WriteString(out, "\n")
 		}

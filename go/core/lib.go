@@ -33,6 +33,7 @@ func init() {
 		"unquote": Unquote,
 		"recur":   Recur,
 		"error":   Error,
+		"apply":   Apply,
 	} {
 		function := &eval.Function{
 			Name: name,
@@ -65,7 +66,7 @@ func init() {
 		if err != nil {
 			return err
 		}
-		value := eval.Eval(builtins, program)
+		value := eval.Eval(Env, program)
 		if value.Type() == object.ERROR {
 			panic(fmt.Sprintf("%q %v", info.Name(), string(value.(object.Error))))
 		}

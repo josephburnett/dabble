@@ -14,6 +14,10 @@ func Label(env *eval.Frame, args ...object.Value) object.Value {
 	if symbol.Type() != object.SYMBOL {
 		return object.Error(fmt.Sprintf("label non-symbol binding: %v", symbol))
 	}
-	env = env.Bind(symbol.(object.Symbol), args[1])
+	value := eval.Eval(env, args[1])
+	if value.Type() == object.ERROR {
+		return value
+	}
+	env = env.Bind(symbol.(object.Symbol), value)
 	return eval.Eval(env, args[2])
 }
