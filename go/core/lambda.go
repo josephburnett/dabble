@@ -42,6 +42,7 @@ func makeClosure(env *eval.Frame, free []object.Symbol, form object.Value) *eval
 				}
 				env = env.Bind(f, value)
 			}
+			eval.T(fmt.Sprintf("setting recur point to %v", function))
 			env = env.Call(function)
 			return eval.Eval(env, form)
 		},

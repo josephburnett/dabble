@@ -8,4 +8,4 @@
 	  (error "(and t t t) must return t")
 	(if (eq t (and ()))
 	    (error "(and ()) must return ()")
-	  ())))))
+	  t)))))

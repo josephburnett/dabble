@@ -38,7 +38,7 @@ func Macro(env *eval.Frame, args ...object.Value) object.Value {
 func makeMacro(macroEnv *eval.Frame, free []object.Symbol, haveRest bool, form object.Value) *eval.Function {
 	var function *eval.Function
 	function = &eval.Function{
-		Name: "macro",
+		Name: "user macro",
 		Fn: func(env *eval.Frame, args ...object.Value) object.Value {
 			requiredLen := len(free)
 			if haveRest {
@@ -50,6 +50,7 @@ func makeMacro(macroEnv *eval.Frame, free []object.Symbol, haveRest bool, form o
 			if !haveRest && len(args) != len(free) {
 				return object.Error("wrong number of arguments to macro")
 			}
+			eval.T(fmt.Sprintf("setting recur point to %v", function))
 			macroEnv = macroEnv.Call(function)
 			var i int
 			for i = 0; i < len(free)-1; i++ {
@@ -65,7 +66,7 @@ func makeMacro(macroEnv *eval.Frame, free []object.Symbol, haveRest bool, form o
 			} else {
 				macroEnv = macroEnv.Bind(free[i], args[i])
 			}
-			expandedForm := object.Quoted(eval.Eval(macroEnv, form))
+			expandedForm := eval.Eval(macroEnv, form)
 			eval.T("expanded macro form: %v", expandedForm)
 			if expandedForm.Type() == object.ERROR {
 				return expandedForm

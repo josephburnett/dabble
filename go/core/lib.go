@@ -70,6 +70,9 @@ func init() {
 		if value.Type() == object.ERROR {
 			panic(fmt.Sprintf("%q %v", info.Name(), string(value.(object.Error))))
 		}
+		if value.Type() == object.FUNCTION {
+			value.(*eval.Function).Name = symbol
+		}
 		lib = lib.Bind(object.Symbol(symbol), value)
 		return nil
 	})
