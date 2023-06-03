@@ -38,3 +38,5 @@ test
 
 # Temporary files
 *~
+
+core.wasm
