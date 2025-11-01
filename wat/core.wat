@@ -126,4 +126,233 @@
     ;; Load cdr (second i64 of cons cell, offset by 8 bytes)
     (i64.load offset=8 (local.get $ptr)))
 
+  ;; Atom - test if value is NOT a cons cell
+  ;; Returns NUMBER(1) for true, nil for false
+  (func $atom (export "atom") (param $val i64) (result i64)
+    (if (result i64)
+      (i32.eq (call $get_type (local.get $val)) (global.get $t_cons))
+      (then (call $nil))
+      (else (call $make_number (i32.const 1)))))
+
+  ;; Eq - test equality of two values
+  ;; Returns NUMBER(1) for true, nil for false
+  (func $eq (export "eq") (param $a i64) (param $b i64) (result i64)
+    (if (result i64)
+      (i64.eq (local.get $a) (local.get $b))
+      (then (call $make_number (i32.const 1)))
+      (else (call $nil))))
+
+  ;; ============================================================================
+  ;; BINARY DATA
+  ;; ============================================================================
+
+  ;; Create BYTES1 value (1 byte)
+  (func $make_bytes1 (export "make_bytes1") (param $byte i32) (result i64)
+    (i64.or
+      ;; Mask to 1 byte and place in low bits
+      (i64.extend_i32_u (i32.and (local.get $byte) (i32.const 0xFF)))
+      ;; Type tag (0x08) in high byte
+      (i64.const 0x0800000000000000)))
+
+  ;; Create BYTES2 value (2 bytes)
+  (func $make_bytes2 (export "make_bytes2") (param $bytes i32) (result i64)
+    (i64.or
+      ;; Mask to 2 bytes and place in low bits
+      (i64.extend_i32_u (i32.and (local.get $bytes) (i32.const 0xFFFF)))
+      ;; Type tag (0x09) in high byte
+      (i64.const 0x0900000000000000)))
+
+  ;; Create BYTES3 value (3 bytes)
+  (func $make_bytes3 (export "make_bytes3") (param $bytes i32) (result i64)
+    (i64.or
+      ;; Mask to 3 bytes and place in low bits
+      (i64.extend_i32_u (i32.and (local.get $bytes) (i32.const 0xFFFFFF)))
+      ;; Type tag (0x0A) in high byte
+      (i64.const 0x0A00000000000000)))
+
+  ;; Create BYTES4 value (4 bytes)
+  (func $make_bytes4 (export "make_bytes4") (param $bytes i32) (result i64)
+    (i64.or
+      ;; All 4 bytes (no mask needed, i32 is already 4 bytes)
+      (i64.extend_i32_u (local.get $bytes))
+      ;; Type tag (0x0B) in high byte
+      (i64.const 0x0B00000000000000)))
+
+  ;; Get byte count from a BYTES* value (returns 1, 2, 3, or 4)
+  (func $get_byte_count (export "get_byte_count") (param $val i64) (result i32)
+    (local $type i32)
+    (local.set $type (call $get_type (local.get $val)))
+    ;; BYTES1=0x08, BYTES2=0x09, BYTES3=0x0A, BYTES4=0x0B
+    ;; So count = (type - 7) for types 0x08-0x0B
+    (i32.sub (local.get $type) (i32.const 7)))
+
+  ;; ============================================================================
+  ;; SYMBOLS
+  ;; ============================================================================
+
+  ;; Create a symbol from a binary chain (CONS of BYTES* cells)
+  ;; Just re-tags a CONS pointer as SYMBOL
+  (func $make_symbol (export "make_symbol") (param $binary_chain i64) (result i64)
+    (i64.or
+      ;; Keep the pointer (low 32 bits)
+      (i64.and (local.get $binary_chain) (i64.const 0x00000000FFFFFFFF))
+      ;; Set SYMBOL type tag (0x02)
+      (i64.const 0x0200000000000000)))
+
+  ;; Compare two binary chains byte-by-byte
+  ;; Returns 1 if equal, 0 if not equal
+  (func $binary_equal (param $chain1 i64) (param $chain2 i64) (result i32)
+    (local $c1 i64)
+    (local $c2 i64)
+    (local $car1 i64)
+    (local $car2 i64)
+    (local $type1 i32)
+    (local $type2 i32)
+
+    (local.set $c1 (local.get $chain1))
+    (local.set $c2 (local.get $chain2))
+
+    (loop $compare
+      ;; If both are nil, they're equal
+      (if (i32.and (call $is_nil (local.get $c1)) (call $is_nil (local.get $c2)))
+        (then (return (i32.const 1))))
+
+      ;; If one is nil and the other isn't, not equal
+      (if (call $is_nil (local.get $c1))
+        (then (return (i32.const 0))))
+      (if (call $is_nil (local.get $c2))
+        (then (return (i32.const 0))))
+
+      ;; Get car of each chain
+      (local.set $car1 (call $car (local.get $c1)))
+      (local.set $car2 (call $car (local.get $c2)))
+
+      ;; Check if both are BYTES* types
+      (local.set $type1 (call $get_type (local.get $car1)))
+      (local.set $type2 (call $get_type (local.get $car2)))
+
+      ;; Types must match and be BYTES1/2/3/4
+      (if (i32.ne (local.get $type1) (local.get $type2))
+        (then (return (i32.const 0))))
+
+      ;; Values must match exactly (includes byte count via type tag)
+      (if (i64.ne (local.get $car1) (local.get $car2))
+        (then (return (i32.const 0))))
+
+      ;; Move to next cells
+      (local.set $c1 (call $cdr (local.get $c1)))
+      (local.set $c2 (call $cdr (local.get $c2)))
+      (br $compare))
+
+    ;; Should never reach here
+    (i32.const 0))
+
+  ;; Compare two symbols for equality
+  ;; Returns NUMBER(1) for true, nil for false
+  (func $symbol_equal (export "symbol_equal") (param $sym1 i64) (param $sym2 i64) (result i64)
+    (local $chain1 i64)
+    (local $chain2 i64)
+
+    ;; Convert SYMBOL pointers to CONS pointers to access binary chains
+    (local.set $chain1
+      (i64.or
+        (i64.and (local.get $sym1) (i64.const 0x00000000FFFFFFFF))
+        (i64.const 0x0300000000000000)))
+
+    (local.set $chain2
+      (i64.or
+        (i64.and (local.get $sym2) (i64.const 0x00000000FFFFFFFF))
+        (i64.const 0x0300000000000000)))
+
+    (if (result i64) (call $binary_equal (local.get $chain1) (local.get $chain2))
+      (then (call $make_number (i32.const 1)))
+      (else (call $nil))))
+
+  ;; ============================================================================
+  ;; ERRORS
+  ;; ============================================================================
+
+  ;; Create an error from a binary chain (UTF-8 message)
+  ;; Just re-tags a CONS pointer as ERROR
+  (func $make_error (export "make_error") (param $message_chain i64) (result i64)
+    (i64.or
+      ;; Keep the pointer (low 32 bits)
+      (i64.and (local.get $message_chain) (i64.const 0x00000000FFFFFFFF))
+      ;; Set ERROR type tag (0x06)
+      (i64.const 0x0600000000000000)))
+
+  ;; Extract message from error (returns CONS pointer to binary chain)
+  (func $error_message (export "error_message") (param $err i64) (result i64)
+    (i64.or
+      ;; Keep the pointer (low 32 bits)
+      (i64.and (local.get $err) (i64.const 0x00000000FFFFFFFF))
+      ;; Set CONS type tag (0x03)
+      (i64.const 0x0300000000000000)))
+
+  ;; ============================================================================
+  ;; ENVIRONMENT OPERATIONS
+  ;; ============================================================================
+
+  ;; Lookup a symbol in an environment
+  ;; Environment is an association list: ((sym . val) . ((sym . val) . ...))
+  ;; Returns the value if found, or an error if not found
+  (func $lookup (export "lookup") (param $sym i64) (param $env i64) (result i64)
+    (local $e i64)
+    (local $binding i64)
+    (local $binding_sym i64)
+    (local $binding_val i64)
+    (local $is_equal i64)
+    (local $err_chain i64)
+
+    (local.set $e (local.get $env))
+
+    (loop $search
+      ;; If environment is nil, symbol not found
+      (if (call $is_nil (local.get $e))
+        (then
+          ;; Create error "undefined symbol"
+          (local.set $err_chain
+            (call $cons
+              (call $make_bytes4 (i32.const 0x756E6465))  ;; "unde"
+              (call $cons
+                (call $make_bytes4 (i32.const 0x66696E65))  ;; "fine"
+                (call $cons
+                  (call $make_bytes4 (i32.const 0x64207379))  ;; "d sy"
+                  (call $cons
+                    (call $make_bytes4 (i32.const 0x6D626F6C))  ;; "mbol"
+                    (call $nil))))))
+          (return (call $make_error (local.get $err_chain)))))
+
+      ;; Get first binding (car env)
+      (local.set $binding (call $car (local.get $e)))
+
+      ;; Get symbol from binding (car binding)
+      (local.set $binding_sym (call $car (local.get $binding)))
+
+      ;; Check if symbols match
+      (local.set $is_equal (call $symbol_equal (local.get $sym) (local.get $binding_sym)))
+
+      (if (i32.eqz (call $is_nil (local.get $is_equal)))
+        (then
+          ;; Symbols match, return value (cdr binding)
+          (return (call $cdr (local.get $binding)))))
+
+      ;; Move to rest of environment
+      (local.set $e (call $cdr (local.get $e)))
+      (br $search))
+
+    ;; Should never reach here
+    (call $nil))
+
+  ;; Extend environment with a new binding
+  ;; Returns new environment: ((sym . val) . old_env)
+  (func $extend (export "extend") (param $sym i64) (param $val i64) (param $env i64) (result i64)
+    (local $binding i64)
+
+    ;; Create binding: (sym . val)
+    (local.set $binding (call $cons (local.get $sym) (local.get $val)))
+
+    ;; Cons binding onto environment
+    (call $cons (local.get $binding) (local.get $env)))
+
 )

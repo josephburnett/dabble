@@ -145,6 +145,162 @@ async function runTests() {
   const rest3 = exports.cdr(rest2);
   assertEquals(rest3, 0n, 'end of list is nil');
 
+  // Test atom
+  console.log('\n--- Atom Predicate ---');
+  const atomNil = exports.atom(nilVal);
+  assert(getValue(atomNil) === 1, 'atom(nil) returns true');
+
+  const atomNum = exports.atom(num42);
+  assert(getValue(atomNum) === 1, 'atom(NUMBER) returns true');
+
+  const atomCons = exports.atom(cell1);
+  assertEquals(atomCons, 0n, 'atom(CONS) returns false (nil)');
+
+  // Test eq
+  console.log('\n--- Equality ---');
+  const eqNils = exports.eq(nilVal, nilVal);
+  assert(getValue(eqNils) === 1, 'eq(nil, nil) returns true');
+
+  const eqNums = exports.eq(num42, num42);
+  assert(getValue(eqNums) === 1, 'eq(42, 42) returns true');
+
+  const eqDiff = exports.eq(num42, num1);
+  assertEquals(eqDiff, 0n, 'eq(42, 1) returns false');
+
+  const eqCons = exports.eq(cell1, cell1);
+  assert(getValue(eqCons) === 1, 'eq(same cons, same cons) returns true');
+
+  const cell2 = exports.cons(num42, nilVal);
+  const eqDiffCons = exports.eq(cell1, cell2);
+  assertEquals(eqDiffCons, 0n, 'eq(different cons, different cons) returns false');
+
+  // Test binary data
+  console.log('\n--- Binary Data ---');
+
+  // BYTES1: single byte
+  const byte1 = exports.make_bytes1(0x41);  // 'A'
+  assertEquals(getType(byte1), 0x08, 'make_bytes1 has BYTES1 type');
+  assertEquals(getValue(byte1), 0x41, 'make_bytes1 stores 1 byte');
+  assertEquals(exports.get_byte_count(byte1), 1, 'BYTES1 has count 1');
+
+  // BYTES2: two bytes
+  const byte2 = exports.make_bytes2(0x4142);  // 'AB'
+  assertEquals(getType(byte2), 0x09, 'make_bytes2 has BYTES2 type');
+  assertEquals(getValue(byte2), 0x4142, 'make_bytes2 stores 2 bytes');
+  assertEquals(exports.get_byte_count(byte2), 2, 'BYTES2 has count 2');
+
+  // BYTES3: three bytes
+  const byte3 = exports.make_bytes3(0x414243);  // 'ABC'
+  assertEquals(getType(byte3), 0x0A, 'make_bytes3 has BYTES3 type');
+  assertEquals(getValue(byte3), 0x414243, 'make_bytes3 stores 3 bytes');
+  assertEquals(exports.get_byte_count(byte3), 3, 'BYTES3 has count 3');
+
+  // BYTES4: four bytes
+  const byte4 = exports.make_bytes4(0x41424344);  // 'ABCD'
+  assertEquals(getType(byte4), 0x0B, 'make_bytes4 has BYTES4 type');
+  assertEquals(getValue(byte4), 0x41424344, 'make_bytes4 stores 4 bytes');
+  assertEquals(exports.get_byte_count(byte4), 4, 'BYTES4 has count 4');
+
+  // Binary data in cons cells (building blocks for symbols/errors)
+  const binaryChain = exports.cons(byte4,
+                        exports.cons(byte1, nilVal));
+  assertEquals(getType(binaryChain), 0x03, 'binary chain is CONS type');
+  const firstBytes = exports.car(binaryChain);
+  assertEquals(getType(firstBytes), 0x0B, 'car of chain is BYTES4');
+  assertEquals(getValue(firstBytes), 0x41424344, 'first chunk has correct bytes');
+
+  // Test symbols
+  console.log('\n--- Symbols ---');
+
+  // Create symbol 'foo (3 bytes)
+  const fooBytes = exports.make_bytes3(0x666F6F);  // "foo"
+  const fooChain = exports.cons(fooBytes, nilVal);
+  const symFoo = exports.make_symbol(fooChain);
+  assertEquals(getType(symFoo), 0x02, 'make_symbol creates SYMBOL type');
+  assertEquals(getValue(symFoo), getValue(fooChain), 'symbol points to binary chain');
+
+  // Create another symbol 'foo
+  const fooChain2 = exports.cons(exports.make_bytes3(0x666F6F), nilVal);
+  const symFoo2 = exports.make_symbol(fooChain2);
+
+  // Create symbol 'bar (3 bytes)
+  const barBytes = exports.make_bytes3(0x626172);  // "bar"
+  const barChain = exports.cons(barBytes, nilVal);
+  const symBar = exports.make_symbol(barChain);
+
+  // Test symbol equality
+  const eqFooFoo = exports.symbol_equal(symFoo, symFoo2);
+  assert(getValue(eqFooFoo) === 1, 'symbol_equal("foo", "foo") returns true');
+
+  const eqFooBar = exports.symbol_equal(symFoo, symBar);
+  assertEquals(eqFooBar, 0n, 'symbol_equal("foo", "bar") returns false');
+
+  // Multi-byte symbol: 'hello (5 bytes = BYTES4 + BYTES1)
+  const helloChain = exports.cons(
+    exports.make_bytes4(0x68656C6C),  // "hell"
+    exports.cons(
+      exports.make_bytes1(0x6F),       // "o"
+      nilVal));
+  const symHello = exports.make_symbol(helloChain);
+  assertEquals(getType(symHello), 0x02, 'multi-byte symbol has SYMBOL type');
+
+  const helloChain2 = exports.cons(
+    exports.make_bytes4(0x68656C6C),
+    exports.cons(exports.make_bytes1(0x6F), nilVal));
+  const symHello2 = exports.make_symbol(helloChain2);
+
+  const eqHello = exports.symbol_equal(symHello, symHello2);
+  assert(getValue(eqHello) === 1, 'symbol_equal("hello", "hello") returns true');
+
+  // Test errors
+  console.log('\n--- Errors ---');
+
+  // Create error with message "bad"
+  const badChain = exports.cons(exports.make_bytes3(0x626164), nilVal);
+  const errBad = exports.make_error(badChain);
+  assertEquals(getType(errBad), 0x06, 'make_error creates ERROR type');
+
+  // Extract message from error
+  const msgChain = exports.error_message(errBad);
+  assertEquals(getType(msgChain), 0x03, 'error_message returns CONS chain');
+  const msgBytes = exports.car(msgChain);
+  assertEquals(getValue(msgBytes), 0x626164, 'error message contains "bad"');
+
+  // Test environment operations
+  console.log('\n--- Environment Operations ---');
+
+  // Create empty environment
+  let env = nilVal;
+
+  // Extend with x = 42
+  env = exports.extend(symFoo, num42, env);
+  assertEquals(getType(env), 0x03, 'extend returns CONS');
+
+  // Lookup x
+  const lookedUp = exports.lookup(symFoo, env);
+  assertEquals(lookedUp, num42, 'lookup finds value in environment');
+
+  // Extend with y = 1
+  env = exports.extend(symBar, num1, env);
+
+  // Lookup both
+  const lookupFoo = exports.lookup(symFoo, env);
+  assertEquals(lookupFoo, num42, 'lookup finds first binding');
+
+  const lookupBar = exports.lookup(symBar, env);
+  assertEquals(lookupBar, num1, 'lookup finds second binding');
+
+  // Lookup non-existent symbol
+  const symBaz = exports.make_symbol(exports.cons(exports.make_bytes3(0x62617A), nilVal)); // "baz"
+  const lookupBaz = exports.lookup(symBaz, env);
+  assertEquals(getType(lookupBaz), 0x06, 'lookup returns ERROR for undefined symbol');
+
+  // Shadow a binding
+  const num99 = exports.make_number(99);
+  env = exports.extend(symFoo, num99, env);
+  const lookupShadowed = exports.lookup(symFoo, env);
+  assertEquals(lookupShadowed, num99, 'lookup returns shadowed value');
+
   // Print summary
   console.log('\n' + '='.repeat(50));
   console.log(`Tests passed: ${passCount}`);
