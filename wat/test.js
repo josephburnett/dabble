@@ -301,6 +301,66 @@ async function runTests() {
   const lookupShadowed = exports.lookup(symFoo, env);
   assertEquals(lookupShadowed, num99, 'lookup returns shadowed value');
 
+  // Test evaluation
+  console.log('\n--- Evaluation Engine ---');
+
+  // Reset environment
+  env = nilVal;
+
+  // Self-evaluating values
+  const evalNil = exports.eval(nilVal, env);
+  assertEquals(evalNil, nilVal, 'eval(nil) returns nil');
+
+  const evalNum = exports.eval(num42, env);
+  assertEquals(evalNum, num42, 'eval(42) returns 42');
+
+  // Symbol lookup
+  env = exports.extend(symFoo, num42, env);
+  const evalSym = exports.eval(symFoo, env);
+  assertEquals(evalSym, num42, 'eval(foo) looks up value');
+
+  // Undefined symbol
+  const evalUndef = exports.eval(symBar, env);
+  assertEquals(getType(evalUndef), 0x06, 'eval(undefined) returns error');
+
+  // Built-in functions
+  const builtinCons = exports.make_builtin(0);  // cons
+  const builtinCar = exports.make_builtin(1);   // car
+  const builtinCdr = exports.make_builtin(2);   // cdr
+  const builtinAtom = exports.make_builtin(3);  // atom
+  const builtinEq = exports.make_builtin(4);    // eq
+
+  assertEquals(getType(builtinCons), 0x07, 'make_builtin creates BUILTIN type');
+
+  // Add built-ins to environment
+  const symCons = exports.make_symbol(exports.cons(exports.make_bytes4(0x636F6E73), nilVal)); // "cons"
+  const symCar = exports.make_symbol(exports.cons(exports.make_bytes3(0x636172), nilVal));    // "car"
+
+  env = exports.extend(symCons, builtinCons, env);
+  env = exports.extend(symCar, builtinCar, env);
+
+  // Evaluate: (cons 1 2)
+  const consExpr = exports.cons(symCons,
+    exports.cons(num1, exports.cons(exports.make_number(2), nilVal)));
+  const consResult = exports.eval(consExpr, env);
+  assertEquals(getType(consResult), 0x03, 'eval((cons 1 2)) returns CONS');
+  assertEquals(getValue(exports.car(consResult)), 1, 'car of result is 1');
+  assertEquals(getValue(exports.cdr(consResult)), 2, 'cdr of result is 2');
+
+  // Evaluate: (car (cons 10 20))
+  const num10 = exports.make_number(10);
+  const num20 = exports.make_number(20);
+  const innerCons = exports.cons(symCons,
+    exports.cons(num10, exports.cons(num20, nilVal)));
+  const carExpr = exports.cons(symCar, exports.cons(innerCons, nilVal));
+  const carResult = exports.eval(carExpr, env);
+  assertEquals(getValue(carResult), 10, 'eval((car (cons 10 20))) returns 10');
+
+  // Error propagation
+  const errorExpr = exports.cons(symCar, exports.cons(symBaz, nilVal)); // (car baz) where baz is undefined
+  const errorResult = exports.eval(errorExpr, env);
+  assertEquals(getType(errorResult), 0x06, 'eval propagates errors from arguments');
+
   // Print summary
   console.log('\n' + '='.repeat(50));
   console.log(`Tests passed: ${passCount}`);

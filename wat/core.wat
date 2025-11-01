@@ -355,4 +355,166 @@
     ;; Cons binding onto environment
     (call $cons (local.get $binding) (local.get $env)))
 
+  ;; ============================================================================
+  ;; EVALUATION ENGINE
+  ;; ============================================================================
+
+  ;; Evaluate arguments in a list
+  (func $eval_args (param $args i64) (param $env i64) (result i64)
+    (local $first i64)
+    (local $rest i64)
+    (local $evaled_first i64)
+    (local $evaled_rest i64)
+
+    ;; Base case: nil
+    (if (call $is_nil (local.get $args))
+      (then (return (call $nil))))
+
+    ;; Evaluate first argument
+    (local.set $first (call $car (local.get $args)))
+    (local.set $evaled_first (call $eval (local.get $first) (local.get $env)))
+
+    ;; Check for error
+    (if (i32.eq (call $get_type (local.get $evaled_first)) (global.get $t_error))
+      (then (return (local.get $evaled_first))))
+
+    ;; Recursively evaluate rest
+    (local.set $rest (call $cdr (local.get $args)))
+    (local.set $evaled_rest (call $eval_args (local.get $rest) (local.get $env)))
+
+    ;; Check for error in rest
+    (if (i32.eq (call $get_type (local.get $evaled_rest)) (global.get $t_error))
+      (then (return (local.get $evaled_rest))))
+
+    ;; Cons evaluated arg onto result
+    (call $cons (local.get $evaled_first) (local.get $evaled_rest)))
+
+  ;; Apply a built-in function
+  (func $apply_builtin (param $fn_id i32) (param $args i64) (result i64)
+    (local $arg1 i64)
+    (local $arg2 i64)
+    (local $result i64)
+
+    ;; Built-in ID 0: cons
+    (if (i32.eq (local.get $fn_id) (i32.const 0))
+      (then
+        (local.set $arg1 (call $car (local.get $args)))
+        (local.set $arg2 (call $car (call $cdr (local.get $args))))
+        (return (call $cons (local.get $arg1) (local.get $arg2)))))
+
+    ;; Built-in ID 1: car
+    (if (i32.eq (local.get $fn_id) (i32.const 1))
+      (then
+        (local.set $arg1 (call $car (local.get $args)))
+        (return (call $car (local.get $arg1)))))
+
+    ;; Built-in ID 2: cdr
+    (if (i32.eq (local.get $fn_id) (i32.const 2))
+      (then
+        (local.set $arg1 (call $car (local.get $args)))
+        (return (call $cdr (local.get $arg1)))))
+
+    ;; Built-in ID 3: atom
+    (if (i32.eq (local.get $fn_id) (i32.const 3))
+      (then
+        (local.set $arg1 (call $car (local.get $args)))
+        (return (call $atom (local.get $arg1)))))
+
+    ;; Built-in ID 4: eq
+    (if (i32.eq (local.get $fn_id) (i32.const 4))
+      (then
+        (local.set $arg1 (call $car (local.get $args)))
+        (local.set $arg2 (call $car (call $cdr (local.get $args))))
+        (return (call $eq (local.get $arg1) (local.get $arg2)))))
+
+    ;; Unknown built-in
+    (call $make_error
+      (call $cons (call $make_bytes4 (i32.const 0x756E6B6E)) ;; "unkn"
+        (call $cons (call $make_bytes4 (i32.const 0x6F776E20)) ;; "own "
+          (call $cons (call $make_bytes4 (i32.const 0x6275696C)) ;; "buil"
+            (call $cons (call $make_bytes4 (i32.const 0x74696E00)) ;; "tin"
+              (call $nil)))))))
+
+  ;; Main evaluation function
+  (func $eval (export "eval") (param $expr i64) (param $env i64) (result i64)
+    (local $type i32)
+    (local $op i64)
+    (local $args i64)
+    (local $op_val i64)
+    (local $op_type i32)
+    (local $evaled_args i64)
+    (local $fn_id i32)
+
+    (local.set $type (call $get_type (local.get $expr)))
+
+    ;; Self-evaluating types
+    (if (i32.eq (local.get $type) (global.get $t_nil))
+      (then (return (local.get $expr))))
+    (if (i32.eq (local.get $type) (global.get $t_number))
+      (then (return (local.get $expr))))
+    (if (i32.eq (local.get $type) (global.get $t_error))
+      (then (return (local.get $expr))))
+    (if (i32.eq (local.get $type) (global.get $t_builtin))
+      (then (return (local.get $expr))))
+
+    ;; Symbol - lookup in environment
+    (if (i32.eq (local.get $type) (global.get $t_symbol))
+      (then (return (call $lookup (local.get $expr) (local.get $env)))))
+
+    ;; List - evaluate as function application
+    (if (i32.eq (local.get $type) (global.get $t_cons))
+      (then
+        ;; Empty list evaluates to nil
+        (if (call $is_nil (local.get $expr))
+          (then (return (call $nil))))
+
+        ;; Get operator and arguments
+        (local.set $op (call $car (local.get $expr)))
+        (local.set $args (call $cdr (local.get $expr)))
+
+        ;; Evaluate operator
+        (local.set $op_val (call $eval (local.get $op) (local.get $env)))
+
+        ;; Check for error in operator
+        (if (i32.eq (call $get_type (local.get $op_val)) (global.get $t_error))
+          (then (return (local.get $op_val))))
+
+        ;; Get operator type
+        (local.set $op_type (call $get_type (local.get $op_val)))
+
+        ;; Built-in function
+        (if (i32.eq (local.get $op_type) (global.get $t_builtin))
+          (then
+            ;; Evaluate arguments
+            (local.set $evaled_args (call $eval_args (local.get $args) (local.get $env)))
+
+            ;; Check for error in arguments
+            (if (i32.eq (call $get_type (local.get $evaled_args)) (global.get $t_error))
+              (then (return (local.get $evaled_args))))
+
+            ;; Apply built-in
+            (local.set $fn_id (call $get_value (local.get $op_val)))
+            (return (call $apply_builtin (local.get $fn_id) (local.get $evaled_args)))))
+
+        ;; Not a function
+        (return (call $make_error
+          (call $cons (call $make_bytes4 (i32.const 0x6E6F7420)) ;; "not "
+            (call $cons (call $make_bytes4 (i32.const 0x61206675)) ;; "a fu"
+              (call $cons (call $make_bytes4 (i32.const 0x6E637469)) ;; "ncti"
+                (call $cons (call $make_bytes2 (i32.const 0x6F6E)) ;; "on"
+                  (call $nil)))))))))
+
+    ;; Invalid expression type
+    (call $make_error
+      (call $cons (call $make_bytes4 (i32.const 0x696E7661)) ;; "inva"
+        (call $cons (call $make_bytes4 (i32.const 0x6C696420)) ;; "lid "
+          (call $cons (call $make_bytes4 (i32.const 0x65787072)) ;; "expr"
+            (call $nil))))))
+
+  ;; Create a built-in function value
+  (func $make_builtin (export "make_builtin") (param $id i32) (result i64)
+    (i64.or
+      (i64.extend_i32_u (local.get $id))
+      (i64.const 0x0700000000000000)))
+
 )
