@@ -361,6 +361,86 @@ async function runTests() {
   const errorResult = exports.eval(errorExpr, env);
   assertEquals(getType(errorResult), 0x06, 'eval propagates errors from arguments');
 
+  // Test special forms
+  console.log('\n--- Special Forms ---');
+
+  // Reset environment
+  env = nilVal;
+
+  // quote
+  const symQuote = exports.make_symbol(exports.cons(exports.make_bytes4(0x71756F74),
+    exports.cons(exports.make_bytes1(0x65), nilVal))); // "quote"
+
+  // (quote 42) -> 42 (unevaluated)
+  const quoteExpr = exports.cons(symQuote, exports.cons(num42, nilVal));
+  const quoteResult = exports.eval(quoteExpr, env);
+  assertEquals(quoteResult, num42, 'eval((quote 42)) returns 42 unevaluated');
+
+  // (quote foo) -> foo (symbol, not looked up)
+  const quoteSym = exports.cons(symQuote, exports.cons(symFoo, nilVal));
+  const quoteSymResult = exports.eval(quoteSym, env);
+  assertEquals(quoteSymResult, symFoo, 'eval((quote foo)) returns symbol unevaluated');
+
+  // (quote (1 2 3)) -> (1 2 3) (list, unevaluated)
+  const list123 = exports.cons(num1, exports.cons(exports.make_number(2),
+    exports.cons(exports.make_number(3), nilVal)));
+  const quoteList = exports.cons(symQuote, exports.cons(list123, nilVal));
+  const quoteListResult = exports.eval(quoteList, env);
+  assertEquals(quoteListResult, list123, 'eval((quote (1 2 3))) returns list unevaluated');
+
+  // if
+  const symIf = exports.make_symbol(exports.cons(exports.make_bytes2(0x6966), nilVal)); // "if"
+
+  // (if 1 2 3) -> 2 (condition is truthy)
+  const ifTrue = exports.cons(symIf,
+    exports.cons(num1,
+      exports.cons(exports.make_number(2),
+        exports.cons(exports.make_number(3), nilVal))));
+  const ifTrueResult = exports.eval(ifTrue, env);
+  assertEquals(getValue(ifTrueResult), 2, 'eval((if 1 2 3)) returns then branch');
+
+  // (if nil 2 3) -> 3 (condition is nil)
+  const ifFalse = exports.cons(symIf,
+    exports.cons(nilVal,
+      exports.cons(exports.make_number(2),
+        exports.cons(exports.make_number(3), nilVal))));
+  const ifFalseResult = exports.eval(ifFalse, env);
+  assertEquals(getValue(ifFalseResult), 3, 'eval((if nil 2 3)) returns else branch');
+
+  // label
+  const symLabel = exports.make_symbol(exports.cons(exports.make_bytes4(0x6C616265),
+    exports.cons(exports.make_bytes1(0x6C), nilVal))); // "label"
+
+  // (label x 42 x) -> 42
+  const labelExpr = exports.cons(symLabel,
+    exports.cons(symFoo,
+      exports.cons(num42,
+        exports.cons(symFoo, nilVal))));
+  const labelResult = exports.eval(labelExpr, env);
+  assertEquals(labelResult, num42, 'eval((label x 42 x)) binds and returns value');
+
+  // (label x 10 (label y 20 (cons x y))) -> (10 . 20)
+  const symX = exports.make_symbol(exports.cons(exports.make_bytes1(0x78), nilVal)); // "x"
+  const symY = exports.make_symbol(exports.cons(exports.make_bytes1(0x79), nilVal)); // "y"
+  env = exports.extend(symCons, builtinCons, nilVal); // Need cons in env
+
+  const innerLabel = exports.cons(symLabel,
+    exports.cons(symY,
+      exports.cons(num20,
+        exports.cons(exports.cons(symCons,
+          exports.cons(symX,
+            exports.cons(symY, nilVal))), nilVal))));
+
+  const outerLabel = exports.cons(symLabel,
+    exports.cons(symX,
+      exports.cons(num10,
+        exports.cons(innerLabel, nilVal))));
+
+  const nestedLabelResult = exports.eval(outerLabel, env);
+  assertEquals(getType(nestedLabelResult), 0x03, 'nested label returns CONS');
+  assertEquals(getValue(exports.car(nestedLabelResult)), 10, 'nested label car is 10');
+  assertEquals(getValue(exports.cdr(nestedLabelResult)), 20, 'nested label cdr is 20');
+
   // Print summary
   console.log('\n' + '='.repeat(50));
   console.log(`Tests passed: ${passCount}`);

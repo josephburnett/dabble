@@ -435,6 +435,61 @@
             (call $cons (call $make_bytes4 (i32.const 0x74696E00)) ;; "tin"
               (call $nil)))))))
 
+  ;; Special form: quote - return unevaluated
+  (func $eval_quote (param $args i64) (result i64)
+    ;; Return first argument unevaluated
+    (call $car (local.get $args)))
+
+  ;; Special form: if - conditional evaluation
+  (func $eval_if (param $args i64) (param $env i64) (result i64)
+    (local $cond i64)
+    (local $then_expr i64)
+    (local $else_expr i64)
+    (local $cond_val i64)
+
+    ;; Get condition, then, and else expressions
+    (local.set $cond (call $car (local.get $args)))
+    (local.set $then_expr (call $car (call $cdr (local.get $args))))
+    (local.set $else_expr (call $car (call $cdr (call $cdr (local.get $args)))))
+
+    ;; Evaluate condition
+    (local.set $cond_val (call $eval (local.get $cond) (local.get $env)))
+
+    ;; Check for error
+    (if (i32.eq (call $get_type (local.get $cond_val)) (global.get $t_error))
+      (then (return (local.get $cond_val))))
+
+    ;; If condition is nil, evaluate else; otherwise evaluate then
+    (if (result i64) (call $is_nil (local.get $cond_val))
+      (then (call $eval (local.get $else_expr) (local.get $env)))
+      (else (call $eval (local.get $then_expr) (local.get $env)))))
+
+  ;; Special form: label - bind symbol and evaluate body
+  (func $eval_label (param $args i64) (param $env i64) (result i64)
+    (local $sym i64)
+    (local $val_expr i64)
+    (local $body i64)
+    (local $val i64)
+    (local $new_env i64)
+
+    ;; Get symbol, value expression, and body
+    (local.set $sym (call $car (local.get $args)))
+    (local.set $val_expr (call $car (call $cdr (local.get $args))))
+    (local.set $body (call $car (call $cdr (call $cdr (local.get $args)))))
+
+    ;; Evaluate value
+    (local.set $val (call $eval (local.get $val_expr) (local.get $env)))
+
+    ;; Check for error
+    (if (i32.eq (call $get_type (local.get $val)) (global.get $t_error))
+      (then (return (local.get $val))))
+
+    ;; Extend environment
+    (local.set $new_env (call $extend (local.get $sym) (local.get $val) (local.get $env)))
+
+    ;; Evaluate body in new environment
+    (call $eval (local.get $body) (local.get $new_env)))
+
   ;; Main evaluation function
   (func $eval (export "eval") (param $expr i64) (param $env i64) (result i64)
     (local $type i32)
@@ -444,6 +499,12 @@
     (local $op_type i32)
     (local $evaled_args i64)
     (local $fn_id i32)
+    (local $quote_sym i64)
+    (local $if_sym i64)
+    (local $label_sym i64)
+    (local $is_quote i64)
+    (local $is_if i64)
+    (local $is_label i64)
 
     (local.set $type (call $get_type (local.get $expr)))
 
@@ -472,7 +533,46 @@
         (local.set $op (call $car (local.get $expr)))
         (local.set $args (call $cdr (local.get $expr)))
 
-        ;; Evaluate operator
+        ;; Check for special forms (before evaluating operator)
+        (if (i32.eq (call $get_type (local.get $op)) (global.get $t_symbol))
+          (then
+            ;; Create symbols for special forms
+            ;; "quote" = 0x71756F7465 (5 bytes)
+            (local.set $quote_sym
+              (call $make_symbol
+                (call $cons (call $make_bytes4 (i32.const 0x71756F74)) ;; "quot"
+                  (call $cons (call $make_bytes1 (i32.const 0x65)) ;; "e"
+                    (call $nil)))))
+
+            ;; "if" = 0x6966 (2 bytes)
+            (local.set $if_sym
+              (call $make_symbol
+                (call $cons (call $make_bytes2 (i32.const 0x6966))
+                  (call $nil))))
+
+            ;; "label" = 0x6C6162656C (5 bytes)
+            (local.set $label_sym
+              (call $make_symbol
+                (call $cons (call $make_bytes4 (i32.const 0x6C616265)) ;; "labe"
+                  (call $cons (call $make_bytes1 (i32.const 0x6C)) ;; "l"
+                    (call $nil)))))
+
+            ;; Check if operator is "quote"
+            (local.set $is_quote (call $symbol_equal (local.get $op) (local.get $quote_sym)))
+            (if (i32.eqz (call $is_nil (local.get $is_quote)))
+              (then (return (call $eval_quote (local.get $args)))))
+
+            ;; Check if operator is "if"
+            (local.set $is_if (call $symbol_equal (local.get $op) (local.get $if_sym)))
+            (if (i32.eqz (call $is_nil (local.get $is_if)))
+              (then (return (call $eval_if (local.get $args) (local.get $env)))))
+
+            ;; Check if operator is "label"
+            (local.set $is_label (call $symbol_equal (local.get $op) (local.get $label_sym)))
+            (if (i32.eqz (call $is_nil (local.get $is_label)))
+              (then (return (call $eval_label (local.get $args) (local.get $env)))))))
+
+        ;; Not a special form - evaluate operator
         (local.set $op_val (call $eval (local.get $op) (local.get $env)))
 
         ;; Check for error in operator
