@@ -313,13 +313,13 @@
           ;; Create error "undefined symbol"
           (local.set $err_chain
             (call $cons
-              (call $make_bytes4 (i32.const 0x756E6465))  ;; "unde"
+              (call $make_bytes4 (i32.const 0x65646E75))  ;; "unde" (little-endian)
               (call $cons
-                (call $make_bytes4 (i32.const 0x66696E65))  ;; "fine"
+                (call $make_bytes4 (i32.const 0x656E6966))  ;; "fine" (little-endian)
                 (call $cons
-                  (call $make_bytes4 (i32.const 0x64207379))  ;; "d sy"
+                  (call $make_bytes4 (i32.const 0x79732064))  ;; "d sy" (little-endian)
                   (call $cons
-                    (call $make_bytes4 (i32.const 0x6D626F6C))  ;; "mbol"
+                    (call $make_bytes4 (i32.const 0x6C6F626D))  ;; "mbol" (little-endian)
                     (call $nil))))))
           (return (call $make_error (local.get $err_chain)))))
 
@@ -429,10 +429,10 @@
 
     ;; Unknown built-in
     (call $make_error
-      (call $cons (call $make_bytes4 (i32.const 0x756E6B6E)) ;; "unkn"
-        (call $cons (call $make_bytes4 (i32.const 0x6F776E20)) ;; "own "
-          (call $cons (call $make_bytes4 (i32.const 0x6275696C)) ;; "buil"
-            (call $cons (call $make_bytes4 (i32.const 0x74696E00)) ;; "tin"
+      (call $cons (call $make_bytes4 (i32.const 0x6E6B6E75)) ;; "unkn" (little-endian)
+        (call $cons (call $make_bytes4 (i32.const 0x206E776F)) ;; "own " (little-endian)
+          (call $cons (call $make_bytes4 (i32.const 0x6C697562)) ;; "buil" (little-endian)
+            (call $cons (call $make_bytes3 (i32.const 0x6E6974)) ;; "tin" (little-endian)
               (call $nil)))))))
 
   ;; Special form: quote - return unevaluated
@@ -555,18 +555,18 @@
     (if (call $is_nil (local.get $params))
       (then
         (return (call $make_error
-          (call $cons (call $make_bytes4 (i32.const 0x746F6F20)) ;; "too "
-            (call $cons (call $make_bytes4 (i32.const 0x6D616E79)) ;; "many"
-              (call $cons (call $make_bytes4 (i32.const 0x20617267)) ;; " arg"
+          (call $cons (call $make_bytes4 (i32.const 0x206F6F74)) ;; "too " (little-endian)
+            (call $cons (call $make_bytes4 (i32.const 0x796E616D)) ;; "many" (little-endian)
+              (call $cons (call $make_bytes4 (i32.const 0x67726120)) ;; " arg" (little-endian)
                 (call $cons (call $make_bytes1 (i32.const 0x73)) ;; "s"
                   (call $nil)))))))))
 
     (if (call $is_nil (local.get $args))
       (then
         (return (call $make_error
-          (call $cons (call $make_bytes4 (i32.const 0x746F6F20)) ;; "too "
-            (call $cons (call $make_bytes4 (i32.const 0x66657720)) ;; "few "
-              (call $cons (call $make_bytes4 (i32.const 0x61726773)) ;; "args"
+          (call $cons (call $make_bytes4 (i32.const 0x206F6F74)) ;; "too " (little-endian)
+            (call $cons (call $make_bytes4 (i32.const 0x20776566)) ;; "few " (little-endian)
+              (call $cons (call $make_bytes4 (i32.const 0x73677261)) ;; "args" (little-endian)
                 (call $nil))))))))
 
     ;; Get first param and arg
@@ -814,17 +814,17 @@
 
         ;; Not a function
         (return (call $make_error
-          (call $cons (call $make_bytes4 (i32.const 0x6E6F7420)) ;; "not "
-            (call $cons (call $make_bytes4 (i32.const 0x61206675)) ;; "a fu"
-              (call $cons (call $make_bytes4 (i32.const 0x6E637469)) ;; "ncti"
-                (call $cons (call $make_bytes2 (i32.const 0x6F6E)) ;; "on"
+          (call $cons (call $make_bytes4 (i32.const 0x20746F6E)) ;; "not " (little-endian)
+            (call $cons (call $make_bytes4 (i32.const 0x75662061)) ;; "a fu" (little-endian)
+              (call $cons (call $make_bytes4 (i32.const 0x6974636E)) ;; "ncti" (little-endian)
+                (call $cons (call $make_bytes2 (i32.const 0x6E6F)) ;; "on" (little-endian)
                   (call $nil)))))))))
 
     ;; Invalid expression type
     (call $make_error
-      (call $cons (call $make_bytes4 (i32.const 0x696E7661)) ;; "inva"
-        (call $cons (call $make_bytes4 (i32.const 0x6C696420)) ;; "lid "
-          (call $cons (call $make_bytes4 (i32.const 0x65787072)) ;; "expr"
+      (call $cons (call $make_bytes4 (i32.const 0x61766E69)) ;; "inva" (little-endian)
+        (call $cons (call $make_bytes4 (i32.const 0x2064696C)) ;; "lid " (little-endian)
+          (call $cons (call $make_bytes4 (i32.const 0x72707865)) ;; "expr" (little-endian)
             (call $nil))))))
 
   ;; Create a built-in function value
