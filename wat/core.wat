@@ -720,24 +720,24 @@
         ;; Check for special forms (before evaluating operator)
         (if (i32.eq (call $get_type (local.get $op)) (global.get $t_symbol))
           (then
-            ;; Create symbols for special forms
-            ;; "quote" = 0x71756F7465 (5 bytes)
+            ;; Create symbols for special forms (little-endian byte order)
+            ;; "quote" = "quot" (0x74756F71) + "e" (0x65)
             (local.set $quote_sym
               (call $make_symbol
-                (call $cons (call $make_bytes4 (i32.const 0x71756F74)) ;; "quot"
+                (call $cons (call $make_bytes4 (i32.const 0x746F7571)) ;; "quot"
                   (call $cons (call $make_bytes1 (i32.const 0x65)) ;; "e"
                     (call $nil)))))
 
-            ;; "if" = 0x6966 (2 bytes)
+            ;; "if" = 0x6669 (little-endian for "if")
             (local.set $if_sym
               (call $make_symbol
-                (call $cons (call $make_bytes2 (i32.const 0x6966))
+                (call $cons (call $make_bytes2 (i32.const 0x6669))
                   (call $nil))))
 
-            ;; "label" = 0x6C6162656C (5 bytes)
+            ;; "label" = "labe" (0x6562616C) + "l" (0x6C)
             (local.set $label_sym
               (call $make_symbol
-                (call $cons (call $make_bytes4 (i32.const 0x6C616265)) ;; "labe"
+                (call $cons (call $make_bytes4 (i32.const 0x6562616C)) ;; "labe"
                   (call $cons (call $make_bytes1 (i32.const 0x6C)) ;; "l"
                     (call $nil)))))
 
@@ -756,11 +756,11 @@
             (if (i32.eqz (call $is_nil (local.get $is_label)))
               (then (return (call $eval_label (local.get $args) (local.get $env)))))
 
-            ;; "lambda" = 0x6C616D626461 (6 bytes)
+            ;; "lambda" = "lamb" (0x626D616C) + "da" (0x6164)
             (local.set $lambda_sym
               (call $make_symbol
-                (call $cons (call $make_bytes4 (i32.const 0x6C616D62)) ;; "lamb"
-                  (call $cons (call $make_bytes2 (i32.const 0x6461)) ;; "da"
+                (call $cons (call $make_bytes4 (i32.const 0x626D616C)) ;; "lamb"
+                  (call $cons (call $make_bytes2 (i32.const 0x6164)) ;; "da"
                     (call $nil)))))
 
             ;; Check if operator is "lambda"
@@ -768,10 +768,10 @@
             (if (i32.eqz (call $is_nil (local.get $is_lambda)))
               (then (return (call $eval_lambda (local.get $args) (local.get $env)))))
 
-            ;; "macro" = 0x6D6163726F (5 bytes)
+            ;; "macro" = "macr" (0x7263616D) + "o" (0x6F)
             (local.set $macro_sym
               (call $make_symbol
-                (call $cons (call $make_bytes4 (i32.const 0x6D616372)) ;; "macr"
+                (call $cons (call $make_bytes4 (i32.const 0x7263616D)) ;; "macr"
                   (call $cons (call $make_bytes1 (i32.const 0x6F)) ;; "o"
                     (call $nil)))))
 

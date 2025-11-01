@@ -2,6 +2,8 @@
 
 const fs = require('fs');
 const { execSync } = require('child_process');
+const Reader = require('./reader');
+const Printer = require('./printer');
 
 // Compile WAT to WASM using wat2wasm (from wabt)
 function compileWat(watPath) {
@@ -26,6 +28,12 @@ async function loadWasm(wasmPath) {
 // Test utilities
 let passCount = 0;
 let failCount = 0;
+
+// Helper to create symbols with correct byte order
+function makeSymbol(exports, str) {
+  const reader = new Reader(exports);
+  return reader.makeSymbol(str);
+}
 
 function assert(condition, message) {
   if (condition) {
@@ -212,21 +220,15 @@ async function runTests() {
   // Test symbols
   console.log('\n--- Symbols ---');
 
-  // Create symbol 'foo (3 bytes)
-  const fooBytes = exports.make_bytes3(0x666F6F);  // "foo"
-  const fooChain = exports.cons(fooBytes, nilVal);
-  const symFoo = exports.make_symbol(fooChain);
+  // Create symbol 'foo
+  const symFoo = makeSymbol(exports, 'foo');
   assertEquals(getType(symFoo), 0x02, 'make_symbol creates SYMBOL type');
-  assertEquals(getValue(symFoo), getValue(fooChain), 'symbol points to binary chain');
 
   // Create another symbol 'foo
-  const fooChain2 = exports.cons(exports.make_bytes3(0x666F6F), nilVal);
-  const symFoo2 = exports.make_symbol(fooChain2);
+  const symFoo2 = makeSymbol(exports, 'foo');
 
-  // Create symbol 'bar (3 bytes)
-  const barBytes = exports.make_bytes3(0x626172);  // "bar"
-  const barChain = exports.cons(barBytes, nilVal);
-  const symBar = exports.make_symbol(barChain);
+  // Create symbol 'bar
+  const symBar = makeSymbol(exports, 'bar');
 
   // Test symbol equality
   const eqFooFoo = exports.symbol_equal(symFoo, symFoo2);
@@ -235,19 +237,11 @@ async function runTests() {
   const eqFooBar = exports.symbol_equal(symFoo, symBar);
   assertEquals(eqFooBar, 0n, 'symbol_equal("foo", "bar") returns false');
 
-  // Multi-byte symbol: 'hello (5 bytes = BYTES4 + BYTES1)
-  const helloChain = exports.cons(
-    exports.make_bytes4(0x68656C6C),  // "hell"
-    exports.cons(
-      exports.make_bytes1(0x6F),       // "o"
-      nilVal));
-  const symHello = exports.make_symbol(helloChain);
+  // Multi-byte symbol: 'hello
+  const symHello = makeSymbol(exports, 'hello');
   assertEquals(getType(symHello), 0x02, 'multi-byte symbol has SYMBOL type');
 
-  const helloChain2 = exports.cons(
-    exports.make_bytes4(0x68656C6C),
-    exports.cons(exports.make_bytes1(0x6F), nilVal));
-  const symHello2 = exports.make_symbol(helloChain2);
+  const symHello2 = makeSymbol(exports, 'hello');
 
   const eqHello = exports.symbol_equal(symHello, symHello2);
   assert(getValue(eqHello) === 1, 'symbol_equal("hello", "hello") returns true');
@@ -256,7 +250,9 @@ async function runTests() {
   console.log('\n--- Errors ---');
 
   // Create error with message "bad"
-  const badChain = exports.cons(exports.make_bytes3(0x626164), nilVal);
+  const badSym = makeSymbol(exports, 'bad');
+  // Extract binary chain from symbol (same way printer does it)
+  const badChain = (badSym & 0x00000000FFFFFFFFn) | 0x0300000000000000n;
   const errBad = exports.make_error(badChain);
   assertEquals(getType(errBad), 0x06, 'make_error creates ERROR type');
 
@@ -264,7 +260,7 @@ async function runTests() {
   const msgChain = exports.error_message(errBad);
   assertEquals(getType(msgChain), 0x03, 'error_message returns CONS chain');
   const msgBytes = exports.car(msgChain);
-  assertEquals(getValue(msgBytes), 0x626164, 'error message contains "bad"');
+  assertEquals(getValue(msgBytes), 0x646162, 'error message contains "bad" (little-endian)');
 
   // Test environment operations
   console.log('\n--- Environment Operations ---');
@@ -291,7 +287,7 @@ async function runTests() {
   assertEquals(lookupBar, num1, 'lookup finds second binding');
 
   // Lookup non-existent symbol
-  const symBaz = exports.make_symbol(exports.cons(exports.make_bytes3(0x62617A), nilVal)); // "baz"
+  const symBaz = makeSymbol(exports, 'baz');
   const lookupBaz = exports.lookup(symBaz, env);
   assertEquals(getType(lookupBaz), 0x06, 'lookup returns ERROR for undefined symbol');
 
@@ -333,8 +329,8 @@ async function runTests() {
   assertEquals(getType(builtinCons), 0x07, 'make_builtin creates BUILTIN type');
 
   // Add built-ins to environment
-  const symCons = exports.make_symbol(exports.cons(exports.make_bytes4(0x636F6E73), nilVal)); // "cons"
-  const symCar = exports.make_symbol(exports.cons(exports.make_bytes3(0x636172), nilVal));    // "car"
+  const symCons = makeSymbol(exports, 'cons');
+  const symCar = makeSymbol(exports, 'car');
 
   env = exports.extend(symCons, builtinCons, env);
   env = exports.extend(symCar, builtinCar, env);
@@ -368,8 +364,7 @@ async function runTests() {
   env = nilVal;
 
   // quote
-  const symQuote = exports.make_symbol(exports.cons(exports.make_bytes4(0x71756F74),
-    exports.cons(exports.make_bytes1(0x65), nilVal))); // "quote"
+  const symQuote = makeSymbol(exports, 'quote');
 
   // (quote 42) -> 42 (unevaluated)
   const quoteExpr = exports.cons(symQuote, exports.cons(num42, nilVal));
@@ -389,7 +384,7 @@ async function runTests() {
   assertEquals(quoteListResult, list123, 'eval((quote (1 2 3))) returns list unevaluated');
 
   // if
-  const symIf = exports.make_symbol(exports.cons(exports.make_bytes2(0x6966), nilVal)); // "if"
+  const symIf = makeSymbol(exports, 'if');
 
   // (if 1 2 3) -> 2 (condition is truthy)
   const ifTrue = exports.cons(symIf,
@@ -408,8 +403,7 @@ async function runTests() {
   assertEquals(getValue(ifFalseResult), 3, 'eval((if nil 2 3)) returns else branch');
 
   // label
-  const symLabel = exports.make_symbol(exports.cons(exports.make_bytes4(0x6C616265),
-    exports.cons(exports.make_bytes1(0x6C), nilVal))); // "label"
+  const symLabel = makeSymbol(exports, 'label');
 
   // (label x 42 x) -> 42
   const labelExpr = exports.cons(symLabel,
@@ -420,8 +414,8 @@ async function runTests() {
   assertEquals(labelResult, num42, 'eval((label x 42 x)) binds and returns value');
 
   // (label x 10 (label y 20 (cons x y))) -> (10 . 20)
-  const symX = exports.make_symbol(exports.cons(exports.make_bytes1(0x78), nilVal)); // "x"
-  const symY = exports.make_symbol(exports.cons(exports.make_bytes1(0x79), nilVal)); // "y"
+  const symX = makeSymbol(exports, 'x');
+  const symY = makeSymbol(exports, 'y');
   env = exports.extend(symCons, builtinCons, nilVal); // Need cons in env
 
   const innerLabel = exports.cons(symLabel,
@@ -449,8 +443,7 @@ async function runTests() {
   env = exports.extend(symCons, builtinCons, env);
   env = exports.extend(symCar, builtinCar, env);
 
-  const symLambda = exports.make_symbol(exports.cons(exports.make_bytes4(0x6C616D62),
-    exports.cons(exports.make_bytes2(0x6461), nilVal))); // "lambda"
+  const symLambda = makeSymbol(exports, 'lambda');
 
   // Create lambda: (lambda (x) x)
   const params = exports.cons(symX, nilVal);  // (x)
@@ -515,8 +508,7 @@ async function runTests() {
   // Test macro
   console.log('\n--- Macro ---');
 
-  const symMacro = exports.make_symbol(exports.cons(exports.make_bytes4(0x6D616372),
-    exports.cons(exports.make_bytes1(0x6F), nilVal))); // "macro"
+  const symMacro = makeSymbol(exports, 'macro');
 
   // Create macro: (macro (x) (cons (quote cons) (cons x (cons x nil))))
   // This builds the list (cons x x) as data
@@ -537,7 +529,7 @@ async function runTests() {
   assertEquals(getType(dupMacro), 0x05, 'eval((macro (x) (cons x x))) creates MACRO type');
 
   // Store macro in environment
-  const symDup = exports.make_symbol(exports.cons(exports.make_bytes3(0x647570), nilVal)); // "dup"
+  const symDup = makeSymbol(exports, 'dup');
   env = exports.extend(symDup, dupMacro, env);
 
   // Debug: lookup dup directly
@@ -570,6 +562,68 @@ async function runTests() {
         exports.cons(num3, nilVal))));  // ((lambda (x y) ...) 1 2 3)
   const tooManyResult = exports.eval(tooManyArgs, env);
   assertEquals(getType(tooManyResult), 0x06, 'too many args returns error');
+
+  // Test reader/printer
+  console.log('\n--- Reader/Printer ---');
+
+  const reader = new Reader(exports);
+  const printer = new Printer(exports);
+
+  // Reset environment with built-ins for reader tests
+  env = nilVal;
+  env = exports.extend(symCons, builtinCons, env);
+  env = exports.extend(symCar, builtinCar, env);
+
+  // Read numbers
+  const readNum = reader.read('42');
+  assertEquals(getType(readNum), 0x01, 'read("42") creates NUMBER');
+  assertEquals(getValue(readNum), 42, 'read("42") has value 42');
+  assertEquals(printer.print(readNum), '42', 'print(42) returns "42"');
+
+  // Read negative numbers
+  const readNeg = reader.read('-5');
+  assertEquals(printer.print(readNeg), '-5', 'print(-5) returns "-5"');
+
+  // Read symbols
+  const readSym = reader.read('foo');
+  assertEquals(getType(readSym), 0x02, 'read("foo") creates SYMBOL');
+  assertEquals(printer.print(readSym), 'foo', 'print(foo) returns "foo"');
+
+  // Read nil
+  const readNil = reader.read('nil');
+  assertEquals(printer.print(readNil), 'nil', 'print(nil) returns "nil"');
+
+  // Read simple list
+  const readList = reader.read('(1 2 3)');
+  assertEquals(getType(readList), 0x03, 'read("(1 2 3)") creates CONS');
+  assertEquals(printer.print(readList), '(1 2 3)', 'print((1 2 3)) returns "(1 2 3)"');
+
+  // Read nested list
+  const readNested = reader.read('(cons (cons 1 2) 3)');
+  assertEquals(printer.print(readNested), '(cons (cons 1 2) 3)', 'nested list round-trips');
+
+  // Read quoted expression
+  const readQuoted = reader.read("'foo");
+  assertEquals(printer.print(readQuoted), '(quote foo)', 'quote shorthand expands');
+
+  // Debug: Check symbol equality
+  const readerCons = reader.makeSymbol('cons');
+  console.log('Reader cons:', printer.print(readerCons));
+  console.log('Manual cons:', printer.print(symCons));
+  assert(printer.print(readerCons) === 'cons', 'reader creates cons symbol');
+  const symEqual = exports.symbol_equal(readerCons, symCons);
+  console.log('Symbols equal:', printer.print(symEqual));
+  assert(getValue(symEqual) === 1, 'reader cons equals manual cons');
+
+  // Read and eval simple expression
+  const readEval = reader.read('(cons 1 2)');
+  const evalResult = exports.eval(readEval, env);
+  assertEquals(printer.print(evalResult), '(1 . 2)', 'read+eval+print works');
+
+  // Read and eval lambda
+  const readLambda = reader.read('((lambda (x) x) 99)');
+  const lambdaResult = exports.eval(readLambda, env);
+  assertEquals(printer.print(lambdaResult), '99', 'lambda through reader works');
 
   // Print summary
   console.log('\n' + '='.repeat(50));
