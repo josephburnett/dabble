@@ -490,6 +490,181 @@
     ;; Evaluate body in new environment
     (call $eval (local.get $body) (local.get $new_env)))
 
+  ;; Special form: lambda - create function closure
+  ;; Structure: (params . (body . env))
+  (func $eval_lambda (param $args i64) (param $env i64) (result i64)
+    (local $params i64)
+    (local $body i64)
+    (local $closure i64)
+
+    ;; Get params and body
+    (local.set $params (call $car (local.get $args)))
+    (local.set $body (call $car (call $cdr (local.get $args))))
+
+    ;; Create closure: (params . (body . env))
+    (local.set $closure
+      (call $cons
+        (local.get $params)
+        (call $cons
+          (local.get $body)
+          (local.get $env))))
+
+    ;; Tag as LAMBDA
+    (i64.or
+      (i64.and (local.get $closure) (i64.const 0x00000000FFFFFFFF))
+      (i64.const 0x0400000000000000)))
+
+  ;; Special form: macro - create macro closure
+  ;; Structure: (params . (body . env))
+  (func $eval_macro (param $args i64) (param $env i64) (result i64)
+    (local $params i64)
+    (local $body i64)
+    (local $closure i64)
+
+    ;; Get params and body
+    (local.set $params (call $car (local.get $args)))
+    (local.set $body (call $car (call $cdr (local.get $args))))
+
+    ;; Create closure: (params . (body . env))
+    (local.set $closure
+      (call $cons
+        (local.get $params)
+        (call $cons
+          (local.get $body)
+          (local.get $env))))
+
+    ;; Tag as MACRO
+    (i64.or
+      (i64.and (local.get $closure) (i64.const 0x00000000FFFFFFFF))
+      (i64.const 0x0500000000000000)))
+
+  ;; Bind parameters to arguments
+  ;; Returns new environment with params bound to args
+  (func $bind_params (param $params i64) (param $args i64) (param $env i64) (result i64)
+    (local $param i64)
+    (local $arg i64)
+    (local $rest_params i64)
+    (local $rest_args i64)
+    (local $new_env i64)
+
+    ;; Base case: both nil
+    (if (i32.and (call $is_nil (local.get $params)) (call $is_nil (local.get $args)))
+      (then (return (local.get $env))))
+
+    ;; Error: mismatched argument count
+    (if (call $is_nil (local.get $params))
+      (then
+        (return (call $make_error
+          (call $cons (call $make_bytes4 (i32.const 0x746F6F20)) ;; "too "
+            (call $cons (call $make_bytes4 (i32.const 0x6D616E79)) ;; "many"
+              (call $cons (call $make_bytes4 (i32.const 0x20617267)) ;; " arg"
+                (call $cons (call $make_bytes1 (i32.const 0x73)) ;; "s"
+                  (call $nil)))))))))
+
+    (if (call $is_nil (local.get $args))
+      (then
+        (return (call $make_error
+          (call $cons (call $make_bytes4 (i32.const 0x746F6F20)) ;; "too "
+            (call $cons (call $make_bytes4 (i32.const 0x66657720)) ;; "few "
+              (call $cons (call $make_bytes4 (i32.const 0x61726773)) ;; "args"
+                (call $nil))))))))
+
+    ;; Get first param and arg
+    (local.set $param (call $car (local.get $params)))
+    (local.set $arg (call $car (local.get $args)))
+
+    ;; Get rest
+    (local.set $rest_params (call $cdr (local.get $params)))
+    (local.set $rest_args (call $cdr (local.get $args)))
+
+    ;; Extend environment with this binding
+    (local.set $new_env (call $extend (local.get $param) (local.get $arg) (local.get $env)))
+
+    ;; Recursively bind rest
+    (call $bind_params (local.get $rest_params) (local.get $rest_args) (local.get $new_env)))
+
+  ;; Apply lambda to arguments
+  (func $apply_lambda (param $lambda i64) (param $args i64) (param $env i64) (result i64)
+    (local $closure_ptr i64)
+    (local $params i64)
+    (local $body i64)
+    (local $captured_env i64)
+    (local $evaled_args i64)
+    (local $new_env i64)
+
+    ;; Convert LAMBDA to CONS to access closure
+    (local.set $closure_ptr
+      (i64.or
+        (i64.and (local.get $lambda) (i64.const 0x00000000FFFFFFFF))
+        (i64.const 0x0300000000000000)))
+
+    ;; Extract closure components
+    (local.set $params (call $car (local.get $closure_ptr)))
+    (local.set $body (call $car (call $cdr (local.get $closure_ptr))))
+    (local.set $captured_env (call $cdr (call $cdr (local.get $closure_ptr))))
+
+    ;; Evaluate arguments
+    (local.set $evaled_args (call $eval_args (local.get $args) (local.get $env)))
+
+    ;; Check for error
+    (if (i32.eq (call $get_type (local.get $evaled_args)) (global.get $t_error))
+      (then (return (local.get $evaled_args))))
+
+    ;; Bind parameters to values in captured environment
+    (local.set $new_env
+      (call $bind_params
+        (local.get $params)
+        (local.get $evaled_args)
+        (local.get $captured_env)))
+
+    ;; Check for error in binding
+    (if (i32.eq (call $get_type (local.get $new_env)) (global.get $t_error))
+      (then (return (local.get $new_env))))
+
+    ;; Evaluate body in new environment
+    (call $eval (local.get $body) (local.get $new_env)))
+
+  ;; Apply macro to arguments
+  (func $apply_macro (param $macro i64) (param $args i64) (param $env i64) (result i64)
+    (local $closure_ptr i64)
+    (local $params i64)
+    (local $body i64)
+    (local $captured_env i64)
+    (local $new_env i64)
+    (local $expansion i64)
+
+    ;; Convert MACRO to CONS to access closure
+    (local.set $closure_ptr
+      (i64.or
+        (i64.and (local.get $macro) (i64.const 0x00000000FFFFFFFF))
+        (i64.const 0x0300000000000000)))
+
+    ;; Extract closure components
+    (local.set $params (call $car (local.get $closure_ptr)))
+    (local.set $body (call $car (call $cdr (local.get $closure_ptr))))
+    (local.set $captured_env (call $cdr (call $cdr (local.get $closure_ptr))))
+
+    ;; Bind parameters to UNEVALUATED arguments in captured environment
+    (local.set $new_env
+      (call $bind_params
+        (local.get $params)
+        (local.get $args)  ;; Note: args NOT evaluated
+        (local.get $captured_env)))
+
+    ;; Check for error in binding
+    (if (i32.eq (call $get_type (local.get $new_env)) (global.get $t_error))
+      (then (return (local.get $new_env))))
+
+    ;; Evaluate body to get expansion
+    (local.set $expansion (call $eval (local.get $body) (local.get $new_env)))
+
+    ;; Check for error
+    (if (i32.eq (call $get_type (local.get $expansion)) (global.get $t_error))
+      (then (return (local.get $expansion))))
+
+    ;; Evaluate the expansion in original environment
+    (call $eval (local.get $expansion) (local.get $env)))
+
   ;; Main evaluation function
   (func $eval (export "eval") (param $expr i64) (param $env i64) (result i64)
     (local $type i32)
@@ -502,9 +677,13 @@
     (local $quote_sym i64)
     (local $if_sym i64)
     (local $label_sym i64)
+    (local $lambda_sym i64)
+    (local $macro_sym i64)
     (local $is_quote i64)
     (local $is_if i64)
     (local $is_label i64)
+    (local $is_lambda i64)
+    (local $is_macro i64)
 
     (local.set $type (call $get_type (local.get $expr)))
 
@@ -516,6 +695,11 @@
     (if (i32.eq (local.get $type) (global.get $t_error))
       (then (return (local.get $expr))))
     (if (i32.eq (local.get $type) (global.get $t_builtin))
+      (then (return (local.get $expr))))
+    ;; Lambda and Macro are self-evaluating (closures)
+    (if (i32.eq (local.get $type) (global.get $t_lambda))
+      (then (return (local.get $expr))))
+    (if (i32.eq (local.get $type) (global.get $t_macro))
       (then (return (local.get $expr))))
 
     ;; Symbol - lookup in environment
@@ -570,7 +754,31 @@
             ;; Check if operator is "label"
             (local.set $is_label (call $symbol_equal (local.get $op) (local.get $label_sym)))
             (if (i32.eqz (call $is_nil (local.get $is_label)))
-              (then (return (call $eval_label (local.get $args) (local.get $env)))))))
+              (then (return (call $eval_label (local.get $args) (local.get $env)))))
+
+            ;; "lambda" = 0x6C616D626461 (6 bytes)
+            (local.set $lambda_sym
+              (call $make_symbol
+                (call $cons (call $make_bytes4 (i32.const 0x6C616D62)) ;; "lamb"
+                  (call $cons (call $make_bytes2 (i32.const 0x6461)) ;; "da"
+                    (call $nil)))))
+
+            ;; Check if operator is "lambda"
+            (local.set $is_lambda (call $symbol_equal (local.get $op) (local.get $lambda_sym)))
+            (if (i32.eqz (call $is_nil (local.get $is_lambda)))
+              (then (return (call $eval_lambda (local.get $args) (local.get $env)))))
+
+            ;; "macro" = 0x6D6163726F (5 bytes)
+            (local.set $macro_sym
+              (call $make_symbol
+                (call $cons (call $make_bytes4 (i32.const 0x6D616372)) ;; "macr"
+                  (call $cons (call $make_bytes1 (i32.const 0x6F)) ;; "o"
+                    (call $nil)))))
+
+            ;; Check if operator is "macro"
+            (local.set $is_macro (call $symbol_equal (local.get $op) (local.get $macro_sym)))
+            (if (i32.eqz (call $is_nil (local.get $is_macro)))
+              (then (return (call $eval_macro (local.get $args) (local.get $env)))))))
 
         ;; Not a special form - evaluate operator
         (local.set $op_val (call $eval (local.get $op) (local.get $env)))
@@ -595,6 +803,14 @@
             ;; Apply built-in
             (local.set $fn_id (call $get_value (local.get $op_val)))
             (return (call $apply_builtin (local.get $fn_id) (local.get $evaled_args)))))
+
+        ;; Lambda
+        (if (i32.eq (local.get $op_type) (global.get $t_lambda))
+          (then (return (call $apply_lambda (local.get $op_val) (local.get $args) (local.get $env)))))
+
+        ;; Macro
+        (if (i32.eq (local.get $op_type) (global.get $t_macro))
+          (then (return (call $apply_macro (local.get $op_val) (local.get $args) (local.get $env)))))
 
         ;; Not a function
         (return (call $make_error

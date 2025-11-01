@@ -441,6 +441,136 @@ async function runTests() {
   assertEquals(getValue(exports.car(nestedLabelResult)), 10, 'nested label car is 10');
   assertEquals(getValue(exports.cdr(nestedLabelResult)), 20, 'nested label cdr is 20');
 
+  // Test lambda and macro
+  console.log('\n--- Lambda ---');
+
+  // Reset environment with built-ins
+  env = nilVal;
+  env = exports.extend(symCons, builtinCons, env);
+  env = exports.extend(symCar, builtinCar, env);
+
+  const symLambda = exports.make_symbol(exports.cons(exports.make_bytes4(0x6C616D62),
+    exports.cons(exports.make_bytes2(0x6461), nilVal))); // "lambda"
+
+  // Create lambda: (lambda (x) x)
+  const params = exports.cons(symX, nilVal);  // (x)
+  const body = symX;  // x
+  const lambdaExpr = exports.cons(symLambda,
+    exports.cons(params,
+      exports.cons(body, nilVal)));
+
+  const identityFn = exports.eval(lambdaExpr, env);
+  assertEquals(getType(identityFn), 0x04, 'eval((lambda (x) x)) creates LAMBDA type');
+
+  // Apply identity function: ((lambda (x) x) 42)
+  const applyIdentity = exports.cons(lambdaExpr,
+    exports.cons(num42, nilVal));
+  const identityResult = exports.eval(applyIdentity, env);
+  assertEquals(getValue(identityResult), 42, 'eval(((lambda (x) x) 42)) returns 42');
+
+  // Lambda with two params: (lambda (x y) (cons x y))
+  const params2 = exports.cons(symX, exports.cons(symY, nilVal));  // (x y)
+  const consBody = exports.cons(symCons,
+    exports.cons(symX,
+      exports.cons(symY, nilVal)));  // (cons x y)
+  const pairFnExpr = exports.cons(symLambda,
+    exports.cons(params2,
+      exports.cons(consBody, nilVal)));
+
+  const applyPair = exports.cons(pairFnExpr,
+    exports.cons(num1,
+      exports.cons(num2, nilVal)));  // ((lambda (x y) (cons x y)) 1 2)
+  const pairResult = exports.eval(applyPair, env);
+  assertEquals(getType(pairResult), 0x03, '((lambda (x y) (cons x y)) 1 2) returns CONS');
+  assertEquals(getValue(exports.car(pairResult)), 1, 'car is 1');
+  assertEquals(getValue(exports.cdr(pairResult)), 2, 'cdr is 2');
+
+  // Lambda with closure: (label x 10 (lambda (y) (cons x y)))
+  const closureLambda = exports.cons(symLambda,
+    exports.cons(exports.cons(symY, nilVal),
+      exports.cons(exports.cons(symCons,
+        exports.cons(symX,
+          exports.cons(symY, nilVal))), nilVal)));
+
+  const closureExpr = exports.cons(symLabel,
+    exports.cons(symX,
+      exports.cons(num10,
+        exports.cons(closureLambda, nilVal))));  // (label x 10 (lambda (y) (cons x y)))
+
+  const closureFn = exports.eval(closureExpr, env);
+  assertEquals(getType(closureFn), 0x04, 'lambda with closure creates LAMBDA');
+
+  // Apply closure: ((label x 10 (lambda (y) (cons x y))) 20)
+  const applyClosureExpr = exports.cons(symLabel,
+    exports.cons(symX,
+      exports.cons(num10,
+        exports.cons(exports.cons(closureLambda,
+          exports.cons(num20, nilVal)), nilVal))));
+
+  const closureResult = exports.eval(applyClosureExpr, env);
+  assertEquals(getType(closureResult), 0x03, 'lambda closure application returns CONS');
+  assertEquals(getValue(exports.car(closureResult)), 10, 'closure captured x=10');
+  assertEquals(getValue(exports.cdr(closureResult)), 20, 'argument y=20');
+
+  // Test macro
+  console.log('\n--- Macro ---');
+
+  const symMacro = exports.make_symbol(exports.cons(exports.make_bytes4(0x6D616372),
+    exports.cons(exports.make_bytes1(0x6F), nilVal))); // "macro"
+
+  // Create macro: (macro (x) (cons (quote cons) (cons x (cons x nil))))
+  // This builds the list (cons x x) as data
+  const macroParams = exports.cons(symX, nilVal);
+  const quoteConsExpr = exports.cons(symQuote, exports.cons(symCons, nilVal));  // (quote cons)
+  const macroBody = exports.cons(symCons,
+    exports.cons(quoteConsExpr,
+      exports.cons(exports.cons(symCons,
+        exports.cons(symX,
+          exports.cons(exports.cons(symCons,
+            exports.cons(symX, exports.cons(nilVal, nilVal))), nilVal))), nilVal)));  // (cons (quote cons) (cons x (cons x nil)))
+
+  const dupMacroExpr = exports.cons(symMacro,
+    exports.cons(macroParams,
+      exports.cons(macroBody, nilVal)));
+
+  const dupMacro = exports.eval(dupMacroExpr, env);
+  assertEquals(getType(dupMacro), 0x05, 'eval((macro (x) (cons x x))) creates MACRO type');
+
+  // Store macro in environment
+  const symDup = exports.make_symbol(exports.cons(exports.make_bytes3(0x647570), nilVal)); // "dup"
+  env = exports.extend(symDup, dupMacro, env);
+
+  // Debug: lookup dup directly
+  const lookedUpDup = exports.lookup(symDup, env);
+  assertEquals(getType(lookedUpDup), 0x05, 'lookup(dup) returns MACRO type');
+  assertEquals(lookedUpDup, dupMacro, 'lookup(dup) returns same macro');
+
+  // Apply macro: (dup 5) -> (cons 5 5) -> (5 . 5)
+  const applyMacro = exports.cons(symDup,
+    exports.cons(exports.make_number(5), nilVal));
+
+  const macroResult = exports.eval(applyMacro, env);
+  assertEquals(getType(macroResult), 0x03, '(dup 5) returns CONS');
+  assertEquals(getValue(exports.car(macroResult)), 5, 'macro expansion car is 5');
+  assertEquals(getValue(exports.cdr(macroResult)), 5, 'macro expansion cdr is 5');
+
+  // Error cases
+  console.log('\n--- Error Cases ---');
+
+  // Too few arguments
+  const tooFewArgs = exports.cons(pairFnExpr,
+    exports.cons(num1, nilVal));  // ((lambda (x y) ...) 1)
+  const tooFewResult = exports.eval(tooFewArgs, env);
+  assertEquals(getType(tooFewResult), 0x06, 'too few args returns error');
+
+  // Too many arguments
+  const tooManyArgs = exports.cons(pairFnExpr,
+    exports.cons(num1,
+      exports.cons(num2,
+        exports.cons(num3, nilVal))));  // ((lambda (x y) ...) 1 2 3)
+  const tooManyResult = exports.eval(tooManyArgs, env);
+  assertEquals(getType(tooManyResult), 0x06, 'too many args returns error');
+
   // Print summary
   console.log('\n' + '='.repeat(50));
   console.log(`Tests passed: ${passCount}`);
